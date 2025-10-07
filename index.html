@@ -761,8 +761,8 @@
         const ADMIN_PASSWORD = 'password';
         
         const WEBHOOK_URL = 'https://n8n.intelechia.com/webhook/gallery';
-        const CREATE_WEBHOOK_URL = 'https://n8n.intelechia.com/webhook-test/create-gallery';
-        const EDIT_WEBHOOK_URL = 'https://n8n.intelechia.com/webhook-test/edit-gallery';
+        const CREATE_WEBHOOK_URL = 'https://n8n.intelechia.com/webhook/create-gallery';
+        const EDIT_WEBHOOK_URL = 'https://n8n.intelechia.com/webhook/edit-gallery';
         
         let scene, camera, renderer;
         let museum, artworks = [];
@@ -818,16 +818,35 @@
                 }
                 
                 const data = await response.json();
-                console.log('Loaded artworks:', data);
+                console.log('Loaded data from webhook:', data);
                 
+                // Filter for ONLY artwork records (have Title, Artist, Type, and Art fields)
                 const artworkRecords = data.filter(record => 
-                    record.Title && (record.Type === 'Image' || record.Type === '3D Model')
+                    record.Title && 
+                    record.Artist && 
+                    record.Type && 
+                    record.Art && 
+                    record.Art.length > 0 &&
+                    !record['Location ID'] && // Exclude location records
+                    !record['Exhibition ID'] // Exclude exhibition records
                 );
                 
+                console.log('Filtered artwork records:', artworkRecords);
+                
                 for (const record of artworkRecords) {
-                    const artFile = record.Art && record.Art.length > 0 ? record.Art[0] : null;
+                    // Skip if not currently placed
+                    if (!record['Currently Placed']) {
+                        console.log(`Skipping ${record.Title} - not currently placed`);
+                        continue;
+                    }
                     
-                    if (!artFile || !record['Currently Placed']) continue;
+                    // Get art file from Art field (array of attachments)
+                    const artFile = record.Art[0]; // Get first attachment
+                    
+                    if (!artFile || !artFile.url) {
+                        console.warn(`No art file for ${record.Title}`);
+                        continue;
+                    }
                     
                     const metadata = {
                         title: record.Title || '',
@@ -835,7 +854,13 @@
                         description: record.Description || ''
                     };
                     
-                    const locationName = record['Location Name'] ? record['Location Name'][0] : null;
+                    // Get location name from Location Name field (it's an array)
+                    const locationName = record['Location Name'] && record['Location Name'].length > 0 
+                        ? record['Location Name'][0] 
+                        : null;
+                    
+                    console.log(`Processing ${record.Title}, Location Name:`, locationName);
+                    
                     const locationId = mapLocationNameToId(locationName);
                     
                     if (!locationId) {
@@ -843,10 +868,14 @@
                         continue;
                     }
                     
-                    const height = (record['Height (feet)'] || 3) * 0.3048;
+                    // Convert height from inches to meters
+                    const heightInches = record['Height (inches)'] || 36;
+                    const heightMeters = heightInches * 0.0254;
+                    
+                    console.log(`Loading ${record.Title} at ${locationId}, height: ${heightInches}" (${heightMeters}m)`);
                     
                     if (record.Type === 'Image') {
-                        await loadImageFromURL(artFile.url, locationId, height, metadata, record.id);
+                        await loadImageFromURL(artFile.url, locationId, heightMeters, metadata, record.id);
                     }
                 }
                 
@@ -1733,6 +1762,29 @@
             selectedLocation = null;
         }
         
+        function mapLocationNameToId(locationName) {
+            if (!locationName) return null;
+            
+            // First check if it's already an internal ID format
+            const validIds = ['back-1', 'back-2', 'back-3', 'left-1', 'left-2', 'right-1', 'right-2'];
+            if (validIds.includes(locationName)) {
+                return locationName;
+            }
+            
+            // Otherwise, map display names to IDs
+            const locationMap = {
+                'Back Left Wall': 'back-1',
+                'Back Center Wall': 'back-2',
+                'Back Right Wall': 'back-3',
+                'Left Front': 'left-1',
+                'Left Back': 'left-2',
+                'Right Front': 'right-1',
+                'Right Back': 'right-2'
+            };
+            
+            return locationMap[locationName] || null;
+        }
+        
         function mapLocationIdToName(locationId) {
             const locationMap = {
                 'back-1': 'Back Left Wall',
@@ -1741,13 +1793,7 @@
                 'left-1': 'Left Front',
                 'left-2': 'Left Back',
                 'right-1': 'Right Front',
-                'right-2': 'Right Back',
-                'floor-1': 'Front Left',
-                'floor-2': 'Front Center',
-                'floor-3': 'Front Right',
-                'floor-4': 'Rear Left',
-                'floor-5': 'Rear Right',
-                'floor-center': 'Center Stage'
+                'right-2': 'Right Back'
             };
             
             return locationMap[locationId] || null;
