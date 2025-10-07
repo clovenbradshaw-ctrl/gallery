@@ -796,6 +796,28 @@
         const WEBHOOK_URL = 'https://n8n.intelechia.com/webhook/gallery';
         const CREATE_WEBHOOK_URL = 'https://n8n.intelechia.com/webhook/create-gallery';
         const EDIT_WEBHOOK_URL = 'https://n8n.intelechia.com/webhook/edit-gallery';
+
+        const LOCATION_NAME_TO_ID_MAP = {
+            'Back Left Wall': 'back-1',
+            'Back Center Wall': 'back-2',
+            'Back Right Wall': 'back-3',
+            'Left Front': 'left-1',
+            'Left Back': 'left-2',
+            'Right Front': 'right-1',
+            'Right Back': 'right-2',
+            'Front Left': 'floor-1',
+            'Front Center': 'floor-2',
+            'Front Right': 'floor-3',
+            'Rear Left': 'floor-4',
+            'Rear Right': 'floor-5',
+            'Center Stage': 'floor-center'
+        };
+
+        const LOCATION_ID_TO_NAME_MAP = Object.keys(LOCATION_NAME_TO_ID_MAP).reduce((acc, name) => {
+            const id = LOCATION_NAME_TO_ID_MAP[name];
+            acc[id] = name;
+            return acc;
+        }, {});
         
         let scene, camera, renderer;
         let museum, artworks = [];
@@ -922,28 +944,6 @@
             }
         }
         
-        function mapLocationNameToId(locationName) {
-            if (!locationName) return null;
-            
-            const locationMap = {
-                'Back Left Wall': 'back-1',
-                'Back Center Wall': 'back-2',
-                'Back Right Wall': 'back-3',
-                'Left Front': 'left-1',
-                'Left Back': 'left-2',
-                'Right Front': 'right-1',
-                'Right Back': 'right-2',
-                'Front Left': 'floor-1',
-                'Front Center': 'floor-2',
-                'Front Right': 'floor-3',
-                'Rear Left': 'floor-4',
-                'Rear Right': 'floor-5',
-                'Center Stage': 'floor-center'
-            };
-            
-            return locationMap[locationName] || null;
-        }
-        
         async function loadImageFromURL(url, locationId, height, metadata, airtableId) {
             const wallSpot = wallSpots.find(s => s.userData.id === locationId);
             if (!wallSpot || wallSpot.userData.occupied) return;
@@ -966,29 +966,92 @@
             });
         }
         
+        function generateArtworkId(title) {
+            const base = (title || 'artwork').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+            const slug = base || 'artwork';
+            const randomSegment = Math.random().toString(36).substring(2, 8).toUpperCase();
+            return `${slug}-${randomSegment}`;
+        }
+
+        function sanitizeFileName(name) {
+            const base = (name || 'artwork').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+            return base || 'artwork';
+        }
+
+        function roundToTwoDecimals(value) {
+            if (typeof value !== 'number' || !isFinite(value)) {
+                return undefined;
+            }
+            return Math.round(value * 100) / 100;
+        }
+
         async function createArtworkInAirtable(artworkData) {
             console.log('=== CREATE ARTWORK IN AIRTABLE ===');
             console.log('Is Admin?:', isAdmin);
             console.log('Artwork Data:', artworkData);
-            
+
             if (!isAdmin) {
                 console.log('Not admin, skipping Airtable save');
                 return null;
             }
-            
+
+            const heightFeet = typeof artworkData.heightFeet === 'number' ? artworkData.heightFeet : undefined;
+            const heightInches = heightFeet !== undefined ? heightFeet * 12 : undefined;
+            const aspectRatio = typeof artworkData.aspectRatio === 'number' && artworkData.aspectRatio > 0
+                ? artworkData.aspectRatio
+                : null;
+            const widthInches = aspectRatio && heightInches !== undefined ? heightInches * aspectRatio : null;
+
+            let fileExtension = '';
+            if (artworkData.imageUrl) {
+                const urlWithoutQuery = artworkData.imageUrl.split('?')[0];
+                const extensionMatch = urlWithoutQuery.match(/\.([a-z0-9]+)$/i);
+                fileExtension = extensionMatch ? extensionMatch[1].toLowerCase() : '';
+            }
+
+            const normalizedExtension = fileExtension || 'jpg';
+            const fileFormat = artworkData.imageUrl ? normalizedExtension.toUpperCase() : '';
+            const attachmentFileName = `${sanitizeFileName(artworkData.originalFileName || artworkData.title)}.${normalizedExtension}`;
+            const attachments = artworkData.imageUrl ? [{
+                url: artworkData.imageUrl,
+                filename: attachmentFileName
+            }] : [];
+
             const payload = {
                 Title: artworkData.title || 'Untitled',
+                'Artwork ID': artworkData.artworkId || generateArtworkId(artworkData.title),
                 Artist: artworkData.artist || '',
                 Description: artworkData.description || '',
-                'Height (feet)': artworkData.heightFeet,
                 Type: artworkData.type,
+                Art: attachments,
+                'File Format': fileFormat,
+                'Date Added': new Date().toISOString(),
                 'Currently Placed': true,
-                Location: artworkData.location ? [artworkData.location] : [],
-                Art: artworkData.imageUrl ? [{
-                    url: artworkData.imageUrl
-                }] : []
+                Location: artworkData.locationId ? [artworkData.locationId] : [],
+                'Location Name': artworkData.locationName ? [artworkData.locationName] : [],
+                Tags: Array.isArray(artworkData.tags) ? artworkData.tags : [],
+                Notes: artworkData.notes || ''
             };
-            
+
+            if (heightFeet !== undefined) {
+                const roundedHeightFeet = roundToTwoDecimals(heightFeet);
+                if (roundedHeightFeet !== undefined) {
+                    payload['Height (feet)'] = roundedHeightFeet;
+                }
+            }
+
+            if (heightInches !== undefined) {
+                const roundedHeightInches = roundToTwoDecimals(heightInches);
+                if (roundedHeightInches !== undefined) {
+                    payload['Height (inches)'] = roundedHeightInches;
+                }
+            }
+
+            const roundedWidthInches = widthInches !== null ? roundToTwoDecimals(widthInches) : undefined;
+            if (roundedWidthInches !== undefined) {
+                payload['Width (inches)'] = roundedWidthInches;
+            }
+
             console.log('Sending to webhook:', CREATE_WEBHOOK_URL);
             console.log('Payload:', payload);
             
@@ -1021,22 +1084,42 @@
         
         async function updateArtworkInAirtable(artworkData) {
             if (!isAdmin) return null;
-            
+
             try {
+                const payload = {
+                    id: artworkData.id,
+                    Title: artworkData.title,
+                    Artist: artworkData.artist,
+                    Description: artworkData.description,
+                    'Currently Placed': artworkData.currentlyPlaced !== undefined ? artworkData.currentlyPlaced : true
+                };
+
+                if (artworkData.heightFeet !== undefined) {
+                    const roundedFeet = roundToTwoDecimals(artworkData.heightFeet);
+                    if (roundedFeet !== undefined) {
+                        payload['Height (feet)'] = roundedFeet;
+                    }
+
+                    const roundedInches = roundToTwoDecimals(artworkData.heightFeet * 12);
+                    if (roundedInches !== undefined) {
+                        payload['Height (inches)'] = roundedInches;
+                    }
+                }
+
+                if (artworkData.location) {
+                    payload.Location = [artworkData.location];
+                }
+
+                if (artworkData.locationName) {
+                    payload['Location Name'] = [artworkData.locationName];
+                }
+
                 const response = await fetch(EDIT_WEBHOOK_URL, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({
-                        id: artworkData.id,
-                        Title: artworkData.title,
-                        Artist: artworkData.artist,
-                        Description: artworkData.description,
-                        'Height (feet)': artworkData.heightFeet,
-                        'Currently Placed': artworkData.currentlyPlaced !== undefined ? artworkData.currentlyPlaced : true,
-                        Location: artworkData.location ? [artworkData.location] : []
-                    })
+                    body: JSON.stringify(payload)
                 });
                 
                 if (!response.ok) {
@@ -1796,13 +1879,13 @@
         }
         
         function mapLocationNameToId(locationName) {
-            // Just return the location ID as-is
-            return locationName;
+            if (!locationName) return null;
+            return LOCATION_NAME_TO_ID_MAP[locationName] || null;
         }
         
         function mapLocationIdToName(locationId) {
-            // Just return the location ID as-is
-            return locationId;
+            if (!locationId) return null;
+            return LOCATION_ID_TO_NAME_MAP[locationId] || null;
         }
         
         function loadImageArtwork(artData, locationId, height, metadata, heightFeet, fileName) {
@@ -1824,15 +1907,18 @@
                         // Send to Airtable
                         const locationName = mapLocationIdToName(locationId);
                         console.log('Mapped location name:', locationName);
-                        
+
                         airtableId = await createArtworkInAirtable({
                             title: metadata.title,
                             artist: metadata.artist,
                             description: metadata.description,
                             heightFeet: heightFeet,
+                            aspectRatio: artData.aspectRatio,
                             type: 'Image',
-                            location: locationName,
-                            imageUrl: artData.imageUrl  // Send URL directly
+                            locationId: locationId,
+                            locationName: locationName,
+                            imageUrl: artData.imageUrl,
+                            originalFileName: fileName
                         });
                         
                         console.log('Returned Airtable ID:', airtableId);
