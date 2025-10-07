@@ -1880,7 +1880,37 @@
         
         function mapLocationNameToId(locationName) {
             if (!locationName) return null;
-            return LOCATION_NAME_TO_ID_MAP[locationName] || null;
+
+            // Direct match against the friendly name (e.g. "Back Left Wall")
+            if (LOCATION_NAME_TO_ID_MAP[locationName]) {
+                return LOCATION_NAME_TO_ID_MAP[locationName];
+            }
+
+            // If the value coming from Airtable is already an ID (e.g. "back-1")
+            // allow it to pass straight through.
+            if (LOCATION_ID_TO_NAME_MAP[locationName]) {
+                return locationName;
+            }
+
+            const normalized = locationName.trim().toLowerCase();
+
+            // Try to match ignoring case/extra whitespace for both the friendly
+            // location names and the raw IDs. This makes the mapping resilient to
+            // differences in how the data is stored in Airtable.
+            for (const [name, id] of Object.entries(LOCATION_NAME_TO_ID_MAP)) {
+                if (name.toLowerCase() === normalized) {
+                    return id;
+                }
+            }
+
+            for (const id of Object.keys(LOCATION_ID_TO_NAME_MAP)) {
+                if (id.toLowerCase() === normalized) {
+                    return id;
+                }
+            }
+
+            console.warn('Could not map location name to ID:', locationName);
+            return null;
         }
         
         function mapLocationIdToName(locationId) {
