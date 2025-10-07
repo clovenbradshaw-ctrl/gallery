@@ -92,18 +92,6 @@
             border-radius: 8px;
         }
         
-        .airtable-config input {
-            width: 100%;
-            padding: 8px;
-            margin: 5px 0;
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            background: rgba(255, 255, 255, 0.1);
-            color: white;
-            border-radius: 4px;
-            box-sizing: border-box;
-            font-size: 12px;
-        }
-        
         .airtable-config button {
             width: 100%;
             padding: 8px;
@@ -238,15 +226,6 @@
             color: #667eea;
         }
         
-        .key {
-            display: inline-block;
-            background: rgba(255, 255, 255, 0.1);
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-family: monospace;
-            margin: 0 2px;
-        }
-        
         #vr-button {
             margin-top: 15px;
             width: 100%;
@@ -283,12 +262,6 @@
             background: rgba(255, 255, 255, 0.05);
             border-radius: 6px;
             margin-bottom: 8px;
-            cursor: pointer;
-            transition: background 0.2s;
-        }
-        
-        .art-item:hover {
-            background: rgba(255, 255, 255, 0.1);
         }
         
         .art-thumb {
@@ -341,14 +314,39 @@
             display: block;
         }
         
-        #placement-dialog h3 {
+        #edit-dialog {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.95);
+            padding: 30px;
+            border-radius: 12px;
+            z-index: 300;
+            color: white;
+            min-width: 450px;
+            max-width: 600px;
+            display: none;
+            backdrop-filter: blur(10px);
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        
+        #edit-dialog.active {
+            display: block;
+        }
+        
+        #placement-dialog h3, #edit-dialog h3 {
             margin-top: 0;
             color: #667eea;
         }
         
         #placement-dialog input[type="number"],
         #placement-dialog input[type="text"],
-        #placement-dialog textarea {
+        #placement-dialog textarea,
+        #edit-dialog input[type="number"],
+        #edit-dialog input[type="text"],
+        #edit-dialog textarea {
             width: 100%;
             padding: 8px;
             margin: 5px 0;
@@ -359,26 +357,14 @@
             box-sizing: border-box;
         }
         
-        #placement-dialog textarea {
+        #placement-dialog textarea,
+        #edit-dialog textarea {
             min-height: 60px;
             resize: vertical;
         }
         
-        #placement-dialog select {
-            width: 100%;
-            padding: 8px;
-            margin: 5px 0;
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            background: rgba(0, 0, 0, 0.5);
-            color: white;
-            border-radius: 4px;
-        }
-        
-        #placement-dialog option {
-            background: #000;
-        }
-        
-        #placement-dialog button {
+        #placement-dialog button,
+        #edit-dialog button {
             margin-top: 15px;
             padding: 10px 20px;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -389,11 +375,13 @@
             margin-right: 10px;
         }
         
-        #placement-dialog button:hover {
+        #placement-dialog button:hover,
+        #edit-dialog button:hover {
             transform: translateY(-2px);
         }
         
-        #placement-dialog button.cancel {
+        #placement-dialog button.cancel,
+        #edit-dialog button.cancel {
             background: #666;
         }
         
@@ -627,30 +615,26 @@
         
         <div id="admin-section" style="display: none;">
             <div class="airtable-config">
-                <h3 style="margin-top: 0; color: #667eea; font-size: 1em;">Airtable Configuration</h3>
-                <input type="text" id="airtable-token" placeholder="Personal Access Token" style="font-family: monospace;">
-                <input type="text" id="airtable-base" placeholder="Base ID (appXXXXXXXXXXXXXX)" style="font-family: monospace;">
-                <button onclick="saveAirtableConfig()">Save & Sync</button>
+                <h3 style="margin-top: 0; color: #667eea; font-size: 1em;">Gallery Sync</h3>
+                <button onclick="saveAirtableConfig()">Reload Artworks from Gallery</button>
                 <div id="sync-status" class="sync-status"></div>
             </div>
             
             <div class="control-group">
-                <label for="file-input" class="file-label">
-                    Upload Artwork/3D Model
-                </label>
-                <input type="file" id="file-input" accept="image/*,.obj,.gltf,.glb,.fbx,.stl" multiple>
+                <label>Add Artwork by URL</label>
+                <input type="text" id="image-url-input" placeholder="https://example.com/image.jpg" 
+                       style="width: 100%; padding: 10px; border: 1px solid rgba(255,255,255,0.3); background: rgba(255,255,255,0.1); color: white; border-radius: 6px; box-sizing: border-box; margin: 10px 0;">
+                <button onclick="loadArtworkFromURL()" style="width: 100%; padding: 10px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 500;">
+                    Load Artwork
+                </button>
                 <div class="supported-formats">
-                    Supports: Images, OBJ, GLTF, GLB, FBX, STL
-                </div>
-                
-                <div id="drop-zone">
-                    Drag & drop files here
+                    Enter a direct link to an image (JPG, PNG, GIF, etc.)<br>
+                    Note: Some CDN images may have loading restrictions
                 </div>
             </div>
             
             <div class="spots-indicator">
-                <div>Wall Spots: <span id="wall-spots" class="spot-available">0/0</span></div>
-                <div>Floor Spots: <span id="floor-spots" class="spot-available">0/0</span></div>
+                <div>Available Wall Spots: <span id="wall-spots" class="spot-available">0/0</span></div>
             </div>
             
             <div id="art-queue"></div>
@@ -659,7 +643,8 @@
         <div id="public-section">
             <div class="instructions">
                 <h3>Welcome to the Gallery</h3>
-                Click on any artwork to view details and zoom in.
+                Click on any artwork to view details and zoom in.<br><br>
+                Admins can add artwork by entering image URLs.
             </div>
         </div>
         
@@ -683,22 +668,22 @@
     
     <button id="toggle-ui">Menu</button>
     
-    <div id="placement-dialog">
-        <h3>Artwork Placement</h3>
-        <div id="artwork-name" style="margin-bottom: 15px;"></div>
+            <div id="placement-dialog">
+        <h3>Artwork Details</h3>
+        <div id="artwork-name" style="margin-bottom: 15px; color: #667eea;"></div>
         
         <div id="image-preview" style="display:none; margin-bottom: 15px;">
             <img id="preview-img" style="max-width: 100%; max-height: 150px; border-radius: 6px;">
         </div>
         
         <div class="section-divider">
-            <label>Title: <span class="optional-label">(optional)</span></label>
-            <input type="text" id="title-input" placeholder="Untitled">
+            <label><strong>Title:</strong> <span class="optional-label">(required)</span></label>
+            <input type="text" id="title-input" placeholder="Enter artwork title">
             
-            <label>Artist: <span class="optional-label">(optional)</span></label>
-            <input type="text" id="artist-input" placeholder="Unknown Artist">
+            <label style="margin-top: 15px;"><strong>Artist:</strong> <span class="optional-label">(required)</span></label>
+            <input type="text" id="artist-input" placeholder="Enter artist name">
             
-            <label>Description: <span class="optional-label">(optional)</span></label>
+            <label style="margin-top: 15px;"><strong>Description:</strong> <span class="optional-label">(optional)</span></label>
             <textarea id="description-input" placeholder="Add a description..."></textarea>
         </div>
         
@@ -708,8 +693,8 @@
         </div>
         
         <div class="section-divider">
-            <label id="dimension-label">Height (feet):</label>
-            <input type="number" id="height-input" value="3" min="0.5" max="12" step="0.5">
+            <label id="dimension-label">Height (inches):</label>
+            <input type="number" id="height-input" value="36" min="6" max="144" step="6">
             <div class="dimension-info" id="size-preview"></div>
         </div>
         
@@ -718,6 +703,36 @@
         <div>
             <button onclick="placeArtwork()">Place Artwork</button>
             <button class="cancel" onclick="cancelPlacement()">Cancel</button>
+        </div>
+    </div>
+    
+    <div id="edit-dialog">
+        <h3>Edit Artwork</h3>
+        <div id="edit-artwork-name" style="margin-bottom: 15px;"></div>
+        
+        <div id="edit-image-preview" style="display:none; margin-bottom: 15px;">
+            <img id="edit-preview-img" style="max-width: 100%; max-height: 150px; border-radius: 6px;">
+        </div>
+        
+        <div class="section-divider">
+            <label>Title:</label>
+            <input type="text" id="edit-title-input" placeholder="Untitled">
+            
+            <label>Artist:</label>
+            <input type="text" id="edit-artist-input" placeholder="Unknown Artist">
+            
+            <label>Description:</label>
+            <textarea id="edit-description-input" placeholder="Add a description..."></textarea>
+        </div>
+        
+        <div class="section-divider">
+            <label>Height (inches):</label>
+            <input type="number" id="edit-height-input" value="36" min="6" max="144" step="6">
+        </div>
+        
+        <div>
+            <button onclick="saveArtworkEdit()">Save Changes</button>
+            <button class="cancel" onclick="cancelEdit()">Cancel</button>
         </div>
     </div>
     
@@ -739,26 +754,15 @@
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/OBJLoader.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/FBXLoader.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/STLLoader.js"></script>
     <script>
         let isAdmin = false;
         let escapeCount = 0;
         let escapeTimer = null;
         const ADMIN_PASSWORD = 'password';
         
-        let airtableConfig = {
-            token: localStorage.getItem('airtable_token') || '',
-            baseId: localStorage.getItem('airtable_base') || ''
-        };
-        
-        const TABLES = {
-            ARTWORKS: 'Artworks',
-            ROOMS: 'Rooms',
-            ART_SPACES: 'Art Spaces'
-        };
+        const WEBHOOK_URL = 'https://n8n.intelechia.com/webhook/gallery';
+        const CREATE_WEBHOOK_URL = 'https://n8n.intelechia.com/webhook-test/create-gallery';
+        const EDIT_WEBHOOK_URL = 'https://n8n.intelechia.com/webhook-test/edit-gallery';
         
         let scene, camera, renderer;
         let museum, artworks = [];
@@ -775,61 +779,107 @@
         let placards = [];
         let selectedLocation = null;
         let currentZoom = 1;
+        let currentEditingArtwork = null;
         
-        async function airtableRequest(table, method = 'GET', data = null) {
-            if (!airtableConfig.token || !airtableConfig.baseId) {
-                console.error('Airtable not configured');
-                return null;
-            }
+        function checkAdminPassword() {
+            const password = document.getElementById('admin-password').value;
+            const errorDiv = document.getElementById('auth-error');
             
-            const url = `https://api.airtable.com/v0/${airtableConfig.baseId}/${encodeURIComponent(table)}`;
-            const options = {
-                method: method,
-                headers: {
-                    'Authorization': `Bearer ${airtableConfig.token}`,
-                    'Content-Type': 'application/json'
-                }
-            };
-            
-            if (data && (method === 'POST' || method === 'PATCH')) {
-                options.body = JSON.stringify(data);
-            }
-            
-            try {
-                const response = await fetch(url, options);
-                if (!response.ok) {
-                    throw new Error(`Airtable API error: ${response.status}`);
-                }
-                return await response.json();
-            } catch (error) {
-                console.error('Airtable request failed:', error);
-                return null;
+            if (password === ADMIN_PASSWORD) {
+                isAdmin = true;
+                closeAdminAuth();
+                showAdminView();
+                errorDiv.textContent = '';
+            } else {
+                errorDiv.textContent = 'Incorrect password';
             }
         }
         
+        function closeAdminAuth() {
+            document.getElementById('admin-auth').classList.remove('active');
+            document.getElementById('admin-password').value = '';
+        }
+        
+        function showAdminView() {
+            console.log('=== ADMIN MODE ACTIVATED ===');
+            isAdmin = true;
+            console.log('isAdmin set to:', isAdmin);
+            
+            document.getElementById('admin-section').style.display = 'block';
+            document.getElementById('public-section').style.display = 'none';
+            loadArtworksFromAirtable();
+        }
+        
         async function loadArtworksFromAirtable() {
-            const response = await airtableRequest(TABLES.ARTWORKS);
-            if (!response || !response.records) return;
-            
-            for (const record of response.records) {
-                const fields = record.fields;
-                if (!fields.ImageURL && !fields.ModelURL) continue;
-                
-                const metadata = {
-                    title: fields.Title || '',
-                    artist: fields.Artist || '',
-                    description: fields.Description || ''
-                };
-                
-                const locationId = fields.LocationID;
-                const height = (fields.HeightFeet || 3) * 0.3048;
-                
-                if (fields.ImageURL) {
-                    await loadImageFromURL(fields.ImageURL, locationId, height, metadata, record.id);
+            try {
+                const response = await fetch(WEBHOOK_URL);
+                if (!response.ok) {
+                    throw new Error(`Failed to fetch artworks: ${response.status}`);
                 }
+                
+                const data = await response.json();
+                console.log('Loaded artworks:', data);
+                
+                const artworkRecords = data.filter(record => 
+                    record.Title && (record.Type === 'Image' || record.Type === '3D Model')
+                );
+                
+                for (const record of artworkRecords) {
+                    const artFile = record.Art && record.Art.length > 0 ? record.Art[0] : null;
+                    
+                    if (!artFile || !record['Currently Placed']) continue;
+                    
+                    const metadata = {
+                        title: record.Title || '',
+                        artist: record.Artist || '',
+                        description: record.Description || ''
+                    };
+                    
+                    const locationName = record['Location Name'] ? record['Location Name'][0] : null;
+                    const locationId = mapLocationNameToId(locationName);
+                    
+                    if (!locationId) {
+                        console.warn(`Could not map location for ${record.Title}:`, locationName);
+                        continue;
+                    }
+                    
+                    const height = (record['Height (feet)'] || 3) * 0.3048;
+                    
+                    if (record.Type === 'Image') {
+                        await loadImageFromURL(artFile.url, locationId, height, metadata, record.id);
+                    }
+                }
+                
+                updateSpotCounters();
+                document.getElementById('sync-status').textContent = `✓ Loaded ${artworkRecords.length} artworks`;
+                document.getElementById('sync-status').style.color = '#4ade80';
+            } catch (error) {
+                console.error('Failed to load artworks:', error);
+                document.getElementById('sync-status').textContent = '❌ Failed to load artworks';
+                document.getElementById('sync-status').style.color = '#ff6b6b';
             }
+        }
+        
+        function mapLocationNameToId(locationName) {
+            if (!locationName) return null;
             
-            updateSpotCounters();
+            const locationMap = {
+                'Back Left Wall': 'back-1',
+                'Back Center Wall': 'back-2',
+                'Back Right Wall': 'back-3',
+                'Left Front': 'left-1',
+                'Left Back': 'left-2',
+                'Right Front': 'right-1',
+                'Right Back': 'right-2',
+                'Front Left': 'floor-1',
+                'Front Center': 'floor-2',
+                'Front Right': 'floor-3',
+                'Rear Left': 'floor-4',
+                'Rear Right': 'floor-5',
+                'Center Stage': 'floor-center'
+            };
+            
+            return locationMap[locationName] || null;
         }
         
         async function loadImageFromURL(url, locationId, height, metadata, airtableId) {
@@ -854,36 +904,97 @@
             });
         }
         
-        async function saveArtworkToAirtable(artworkData) {
-            if (!isAdmin) return null;
+        async function createArtworkInAirtable(artworkData) {
+            console.log('=== CREATE ARTWORK IN AIRTABLE ===');
+            console.log('Is Admin?:', isAdmin);
+            console.log('Artwork Data:', artworkData);
             
-            const record = {
-                fields: {
-                    Title: artworkData.title || '',
-                    Artist: artworkData.artist || '',
-                    Description: artworkData.description || '',
-                    LocationID: artworkData.locationId,
-                    HeightFeet: artworkData.heightFeet,
-                    Type: artworkData.type,
-                    ImageURL: artworkData.imageUrl || '',
-                    DateAdded: new Date().toISOString()
-                }
+            if (!isAdmin) {
+                console.log('Not admin, skipping Airtable save');
+                return null;
+            }
+            
+            const payload = {
+                Title: artworkData.title || 'Untitled',
+                Artist: artworkData.artist || '',
+                Description: artworkData.description || '',
+                'Height (feet)': artworkData.heightFeet,
+                Type: artworkData.type,
+                'Currently Placed': true,
+                Location: artworkData.location ? [artworkData.location] : [],
+                Art: artworkData.imageUrl ? [{
+                    url: artworkData.imageUrl
+                }] : []
             };
             
-            const response = await airtableRequest(TABLES.ARTWORKS, 'POST', { records: [record] });
-            return response?.records?.[0]?.id || null;
+            console.log('Sending to webhook:', CREATE_WEBHOOK_URL);
+            console.log('Payload:', payload);
+            
+            try {
+                const response = await fetch(CREATE_WEBHOOK_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                });
+                
+                console.log('Response status:', response.status);
+                console.log('Response OK?:', response.ok);
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('Error response:', errorText);
+                    throw new Error(`Failed to create artwork: ${response.status} - ${errorText}`);
+                }
+                
+                const result = await response.json();
+                console.log('Artwork created in Airtable:', result);
+                return result.id || null;
+            } catch (error) {
+                console.error('Failed to create artwork in Airtable:', error);
+                return null;
+            }
+        }
+        
+        async function updateArtworkInAirtable(artworkData) {
+            if (!isAdmin) return null;
+            
+            try {
+                const response = await fetch(EDIT_WEBHOOK_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        id: artworkData.id,
+                        Title: artworkData.title,
+                        Artist: artworkData.artist,
+                        Description: artworkData.description,
+                        'Height (feet)': artworkData.heightFeet,
+                        'Currently Placed': artworkData.currentlyPlaced !== undefined ? artworkData.currentlyPlaced : true,
+                        Location: artworkData.location ? [artworkData.location] : []
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`Failed to update artwork: ${response.status}`);
+                }
+                
+                return await response.json();
+            } catch (error) {
+                console.error('Failed to update artwork:', error);
+                return null;
+            }
         }
         
         async function deleteArtworkFromAirtable(airtableId) {
             if (!isAdmin || !airtableId) return;
             
-            const url = `https://api.airtable.com/v0/${airtableConfig.baseId}/${encodeURIComponent(TABLES.ARTWORKS)}/${airtableId}`;
             try {
-                await fetch(url, {
-                    method: 'DELETE',
-                    headers: {
-                        'Authorization': `Bearer ${airtableConfig.token}`
-                    }
+                await updateArtworkInAirtable({
+                    id: airtableId,
+                    currentlyPlaced: false
                 });
             } catch (error) {
                 console.error('Failed to delete from Airtable:', error);
@@ -891,62 +1002,9 @@
         }
         
         function saveAirtableConfig() {
-            const token = document.getElementById('airtable-token').value.trim();
-            const baseId = document.getElementById('airtable-base').value.trim();
-            
-            if (!token || !baseId) {
-                document.getElementById('sync-status').textContent = 'Please fill in all fields';
-                document.getElementById('sync-status').style.color = '#ff6b6b';
-                return;
-            }
-            
-            airtableConfig.token = token;
-            airtableConfig.baseId = baseId;
-            
-            localStorage.setItem('airtable_token', token);
-            localStorage.setItem('airtable_base', baseId);
-            
-            document.getElementById('sync-status').textContent = 'Configuration saved! Loading artworks...';
-            document.getElementById('sync-status').style.color = '#4ade80';
-            
-            loadArtworksFromAirtable().then(() => {
-                document.getElementById('sync-status').textContent = 'Synced with Airtable';
-            });
-        }
-        
-        function checkAdminPassword() {
-            const password = document.getElementById('admin-password').value;
-            const errorDiv = document.getElementById('auth-error');
-            
-            if (password === ADMIN_PASSWORD) {
-                isAdmin = true;
-                closeAdminAuth();
-                showAdminView();
-                errorDiv.textContent = '';
-            } else {
-                errorDiv.textContent = 'Incorrect password';
-            }
-        }
-        
-        function closeAdminAuth() {
-            document.getElementById('admin-auth').classList.remove('active');
-            document.getElementById('admin-password').value = '';
-        }
-        
-        function showAdminView() {
-            document.getElementById('admin-section').style.display = 'block';
-            document.getElementById('public-section').style.display = 'none';
-            
-            if (airtableConfig.token) {
-                document.getElementById('airtable-token').value = airtableConfig.token;
-            }
-            if (airtableConfig.baseId) {
-                document.getElementById('airtable-base').value = airtableConfig.baseId;
-            }
-            
-            if (airtableConfig.token && airtableConfig.baseId) {
-                loadArtworksFromAirtable();
-            }
+            document.getElementById('sync-status').textContent = '⏳ Loading artworks from webhook...';
+            document.getElementById('sync-status').style.color = '#667eea';
+            loadArtworksFromAirtable();
         }
         
         const WALL_POSITIONS = [
@@ -996,6 +1054,8 @@
             
             document.getElementById('loading').style.display = 'none';
             
+            loadArtworksFromAirtable();
+            
             animate();
         }
         
@@ -1029,7 +1089,6 @@
             museum.add(backWall);
             
             const doorWidth = 3;
-            const doorHeight = 2.5;
             const sideWidth = (roomWidth - doorWidth) / 2;
             
             const frontWallLeft = new THREE.Mesh(new THREE.PlaneGeometry(sideWidth, 5), wallMaterial);
@@ -1044,7 +1103,7 @@
             frontWallRight.name = 'wall';
             museum.add(frontWallRight);
             
-            const doorTop = new THREE.Mesh(new THREE.PlaneGeometry(doorWidth, 5 - doorHeight), wallMaterial);
+            const doorTop = new THREE.Mesh(new THREE.PlaneGeometry(doorWidth, 2.5), wallMaterial);
             doorTop.position.set(0, 3.75, 10);
             doorTop.rotation.y = Math.PI;
             museum.add(doorTop);
@@ -1222,7 +1281,7 @@
             return pedestal;
         }
         
-        function createPlacard(metadata, position, rotation, isFloor = false) {
+        function createPlacard(metadata, position, rotation, isFloor = false, artworkWidth = 0, artworkHeight = 0) {
             if (!metadata.title && !metadata.artist && !metadata.description) {
                 return null;
             }
@@ -1284,7 +1343,18 @@
             if (isFloor) {
                 placardGroup.position.y = 0.9;
             } else {
-                const offset = new THREE.Vector3(1.2, -1.0, 0.05);
+                const halfArtworkHeight = artworkHeight / 2;
+                const placardHeight = 0.25;
+                const safeGap = 0.3;
+                
+                const verticalOffset = -(halfArtworkHeight + placardHeight/2 + safeGap);
+                
+                let horizontalOffset = 0;
+                if (artworkHeight > 3) {
+                    horizontalOffset = (artworkWidth / 2) + 0.3;
+                }
+                
+                const offset = new THREE.Vector3(horizontalOffset, verticalOffset, 0.05);
                 offset.applyEuler(new THREE.Euler(0, rotation, 0));
                 placardGroup.position.add(offset);
             }
@@ -1323,25 +1393,131 @@
             camera.rotation.set(pitch, yaw, 0, 'YXZ');
         }
         
+        function loadArtworkFromURL() {
+            const url = document.getElementById('image-url-input').value.trim();
+            
+            if (!url) {
+                alert('Please enter an image URL');
+                return;
+            }
+            
+            // Validate URL format
+            try {
+                new URL(url);
+            } catch (e) {
+                alert('Please enter a valid URL');
+                return;
+            }
+            
+            console.log('Preparing to add artwork from URL:', url);
+            
+            // Show placement dialog immediately with metadata fields
+            // We'll try to load the image in the background to get aspect ratio
+            showPlacementDialogWithURL(url);
+        }
+        
+        function showPlacementDialogWithURL(imageUrl) {
+            const dialog = document.getElementById('placement-dialog');
+            const fileName = imageUrl.split('/').pop() || 'Untitled';
+            
+            document.getElementById('artwork-name').textContent = `Add New Artwork`;
+            
+            // Show image preview
+            const imagePreview = document.getElementById('image-preview');
+            document.getElementById('preview-img').src = imageUrl;
+            imagePreview.style.display = 'block';
+            
+            // Store the URL temporarily
+            currentPendingArt = { 
+                imageUrl: imageUrl,
+                type: 'image',
+                aspectRatio: null // Will try to determine when placing
+            };
+            
+            document.getElementById('dimension-label').textContent = 'Height (inches):';
+            
+            // Set up location grid
+            const locationGrid = document.getElementById('location-grid');
+            locationGrid.innerHTML = '';
+            selectedLocation = null;
+            
+            const positions = WALL_POSITIONS;
+            const spots = wallSpots;
+            
+            positions.forEach(pos => {
+                const spot = spots.find(s => s.userData.id === pos.id);
+                const locationOption = document.createElement('div');
+                locationOption.className = 'location-option';
+                locationOption.dataset.id = pos.id;
+                
+                if (spot && spot.userData.occupied) {
+                    locationOption.classList.add('occupied');
+                }
+                
+                locationOption.innerHTML = `
+                    <div class="location-name">${pos.displayName}</div>
+                    <div class="location-status">${spot && spot.userData.occupied ? 'Occupied' : 'Available'}</div>
+                `;
+                
+                if (!spot || !spot.userData.occupied) {
+                    locationOption.addEventListener('click', () => {
+                        document.querySelectorAll('.location-option').forEach(opt => 
+                            opt.classList.remove('selected'));
+                        locationOption.classList.add('selected');
+                        selectedLocation = pos.id;
+                        updateSizePreview();
+                    });
+                }
+                
+                locationGrid.appendChild(locationOption);
+            });
+            
+            const firstAvailable = positions.find(p => 
+                !spots.find(s => s.userData.id === p.id).userData.occupied);
+            if (firstAvailable) {
+                selectedLocation = firstAvailable.id;
+                locationGrid.querySelector(`[data-id="${firstAvailable.id}"]`).classList.add('selected');
+            }
+            
+            // Clear and focus on metadata fields
+            document.getElementById('title-input').value = '';
+            document.getElementById('artist-input').value = '';
+            document.getElementById('description-input').value = '';
+            
+            // Try to load image in background to get aspect ratio
+            const img = new Image();
+            img.crossOrigin = 'anonymous';
+            img.onload = () => {
+                const aspectRatio = img.width / img.height;
+                if (currentPendingArt && currentPendingArt.imageUrl === imageUrl) {
+                    currentPendingArt.aspectRatio = aspectRatio;
+                    console.log('Image loaded successfully. Aspect ratio:', aspectRatio);
+                    updateSizePreview();
+                }
+            };
+            img.onerror = () => {
+                console.warn('Could not load image for preview, but will still attempt to use it. This may be due to CORS restrictions.');
+                // Set a default aspect ratio if we can't load the image
+                if (currentPendingArt && currentPendingArt.imageUrl === imageUrl) {
+                    currentPendingArt.aspectRatio = 1.5; // Default landscape ratio
+                    updateSizePreview();
+                }
+            };
+            img.src = imageUrl;
+            
+            updateSizePreview();
+            dialog.classList.add('active');
+            
+            // Focus on title input
+            setTimeout(() => {
+                document.getElementById('title-input').focus();
+            }, 100);
+            
+            // Clear the URL input
+            document.getElementById('image-url-input').value = '';
+        }
+        
         function setupEventListeners() {
-            document.getElementById('file-input').addEventListener('change', handleFileSelect);
-            
-            const dropZone = document.getElementById('drop-zone');
-            dropZone.addEventListener('dragover', (e) => {
-                e.preventDefault();
-                dropZone.classList.add('dragover');
-            });
-            
-            dropZone.addEventListener('dragleave', () => {
-                dropZone.classList.remove('dragover');
-            });
-            
-            dropZone.addEventListener('drop', (e) => {
-                e.preventDefault();
-                dropZone.classList.remove('dragover');
-                handleFiles(e.dataTransfer.files);
-            });
-            
             document.addEventListener('keydown', onKeyDown);
             document.addEventListener('keyup', onKeyUp);
             
@@ -1392,7 +1568,8 @@
         function showPlacementDialog(file, type, aspectRatio = null, imageUrl = null) {
             currentPendingArt = { file, type, aspectRatio, imageUrl };
             const dialog = document.getElementById('placement-dialog');
-            document.getElementById('artwork-name').textContent = `File: ${file.name}`;
+            const fileName = typeof file === 'string' ? file : (file.name || 'Untitled');
+            document.getElementById('artwork-name').textContent = `Artwork: ${fileName}`;
             
             const imagePreview = document.getElementById('image-preview');
             if (imageUrl && type === 'image') {
@@ -1402,14 +1579,14 @@
                 imagePreview.style.display = 'none';
             }
             
-            document.getElementById('dimension-label').textContent = type === '3d' ? 'Size (feet):' : 'Height (feet):';
+            document.getElementById('dimension-label').textContent = 'Height (inches):';
             
             const locationGrid = document.getElementById('location-grid');
             locationGrid.innerHTML = '';
             selectedLocation = null;
             
-            const positions = type === '3d' ? FLOOR_POSITIONS : WALL_POSITIONS;
-            const spots = type === '3d' ? floorSpots : wallSpots;
+            const positions = WALL_POSITIONS;
+            const spots = wallSpots;
             
             positions.forEach(pos => {
                 const spot = spots.find(s => s.userData.id === pos.id);
@@ -1463,11 +1640,14 @@
             const sizePreview = document.getElementById('size-preview');
             const warning = document.getElementById('size-warning');
             
-            if (currentPendingArt.type === 'image' && currentPendingArt.aspectRatio) {
-                const widthMeters = heightMeters * currentPendingArt.aspectRatio;
+            if (currentPendingArt.type === 'image') {
+                // Use aspect ratio if available, otherwise use default estimate
+                const aspectRatio = currentPendingArt.aspectRatio || 1.5;
+                const widthMeters = heightMeters * aspectRatio;
                 const widthFeet = widthMeters / 0.3048;
                 
-                sizePreview.textContent = `Dimensions: ${heightFeet.toFixed(1)}' × ${widthFeet.toFixed(1)}'`;
+                const estimateText = currentPendingArt.aspectRatio ? '' : ' (estimated)';
+                sizePreview.textContent = `Dimensions: ${heightFeet.toFixed(1)}' × ${widthFeet.toFixed(1)}'${estimateText}`;
                 
                 warning.style.color = '#fbbf24';
                 warning.style.background = 'rgba(251, 191, 36, 0.1)';
@@ -1478,7 +1658,7 @@
                     const wallLengthFeet = spot.wallLength / 0.3048;
                     
                     if (widthMeters > spot.wallLength) {
-                        warning.textContent = `Artwork exceeds wall length (wall is ${wallLengthFeet.toFixed(1)}' ${spot.wall === 'back' ? 'wide' : 'long'})`;
+                        warning.textContent = `Artwork may exceed wall length (wall is ${wallLengthFeet.toFixed(1)}' ${spot.wall === 'back' ? 'wide' : 'long'})`;
                         warning.style.display = 'block';
                     } else {
                         warning.style.display = 'none';
@@ -1486,9 +1666,6 @@
                 } else {
                     warning.style.display = 'none';
                 }
-            } else if (currentPendingArt.type === '3d') {
-                sizePreview.textContent = `Size: ${heightFeet.toFixed(1)}' cube`;
-                warning.style.display = 'none';
             }
         }
         
@@ -1499,21 +1676,56 @@
         }
         
         function placeArtwork() {
-            if (!currentPendingArt || !selectedLocation) return;
+            console.log('=== PLACE ARTWORK CALLED ===');
+            console.log('Current pending art:', currentPendingArt);
+            console.log('Selected location:', selectedLocation);
             
-            const heightFeet = parseFloat(document.getElementById('height-input').value);
-            const heightMeters = heightFeet * 0.3048;
+            if (!currentPendingArt || !selectedLocation) {
+                console.log('Missing pending art or location, returning');
+                return;
+            }
+            
+            // Validate required fields
+            const title = document.getElementById('title-input').value.trim();
+            const artist = document.getElementById('artist-input').value.trim();
+            
+            if (!title) {
+                alert('Please enter a title for the artwork');
+                document.getElementById('title-input').focus();
+                return;
+            }
+            
+            if (!artist) {
+                alert('Please enter an artist name');
+                document.getElementById('artist-input').focus();
+                return;
+            }
+            
+            const heightInches = parseFloat(document.getElementById('height-input').value);
+            const heightMeters = heightInches * 0.0254;
+            const heightFeet = heightInches / 12;
+            
+            console.log('Height - inches:', heightInches, 'meters:', heightMeters, 'feet:', heightFeet);
             
             const metadata = {
-                title: document.getElementById('title-input').value || '',
-                artist: document.getElementById('artist-input').value || '',
+                title: title,
+                artist: artist,
                 description: document.getElementById('description-input').value || ''
             };
             
+            console.log('Metadata:', metadata);
+            console.log('Art type:', currentPendingArt.type);
+            
             if (currentPendingArt.type === 'image') {
-                loadImageArtwork(currentPendingArt, selectedLocation, heightMeters, metadata, heightFeet);
-            } else {
-                load3DModel(currentPendingArt.file, selectedLocation, heightMeters, metadata);
+                console.log('Loading image artwork...');
+                // Use aspect ratio if available, otherwise use default
+                const aspectRatio = currentPendingArt.aspectRatio || 1.5;
+                const artData = {
+                    imageUrl: currentPendingArt.imageUrl,
+                    aspectRatio: aspectRatio
+                };
+                const fileName = title; // Use title as filename
+                loadImageArtwork(artData, selectedLocation, heightMeters, metadata, heightFeet, fileName);
             }
             
             document.getElementById('placement-dialog').classList.remove('active');
@@ -1521,7 +1733,33 @@
             selectedLocation = null;
         }
         
-        function loadImageArtwork(artData, locationId, height, metadata, heightFeet) {
+        function mapLocationIdToName(locationId) {
+            const locationMap = {
+                'back-1': 'Back Left Wall',
+                'back-2': 'Back Center Wall',
+                'back-3': 'Back Right Wall',
+                'left-1': 'Left Front',
+                'left-2': 'Left Back',
+                'right-1': 'Right Front',
+                'right-2': 'Right Back',
+                'floor-1': 'Front Left',
+                'floor-2': 'Front Center',
+                'floor-3': 'Front Right',
+                'floor-4': 'Rear Left',
+                'floor-5': 'Rear Right',
+                'floor-center': 'Center Stage'
+            };
+            
+            return locationMap[locationId] || null;
+        }
+        
+        function loadImageArtwork(artData, locationId, height, metadata, heightFeet, fileName) {
+            console.log('=== LOAD IMAGE ARTWORK ===');
+            console.log('Location ID:', locationId);
+            console.log('Height (feet):', heightFeet);
+            console.log('Metadata:', metadata);
+            console.log('Is Admin?:', isAdmin);
+            
             const wallSpot = wallSpots.find(s => s.userData.id === locationId);
             if (wallSpot && !wallSpot.userData.occupied) {
                 const textureLoader = new THREE.TextureLoader();
@@ -1530,21 +1768,32 @@
                     
                     let airtableId = null;
                     if (isAdmin) {
-                        airtableId = await saveArtworkToAirtable({
+                        console.log('Admin mode - saving to Airtable...');
+                        // Send to Airtable
+                        const locationName = mapLocationIdToName(locationId);
+                        console.log('Mapped location name:', locationName);
+                        
+                        airtableId = await createArtworkInAirtable({
                             title: metadata.title,
                             artist: metadata.artist,
                             description: metadata.description,
-                            locationId: locationId,
                             heightFeet: heightFeet,
-                            type: 'image',
-                            imageUrl: artData.imageUrl
+                            type: 'Image',
+                            location: locationName,
+                            imageUrl: artData.imageUrl  // Send URL directly
                         });
+                        
+                        console.log('Returned Airtable ID:', airtableId);
+                    } else {
+                        console.log('Public mode - not saving to Airtable');
                     }
                     
-                    createArtworkMesh(texture, artData.file.name, wallSpot, 
+                    createArtworkMesh(texture, fileName, wallSpot, 
                         { width, height }, metadata, artData.imageUrl, airtableId);
-                    updateArtQueue(artData.file.name, artData.imageUrl, 'Placed on wall');
+                    updateArtQueue(fileName, artData.imageUrl, 'Placed on wall');
                 });
+            } else {
+                console.log('Wall spot not available:', wallSpot);
             }
         }
         
@@ -1585,7 +1834,7 @@
             artworks.push(artworkGroup);
             scene.add(artworkGroup);
             
-            const placard = createPlacard(metadata, spot.position, spot.userData.rotation, false);
+            const placard = createPlacard(metadata, spot.position, spot.userData.rotation, false, width, height);
             if (placard) {
                 artworkGroup.userData.placardIndex = placards.indexOf(placard);
             }
@@ -1718,20 +1967,27 @@
             }
             
             queueDiv.appendChild(artItem);
+            
+            // Show sync status
+            if (isAdmin && status.includes('Placed')) {
+                const syncStatus = document.getElementById('sync-status');
+                syncStatus.textContent = '⏳ Saving to Airtable...';
+                syncStatus.style.color = '#667eea';
+                
+                setTimeout(() => {
+                    syncStatus.textContent = '✓ Saved to Airtable';
+                    syncStatus.style.color = '#4ade80';
+                }, 2000);
+            }
         }
         
         function updateSpotCounters() {
             const wallOccupied = wallSpots.filter(s => s.userData.occupied).length;
-            const floorOccupied = floorSpots.filter(s => s.userData.occupied).length;
             
             const wallElement = document.getElementById('wall-spots');
-            const floorElement = document.getElementById('floor-spots');
             
             wallElement.textContent = `${wallOccupied}/${wallSpots.length}`;
             wallElement.className = wallOccupied >= wallSpots.length ? 'spot-occupied' : 'spot-available';
-            
-            floorElement.textContent = `${floorOccupied}/${floorSpots.length}`;
-            floorElement.className = floorOccupied >= floorSpots.length ? 'spot-occupied' : 'spot-available';
         }
         
         function onKeyDown(event) {
@@ -1862,10 +2118,88 @@
                     artworkGroup = artworkGroup.parent;
                 }
                 
-                if (artworkGroup.userData.metadata && artworkGroup.userData.imageUrl) {
-                    showArtViewer(artworkGroup.userData);
+                if (artworkGroup.userData.metadata) {
+                    if (isAdmin && artworkGroup.userData.imageUrl) {
+                        showEditDialog(artworkGroup);
+                    } else if (artworkGroup.userData.imageUrl) {
+                        showArtViewer(artworkGroup.userData);
+                    }
                 }
             }
+        }
+        
+        function showEditDialog(artworkGroup) {
+            currentEditingArtwork = artworkGroup;
+            const dialog = document.getElementById('edit-dialog');
+            
+            document.getElementById('edit-artwork-name').textContent = artworkGroup.userData.name;
+            document.getElementById('edit-title-input').value = artworkGroup.userData.metadata.title || '';
+            document.getElementById('edit-artist-input').value = artworkGroup.userData.metadata.artist || '';
+            document.getElementById('edit-description-input').value = artworkGroup.userData.metadata.description || '';
+            
+            const heightMeters = artworkGroup.userData.width / (artworkGroup.userData.imageUrl ? 
+                (artworkGroup.children[1].geometry.parameters.width / artworkGroup.children[1].geometry.parameters.height) : 1);
+            const heightInches = heightMeters / 0.0254;
+            document.getElementById('edit-height-input').value = heightInches.toFixed(0);
+            
+            const imagePreview = document.getElementById('edit-image-preview');
+            if (artworkGroup.userData.imageUrl) {
+                document.getElementById('edit-preview-img').src = artworkGroup.userData.imageUrl;
+                imagePreview.style.display = 'block';
+            } else {
+                imagePreview.style.display = 'none';
+            }
+            
+            dialog.classList.add('active');
+            document.exitPointerLock();
+        }
+        
+        async function saveArtworkEdit() {
+            if (!currentEditingArtwork) return;
+            
+            const newMetadata = {
+                title: document.getElementById('edit-title-input').value || '',
+                artist: document.getElementById('edit-artist-input').value || '',
+                description: document.getElementById('edit-description-input').value || ''
+            };
+            
+            const heightInches = parseFloat(document.getElementById('edit-height-input').value);
+            const heightFeet = heightInches / 12;
+            
+            if (currentEditingArtwork.userData.airtableId) {
+                await updateArtworkInAirtable({
+                    id: currentEditingArtwork.userData.airtableId,
+                    title: newMetadata.title,
+                    artist: newMetadata.artist,
+                    description: newMetadata.description,
+                    heightFeet: heightFeet
+                });
+            }
+            
+            currentEditingArtwork.userData.metadata = newMetadata;
+            
+            if (currentEditingArtwork.userData.placardIndex !== undefined && 
+                placards[currentEditingArtwork.userData.placardIndex]) {
+                const oldPlacard = placards[currentEditingArtwork.userData.placardIndex];
+                scene.remove(oldPlacard);
+                
+                const spot = wallSpots.find(s => s.userData.id === currentEditingArtwork.userData.spotId);
+                if (spot) {
+                    const artworkWidth = currentEditingArtwork.userData.width;
+                    const artworkHeight = currentEditingArtwork.children[1].geometry.parameters.height;
+                    const newPlacard = createPlacard(newMetadata, spot.position, spot.userData.rotation, false, artworkWidth, artworkHeight);
+                    if (newPlacard) {
+                        placards[currentEditingArtwork.userData.placardIndex] = newPlacard;
+                    }
+                }
+            }
+            
+            cancelEdit();
+        }
+        
+        function cancelEdit() {
+            document.getElementById('edit-dialog').classList.remove('active');
+            currentEditingArtwork = null;
         }
         
         function showArtViewer(artData) {
