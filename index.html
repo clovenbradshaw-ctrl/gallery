@@ -835,6 +835,68 @@
         let selectedLocation = null;
         let currentZoom = 1;
         let currentEditingArtwork = null;
+        let galleryLights = [];
+        let currentLightFactor = 1;
+        let lightingAnimationFrame = null;
+        let pendingArtworkLoads = 0;
+
+        function registerGalleryLight(light) {
+            const entry = { light, baseIntensity: light.intensity };
+            galleryLights.push(entry);
+            light.intensity = entry.baseIntensity * currentLightFactor;
+        }
+
+        function setGalleryLightFactor(factor) {
+            currentLightFactor = factor;
+            galleryLights.forEach(({ light, baseIntensity }) => {
+                light.intensity = baseIntensity * factor;
+            });
+        }
+
+        function transitionGalleryLighting(targetFactor, duration = 800) {
+            if (lightingAnimationFrame) {
+                cancelAnimationFrame(lightingAnimationFrame);
+                lightingAnimationFrame = null;
+            }
+
+            const startFactor = currentLightFactor;
+            if (Math.abs(targetFactor - startFactor) < 0.001) {
+                setGalleryLightFactor(targetFactor);
+                return;
+            }
+
+            const startTime = performance.now();
+
+            const animate = () => {
+                const elapsed = performance.now() - startTime;
+                const t = Math.min(1, elapsed / duration);
+                const eased = t * t * (3 - 2 * t);
+                const factor = startFactor + (targetFactor - startFactor) * eased;
+                setGalleryLightFactor(factor);
+
+                if (t < 1) {
+                    lightingAnimationFrame = requestAnimationFrame(animate);
+                } else {
+                    lightingAnimationFrame = null;
+                }
+            };
+
+            lightingAnimationFrame = requestAnimationFrame(animate);
+        }
+
+        function beginArtworkLoad() {
+            pendingArtworkLoads++;
+            if (pendingArtworkLoads === 1) {
+                transitionGalleryLighting(0.35);
+            }
+        }
+
+        function endArtworkLoad() {
+            pendingArtworkLoads = Math.max(0, pendingArtworkLoads - 1);
+            if (pendingArtworkLoads === 0) {
+                transitionGalleryLighting(1);
+            }
+        }
         
         function checkAdminPassword() {
             const password = document.getElementById('admin-password').value;
@@ -946,8 +1008,9 @@
         async function loadImageFromURL(url, locationId, height, metadata, airtableId) {
             const wallSpot = wallSpots.find(s => s.userData.id === locationId);
             if (!wallSpot || wallSpot.userData.occupied) return;
-            
+
             return new Promise((resolve) => {
+                beginArtworkLoad();
                 const img = new Image();
                 img.crossOrigin = 'anonymous';
                 img.onload = () => {
@@ -955,11 +1018,26 @@
                     const textureLoader = new THREE.TextureLoader();
                     textureLoader.setCrossOrigin('anonymous');
                     textureLoader.load(url, (texture) => {
-                        const width = height * aspectRatio;
-                        createArtworkMesh(texture, metadata.title || 'Untitled', wallSpot, 
-                            { width, height }, metadata, url, airtableId);
+                        try {
+                            const width = height * aspectRatio;
+                            createArtworkMesh(texture, metadata.title || 'Untitled', wallSpot,
+                                { width, height }, metadata, url, airtableId);
+                        } catch (placementError) {
+                            console.error('Failed to place artwork from URL:', placementError);
+                        } finally {
+                            endArtworkLoad();
+                            resolve();
+                        }
+                    }, undefined, (error) => {
+                        console.error('Failed to load texture from URL:', error);
+                        endArtworkLoad();
                         resolve();
                     });
+                };
+                img.onerror = () => {
+                    console.warn('Image failed to load for URL:', url);
+                    endArtworkLoad();
+                    resolve();
                 };
                 img.src = url;
             });
@@ -1327,7 +1405,8 @@
         function setupLighting() {
             const ambientLight = new THREE.AmbientLight(0xffffff, 0.65);
             scene.add(ambientLight);
-            
+            registerGalleryLight(ambientLight);
+
             const generalLight = new THREE.DirectionalLight(0xffffff, 0.4);
             generalLight.position.set(0, 4, 2);
             generalLight.castShadow = true;
@@ -1338,6 +1417,7 @@
             generalLight.shadow.camera.top = 10;
             generalLight.shadow.camera.bottom = -10;
             scene.add(generalLight);
+            registerGalleryLight(generalLight);
             
             const trackMaterial = new THREE.MeshStandardMaterial({ color: 0x4a4a4a, metalness: 0.9, roughness: 0.1 });
             const trackHeight = 4.95;
@@ -1376,10 +1456,11 @@
                 spotLight.shadow.mapSize.height = 1024;
                 spotLight.shadow.camera.near = 0.5;
                 spotLight.shadow.camera.far = 10;
-                
+
                 scene.add(spotLight);
                 scene.add(spotLight.target);
-                
+                registerGalleryLight(spotLight);
+
                 return spotLight;
             };
             
@@ -1404,6 +1485,7 @@
                 spotLight.distance = 5;
                 scene.add(spotLight);
                 scene.add(spotLight.target);
+                registerGalleryLight(spotLight);
             });
         }
         
@@ -1969,37 +2051,45 @@
             const wallSpot = wallSpots.find(s => s.userData.id === locationId);
             if (wallSpot && !wallSpot.userData.occupied) {
                 const textureLoader = new THREE.TextureLoader();
+                beginArtworkLoad();
                 textureLoader.load(artData.imageUrl, async (texture) => {
-                    const width = height * artData.aspectRatio;
-                    
-                    let airtableId = null;
-                    if (isAdmin) {
-                        console.log('Admin mode - saving to Airtable...');
-                        // Send to Airtable
-                        const locationName = mapLocationIdToName(locationId);
-                        console.log('Mapped location name:', locationName);
+                    try {
+                        const width = height * artData.aspectRatio;
 
-                        airtableId = await createArtworkInAirtable({
-                            title: metadata.title,
-                            artist: metadata.artist,
-                            description: metadata.description,
-                            heightFeet: heightFeet,
-                            aspectRatio: artData.aspectRatio,
-                            type: 'Image',
-                            locationId: locationId,
-                            locationName: locationName,
-                            imageUrl: artData.imageUrl,
-                            originalFileName: fileName
-                        });
-                        
-                        console.log('Returned Airtable ID:', airtableId);
-                    } else {
-                        console.log('Public mode - not saving to Airtable');
+                        let airtableId = null;
+                        if (isAdmin) {
+                            console.log('Admin mode - saving to Airtable...');
+                            // Send to Airtable
+                            const locationName = mapLocationIdToName(locationId);
+                            console.log('Mapped location name:', locationName);
+
+                            airtableId = await createArtworkInAirtable({
+                                title: metadata.title,
+                                artist: metadata.artist,
+                                description: metadata.description,
+                                heightFeet: heightFeet,
+                                aspectRatio: artData.aspectRatio,
+                                type: 'Image',
+                                locationId: locationId,
+                                locationName: locationName,
+                                imageUrl: artData.imageUrl,
+                                originalFileName: fileName
+                            });
+
+                            console.log('Returned Airtable ID:', airtableId);
+                        } else {
+                            console.log('Public mode - not saving to Airtable');
+                        }
+
+                        createArtworkMesh(texture, fileName, wallSpot,
+                            { width, height }, metadata, artData.imageUrl, airtableId);
+                        updateArtQueue(fileName, artData.imageUrl, 'Placed on wall');
+                    } finally {
+                        endArtworkLoad();
                     }
-                    
-                    createArtworkMesh(texture, fileName, wallSpot, 
-                        { width, height }, metadata, artData.imageUrl, airtableId);
-                    updateArtQueue(fileName, artData.imageUrl, 'Placed on wall');
+                }, undefined, (error) => {
+                    console.error('Failed to load texture for new artwork:', error);
+                    endArtworkLoad();
                 });
             } else {
                 console.log('Wall spot not available:', wallSpot);
