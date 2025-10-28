@@ -909,13 +909,12 @@
                         description: record.Description || ''
                     };
                     
-                    // Get location name from Location Name field (it's an array)
-                    const locationName = record['Location Name'] && record['Location Name'].length > 0 
-                        ? record['Location Name'][0] 
-                        : null;
-                    
+                    const locationName = extractLocationValue(
+                        record['Location Name'] ?? record['Location'] ?? record.Location
+                    );
+
                     console.log(`Processing ${record.Title}, Location Name:`, locationName);
-                    
+
                     const locationId = mapLocationNameToId(locationName);
                     
                     if (!locationId) {
@@ -1878,6 +1877,46 @@
             selectedLocation = null;
         }
         
+        function extractLocationValue(rawValue) {
+            if (!rawValue) {
+                return null;
+            }
+
+            if (Array.isArray(rawValue)) {
+                for (const entry of rawValue) {
+                    const value = extractLocationValue(entry);
+                    if (value) {
+                        return value;
+                    }
+                }
+                return null;
+            }
+
+            if (typeof rawValue === 'object') {
+                if (rawValue.name) return rawValue.name;
+                if (rawValue.text) return rawValue.text;
+                if (rawValue.value) return rawValue.value;
+                return null;
+            }
+
+            if (typeof rawValue === 'string') {
+                const trimmed = rawValue.trim();
+                if (!trimmed) return null;
+
+                if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
+                    const cleaned = trimmed.slice(1, -1);
+                    const parts = cleaned.split(',').map(part => part.replace(/['"]/g, '').trim()).filter(Boolean);
+                    if (parts.length > 0) {
+                        return parts[0];
+                    }
+                }
+
+                return trimmed;
+            }
+
+            return null;
+        }
+
         function mapLocationNameToId(locationName) {
             if (!locationName) return null;
 
@@ -1892,7 +1931,9 @@
                 return locationName;
             }
 
-            const normalized = locationName.trim().toLowerCase();
+            const normalized = typeof locationName === 'string'
+                ? locationName.trim().toLowerCase()
+                : String(locationName).trim().toLowerCase();
 
             // Try to match ignoring case/extra whitespace for both the friendly
             // location names and the raw IDs. This makes the mapping resilient to
