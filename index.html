@@ -440,6 +440,12 @@
             transition: all 0.2s;
             text-align: center;
         }
+
+        .location-note {
+            margin-top: 6px;
+            font-size: 0.75em;
+            color: rgba(255, 255, 255, 0.6);
+        }
         
         .location-option:hover:not(.occupied) {
             background: rgba(102, 126, 234, 0.2);
@@ -703,10 +709,22 @@
                 <button onclick="saveAirtableConfig()">Reload Artworks from Gallery</button>
                 <div id="sync-status" class="sync-status"></div>
             </div>
-            
+
+            <div class="control-group">
+                <label>Upload Images or 3D Models</label>
+                <input type="file" id="file-input" multiple
+                       accept="image/*,.obj,.gltf,.glb,.fbx,.stl">
+                <label for="file-input" class="file-label">Choose Files</label>
+                <div id="drop-zone">Drop files here or click to browse</div>
+                <div class="supported-formats">
+                    Images: JPG, PNG, GIF and more.<br>
+                    3D Models: OBJ, GLTF/GLB, FBX, STL.
+                </div>
+            </div>
+
             <div class="control-group">
                 <label>Add Artwork by URL</label>
-                <input type="text" id="image-url-input" placeholder="https://example.com/image.jpg" 
+                <input type="text" id="image-url-input" placeholder="https://example.com/image.jpg"
                        style="width: 100%; padding: 10px; border: 1px solid rgba(255,255,255,0.3); background: rgba(255,255,255,0.1); color: white; border-radius: 6px; box-sizing: border-box; margin: 10px 0;">
                 <button onclick="loadArtworkFromURL()" style="width: 100%; padding: 10px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 500;">
                     Load Artwork
@@ -716,19 +734,20 @@
                     Note: Some CDN images may have loading restrictions
                 </div>
             </div>
-            
+
             <div class="spots-indicator">
                 <div>Available Wall Spots: <span id="wall-spots" class="spot-available">0/0</span></div>
+                <div>Available Sculpture Spots: <span id="floor-spots" class="spot-available">0/0</span></div>
             </div>
-            
+
             <div id="art-queue"></div>
         </div>
-        
+
         <div id="public-section">
             <div class="instructions">
                 <h3>Welcome to the Gallery</h3>
                 Click on any artwork to view details and zoom in.<br><br>
-                Admins can add artwork by entering image URLs.
+                Admins can upload artwork or enter image URLs from the menu.
             </div>
         </div>
         
@@ -741,7 +760,7 @@
             Mouse to look around<br>
             Click artwork to view details<br>
             R to remove artwork (admin)<br>
-            Tab to toggle spot view<br>
+            Tab to toggle spot view (admin only)<br>
             <br>
             <strong>VR Mode:</strong><br>
             Use controllers to point and interact<br>
@@ -844,6 +863,11 @@
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128/examples/js/libs/inflate.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128/examples/js/loaders/GLTFLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128/examples/js/loaders/OBJLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128/examples/js/loaders/FBXLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128/examples/js/loaders/STLLoader.js"></script>
     <script>
         let isAdmin = false;
         let escapeCount = 0;
@@ -1677,6 +1701,8 @@
         }
         
         function loadArtworkFromURL() {
+            if (!isAdmin) return;
+
             const url = document.getElementById('image-url-input').value.trim();
             
             if (!url) {
@@ -1700,74 +1726,31 @@
         }
         
         function showPlacementDialogWithURL(imageUrl) {
+            if (!isAdmin) return;
+
             const dialog = document.getElementById('placement-dialog');
-            const fileName = imageUrl.split('/').pop() || 'Untitled';
-            
             document.getElementById('artwork-name').textContent = `Add New Artwork`;
-            
-            // Show image preview
+
             const imagePreview = document.getElementById('image-preview');
             document.getElementById('preview-img').src = imageUrl;
             imagePreview.style.display = 'block';
-            
-            // Store the URL temporarily
-            currentPendingArt = { 
+
+            currentPendingArt = {
                 imageUrl: imageUrl,
                 type: 'image',
-                aspectRatio: null // Will try to determine when placing
+                aspectRatio: null
             };
-            
+
             document.getElementById('dimension-label').textContent = 'Height (inches):';
-            
-            // Set up location grid
-            const locationGrid = document.getElementById('location-grid');
-            locationGrid.innerHTML = '';
-            selectedLocation = null;
-            
-            const positions = WALL_POSITIONS;
-            const spots = wallSpots;
-            
-            positions.forEach(pos => {
-                const spot = spots.find(s => s.userData.id === pos.id);
-                const locationOption = document.createElement('div');
-                locationOption.className = 'location-option';
-                locationOption.dataset.id = pos.id;
-                
-                if (spot && spot.userData.occupied) {
-                    locationOption.classList.add('occupied');
-                }
-                
-                locationOption.innerHTML = `
-                    <div class="location-name">${pos.displayName}</div>
-                    <div class="location-status">${spot && spot.userData.occupied ? 'Occupied' : 'Available'}</div>
-                `;
-                
-                if (!spot || !spot.userData.occupied) {
-                    locationOption.addEventListener('click', () => {
-                        document.querySelectorAll('.location-option').forEach(opt => 
-                            opt.classList.remove('selected'));
-                        locationOption.classList.add('selected');
-                        selectedLocation = pos.id;
-                        updateSizePreview();
-                    });
-                }
-                
-                locationGrid.appendChild(locationOption);
-            });
-            
-            const firstAvailable = positions.find(p => 
-                !spots.find(s => s.userData.id === p.id).userData.occupied);
-            if (firstAvailable) {
-                selectedLocation = firstAvailable.id;
-                locationGrid.querySelector(`[data-id="${firstAvailable.id}"]`).classList.add('selected');
-            }
-            
-            // Clear and focus on metadata fields
+            const heightInput = document.getElementById('height-input');
+            heightInput.value = 36;
+
             document.getElementById('title-input').value = '';
             document.getElementById('artist-input').value = '';
             document.getElementById('description-input').value = '';
-            
-            // Try to load image in background to get aspect ratio
+
+            setupLocationGrid('image');
+
             const img = new Image();
             img.crossOrigin = 'anonymous';
             img.onload = () => {
@@ -1780,30 +1763,26 @@
             };
             img.onerror = () => {
                 console.warn('Could not load image for preview, but will still attempt to use it. This may be due to CORS restrictions.');
-                // Set a default aspect ratio if we can't load the image
                 if (currentPendingArt && currentPendingArt.imageUrl === imageUrl) {
-                    currentPendingArt.aspectRatio = 1.5; // Default landscape ratio
+                    currentPendingArt.aspectRatio = 1.5;
                     updateSizePreview();
                 }
             };
             img.src = imageUrl;
-            
-            updateSizePreview();
+
             dialog.classList.add('active');
-            
-            // Focus on title input
+
             setTimeout(() => {
                 document.getElementById('title-input').focus();
             }, 100);
-            
-            // Clear the URL input
+
             document.getElementById('image-url-input').value = '';
         }
         
         function setupEventListeners() {
             document.addEventListener('keydown', onKeyDown);
             document.addEventListener('keyup', onKeyUp);
-            
+
             renderer.domElement.addEventListener('click', onCanvasClick);
             
             window.addEventListener('resize', onWindowResize);
@@ -1824,16 +1803,74 @@
             });
             document.getElementById('info-toggle').addEventListener('click', toggleViewerInfo);
             document.getElementById('fullscreen-toggle').addEventListener('click', toggleFullscreenMode);
+
+            const fileInput = document.getElementById('file-input');
+            if (fileInput) {
+                fileInput.addEventListener('change', handleFileSelect);
+            }
+
+            const dropZone = document.getElementById('drop-zone');
+            if (dropZone) {
+                const activateDropZone = (event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    dropZone.classList.add('dragover');
+                };
+
+                const deactivateDropZone = (event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    if (!dropZone.contains(event.relatedTarget)) {
+                        dropZone.classList.remove('dragover');
+                    }
+                };
+
+                ['dragenter', 'dragover'].forEach(eventName => {
+                    dropZone.addEventListener(eventName, activateDropZone);
+                });
+
+                ['dragleave', 'dragexit'].forEach(eventName => {
+                    dropZone.addEventListener(eventName, deactivateDropZone);
+                });
+
+                dropZone.addEventListener('drop', (event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    dropZone.classList.remove('dragover');
+
+                    if (!isAdmin) return;
+
+                    const files = event.dataTransfer?.files;
+                    if (files && files.length) {
+                        handleFiles(files);
+                    }
+                });
+
+                dropZone.addEventListener('click', () => {
+                    if (!isAdmin) return;
+                    if (fileInput) {
+                        fileInput.click();
+                    }
+                });
+            }
         }
         
         function handleFileSelect(event) {
+            if (!isAdmin) {
+                event.target.value = '';
+                return;
+            }
+
             handleFiles(event.target.files);
+            event.target.value = '';
         }
         
         function handleFiles(files) {
+            if (!isAdmin) return;
+
             for (let file of files) {
                 const extension = file.name.split('.').pop().toLowerCase();
-                
+
                 if (file.type.startsWith('image/')) {
                     const reader = new FileReader();
                     reader.onload = (e) => {
@@ -1849,13 +1886,88 @@
                 }
             }
         }
-        
+
+        function setupLocationGrid(type) {
+            const locationGrid = document.getElementById('location-grid');
+            const warning = document.getElementById('size-warning');
+            const sizePreview = document.getElementById('size-preview');
+
+            locationGrid.innerHTML = '';
+            selectedLocation = null;
+
+            warning.style.display = 'none';
+            warning.textContent = '';
+            sizePreview.textContent = '';
+
+            const positions = type === '3d' ? FLOOR_POSITIONS : WALL_POSITIONS;
+            const spots = type === '3d' ? floorSpots : wallSpots;
+
+            const getSpotById = (id) => spots.find(s => s.userData.id === id);
+
+            positions.forEach(pos => {
+                const spotMesh = getSpotById(pos.id);
+                const locationOption = document.createElement('div');
+                locationOption.className = 'location-option';
+                locationOption.dataset.id = pos.id;
+
+                const isOccupied = !spotMesh || spotMesh.userData.occupied;
+                if (isOccupied) {
+                    locationOption.classList.add('occupied');
+                }
+
+                const friendlyName = LOCATION_ID_TO_NAME_MAP[pos.id] || pos.displayName || pos.id;
+                let noteHtml = '';
+                if (type === '3d' && pos.type) {
+                    noteHtml = `<div class="location-note">${pos.type === 'large' ? 'Large platform' : 'Pedestal display'}</div>`;
+                }
+
+                locationOption.innerHTML = `
+                    <div class="location-name">${friendlyName}</div>
+                    <div class="location-status">${isOccupied ? 'Occupied' : 'Available'}</div>
+                    ${noteHtml}
+                `;
+
+                if (!isOccupied) {
+                    locationOption.addEventListener('click', () => {
+                        locationGrid.querySelectorAll('.location-option').forEach(opt =>
+                            opt.classList.remove('selected'));
+                        locationOption.classList.add('selected');
+                        selectedLocation = pos.id;
+                        updateSizePreview();
+                    });
+                }
+
+                locationGrid.appendChild(locationOption);
+            });
+
+            const firstAvailable = positions.find(pos => {
+                const spotMesh = getSpotById(pos.id);
+                return spotMesh && !spotMesh.userData.occupied;
+            });
+
+            if (firstAvailable) {
+                selectedLocation = firstAvailable.id;
+                const firstOption = locationGrid.querySelector(`[data-id="${selectedLocation}"]`);
+                if (firstOption) {
+                    firstOption.classList.add('selected');
+                }
+                updateSizePreview();
+                return true;
+            }
+
+            warning.textContent = 'All spots of this type are currently occupied.';
+            warning.style.display = 'block';
+            return false;
+        }
+
         function showPlacementDialog(file, type, aspectRatio = null, imageUrl = null) {
+            if (!isAdmin) return;
+
             currentPendingArt = { file, type, aspectRatio, imageUrl };
             const dialog = document.getElementById('placement-dialog');
             const fileName = typeof file === 'string' ? file : (file.name || 'Untitled');
             document.getElementById('artwork-name').textContent = `Artwork: ${fileName}`;
-            
+
             const imagePreview = document.getElementById('image-preview');
             if (imageUrl && type === 'image') {
                 document.getElementById('preview-img').src = imageUrl;
@@ -1863,93 +1975,76 @@
             } else {
                 imagePreview.style.display = 'none';
             }
-            
-            document.getElementById('dimension-label').textContent = 'Height (inches):';
-            
-            const locationGrid = document.getElementById('location-grid');
-            locationGrid.innerHTML = '';
-            selectedLocation = null;
-            
-            const positions = WALL_POSITIONS;
-            const spots = wallSpots;
-            
-            positions.forEach(pos => {
-                const spot = spots.find(s => s.userData.id === pos.id);
-                const locationOption = document.createElement('div');
-                locationOption.className = 'location-option';
-                locationOption.dataset.id = pos.id;
-                
-                if (spot && spot.userData.occupied) {
-                    locationOption.classList.add('occupied');
-                }
-                
-                locationOption.innerHTML = `
-                    <div class="location-name">${pos.displayName}</div>
-                    <div class="location-status">${spot && spot.userData.occupied ? 'Occupied' : 'Available'}</div>
-                `;
-                
-                if (!spot || !spot.userData.occupied) {
-                    locationOption.addEventListener('click', () => {
-                        document.querySelectorAll('.location-option').forEach(opt => 
-                            opt.classList.remove('selected'));
-                        locationOption.classList.add('selected');
-                        selectedLocation = pos.id;
-                        updateSizePreview();
-                    });
-                }
-                
-                locationGrid.appendChild(locationOption);
-            });
-            
-            const firstAvailable = positions.find(p => 
-                !spots.find(s => s.userData.id === p.id).userData.occupied);
-            if (firstAvailable) {
-                selectedLocation = firstAvailable.id;
-                locationGrid.querySelector(`[data-id="${firstAvailable.id}"]`).classList.add('selected');
-            }
-            
+
+            document.getElementById('dimension-label').textContent =
+                type === '3d' ? 'Max Height (inches):' : 'Height (inches):';
+
+            const heightInput = document.getElementById('height-input');
+            heightInput.value = type === '3d' ? 48 : 36;
+
             document.getElementById('title-input').value = '';
             document.getElementById('artist-input').value = '';
             document.getElementById('description-input').value = '';
-            
-            updateSizePreview();
+
+            setupLocationGrid(type);
+
             dialog.classList.add('active');
         }
         
         function updateSizePreview() {
             if (!currentPendingArt || !selectedLocation) return;
-            
-            const heightFeet = parseFloat(document.getElementById('height-input').value) || 3;
-            const heightMeters = heightFeet * 0.3048;
-            
+
+            const heightValue = parseFloat(document.getElementById('height-input').value);
+            const heightInches = Number.isFinite(heightValue) ? heightValue : 36;
+            const heightMeters = heightInches * 0.0254;
+            const heightFeet = heightInches / 12;
+
             const sizePreview = document.getElementById('size-preview');
             const warning = document.getElementById('size-warning');
-            
+
+            sizePreview.innerHTML = '';
+            warning.style.display = 'none';
+            warning.textContent = '';
+            warning.style.color = '#fbbf24';
+            warning.style.background = 'rgba(251, 191, 36, 0.1)';
+
             if (currentPendingArt.type === 'image') {
-                // Use aspect ratio if available, otherwise use default estimate
                 const aspectRatio = currentPendingArt.aspectRatio || 1.5;
                 const widthMeters = heightMeters * aspectRatio;
                 const widthFeet = widthMeters / 0.3048;
-                
                 const estimateText = currentPendingArt.aspectRatio ? '' : ' (estimated)';
                 sizePreview.textContent = `Dimensions: ${heightFeet.toFixed(1)}' × ${widthFeet.toFixed(1)}'${estimateText}`;
-                
-                warning.style.color = '#fbbf24';
-                warning.style.background = 'rgba(251, 191, 36, 0.1)';
-                
+
                 const spot = WALL_POSITIONS.find(p => p.id === selectedLocation);
-                
                 if (spot) {
                     const wallLengthFeet = spot.wallLength / 0.3048;
-                    
                     if (widthMeters > spot.wallLength) {
                         warning.textContent = `Artwork may exceed wall length (wall is ${wallLengthFeet.toFixed(1)}' ${spot.wall === 'back' ? 'wide' : 'long'})`;
                         warning.style.display = 'block';
-                    } else {
-                        warning.style.display = 'none';
                     }
-                } else {
-                    warning.style.display = 'none';
+                }
+            } else if (currentPendingArt.type === '3d') {
+                const spot = FLOOR_POSITIONS.find(p => p.id === selectedLocation);
+                const friendlyName = LOCATION_ID_TO_NAME_MAP[selectedLocation] || (spot ? spot.displayName : selectedLocation);
+
+                const details = [];
+                details.push(`Maximum display height: ${heightFeet.toFixed(1)}' (${Math.round(heightInches)}")`);
+
+                if (friendlyName) {
+                    let typeDescription = '';
+                    if (spot && spot.type === 'large') {
+                        typeDescription = ' (large platform)';
+                    } else if (spot && spot.type === 'pedestal') {
+                        typeDescription = ' (pedestal)';
+                    }
+                    details.push(`Location: ${friendlyName}${typeDescription}`);
+                }
+
+                sizePreview.innerHTML = details.join('<br>');
+
+                if (spot && spot.type === 'pedestal' && heightFeet > 6) {
+                    warning.textContent = 'Consider reducing the height for pedestal displays to maintain stability.';
+                    warning.style.display = 'block';
                 }
             }
         }
@@ -2011,8 +2106,16 @@
                 };
                 const fileName = title; // Use title as filename
                 loadImageArtwork(artData, selectedLocation, heightMeters, metadata, heightFeet, fileName);
+            } else if (currentPendingArt.type === '3d') {
+                if (!currentPendingArt.file) {
+                    console.warn('No 3D file available for placement');
+                } else {
+                    load3DModel(currentPendingArt.file, selectedLocation, heightMeters, metadata);
+                }
+            } else {
+                console.warn('Unsupported artwork type:', currentPendingArt.type);
             }
-            
+
             document.getElementById('placement-dialog').classList.remove('active');
             currentPendingArt = null;
             selectedLocation = null;
@@ -2341,11 +2444,19 @@
         
         function updateSpotCounters() {
             const wallOccupied = wallSpots.filter(s => s.userData.occupied).length;
-            
             const wallElement = document.getElementById('wall-spots');
-            
-            wallElement.textContent = `${wallOccupied}/${wallSpots.length}`;
-            wallElement.className = wallOccupied >= wallSpots.length ? 'spot-occupied' : 'spot-available';
+
+            if (wallElement) {
+                wallElement.textContent = `${wallOccupied}/${wallSpots.length}`;
+                wallElement.className = wallOccupied >= wallSpots.length ? 'spot-occupied' : 'spot-available';
+            }
+
+            const floorElement = document.getElementById('floor-spots');
+            if (floorElement) {
+                const floorOccupied = floorSpots.filter(s => s.userData.occupied).length;
+                floorElement.textContent = `${floorOccupied}/${floorSpots.length}`;
+                floorElement.className = floorOccupied >= floorSpots.length ? 'spot-occupied' : 'spot-available';
+            }
         }
         
         function onKeyDown(event) {
@@ -2367,8 +2478,10 @@
                     moveRight = true;
                     break;
                 case 'Tab':
-                    event.preventDefault();
-                    toggleViewMode();
+                    if (isAdmin) {
+                        event.preventDefault();
+                        toggleViewMode();
+                    }
                     break;
                 case 'KeyR':
                     if (isAdmin) {
@@ -2400,14 +2513,21 @@
         }
         
         function toggleViewMode() {
+            if (!isAdmin) {
+                viewMode = 'normal';
+                wallSpots.forEach(spot => spot.visible = false);
+                floorSpots.forEach(spot => spot.visible = false);
+                return;
+            }
+
             const modes = ['normal', 'spots'];
             const currentIndex = modes.indexOf(viewMode);
             viewMode = modes[(currentIndex + 1) % modes.length];
-            
+
             wallSpots.forEach(spot => {
                 spot.visible = viewMode === 'spots' && !spot.userData.occupied;
             });
-            
+
             floorSpots.forEach(spot => {
                 spot.visible = viewMode === 'spots' && !spot.userData.occupied;
             });
