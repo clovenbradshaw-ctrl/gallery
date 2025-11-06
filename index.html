@@ -878,30 +878,296 @@
         const CREATE_WEBHOOK_URL = 'https://n8n.intelechia.com/webhook/create-gallery';
         const EDIT_WEBHOOK_URL = 'https://n8n.intelechia.com/webhook/edit-gallery';
 
-        const LOCATION_NAME_TO_ID_MAP = {
-            'Back Left Wall': 'back-1',
-            'Back Center Wall': 'back-2',
-            'Back Right Wall': 'back-3',
-            'Left Front': 'left-1',
-            'Left Back': 'left-2',
-            'Right Front': 'right-1',
-            'Right Back': 'right-2',
-            'Front Left': 'floor-1',
-            'Front Center': 'floor-2',
-            'Front Right': 'floor-3',
-            'Rear Left': 'floor-4',
-            'Rear Right': 'floor-5',
-            'Center Stage': 'floor-center'
+        const ROOMS = {
+            'main-gallery': {
+                id: 'main-gallery',
+                name: 'Main Gallery',
+                dimensions: { width: 16, depth: 20, height: 5 },
+                position: { x: 0, y: 0, z: 0 },
+                theme: {
+                    wallColor: 0xf5f5f5,
+                    floorColor: 0xfafafa,
+                    lighting: 'warm'
+                },
+                walls: [
+                    {
+                        id: 'main-gallery:back-1',
+                        baseId: 'back-1',
+                        displayName: 'Back Left Wall',
+                        position: new THREE.Vector3(-3.5, 2.5, -9.9),
+                        wall: 'back',
+                        rotation: 0,
+                        maxWidth: 5,
+                        wallLength: 16 * 0.3048
+                    },
+                    {
+                        id: 'main-gallery:back-2',
+                        baseId: 'back-2',
+                        displayName: 'Back Center Wall',
+                        position: new THREE.Vector3(0, 2.5, -9.9),
+                        wall: 'back',
+                        rotation: 0,
+                        maxWidth: 16 * 0.3048,
+                        wallLength: 16 * 0.3048
+                    },
+                    {
+                        id: 'main-gallery:back-3',
+                        baseId: 'back-3',
+                        displayName: 'Back Right Wall',
+                        position: new THREE.Vector3(3.5, 2.5, -9.9),
+                        wall: 'back',
+                        rotation: 0,
+                        maxWidth: 5,
+                        wallLength: 16 * 0.3048
+                    },
+                    {
+                        id: 'main-gallery:left-1',
+                        baseId: 'left-1',
+                        displayName: 'Left Front Wall',
+                        position: new THREE.Vector3(-7.9, 2.5, -3),
+                        wall: 'left',
+                        rotation: Math.PI / 2,
+                        maxWidth: 10 * 0.3048,
+                        wallLength: 20 * 0.3048
+                    },
+                    {
+                        id: 'main-gallery:left-2',
+                        baseId: 'left-2',
+                        displayName: 'Left Back Wall',
+                        position: new THREE.Vector3(-7.9, 2.5, 3),
+                        wall: 'left',
+                        rotation: Math.PI / 2,
+                        maxWidth: 10 * 0.3048,
+                        wallLength: 20 * 0.3048
+                    },
+                    {
+                        id: 'main-gallery:right-1',
+                        baseId: 'right-1',
+                        displayName: 'Right Front Wall',
+                        position: new THREE.Vector3(7.9, 2.5, -3),
+                        wall: 'right',
+                        rotation: -Math.PI / 2,
+                        maxWidth: 10 * 0.3048,
+                        wallLength: 20 * 0.3048
+                    },
+                    {
+                        id: 'main-gallery:right-2',
+                        baseId: 'right-2',
+                        displayName: 'Right Back Wall',
+                        position: new THREE.Vector3(7.9, 2.5, 3),
+                        wall: 'right',
+                        rotation: -Math.PI / 2,
+                        maxWidth: 10 * 0.3048,
+                        wallLength: 20 * 0.3048
+                    }
+                ],
+                floors: [
+                    {
+                        id: 'main-gallery:floor-1',
+                        baseId: 'floor-1',
+                        displayName: 'Front Left',
+                        position: new THREE.Vector3(-4, 0, -3),
+                        type: 'pedestal'
+                    },
+                    {
+                        id: 'main-gallery:floor-2',
+                        baseId: 'floor-2',
+                        displayName: 'Front Center',
+                        position: new THREE.Vector3(0, 0, -3),
+                        type: 'pedestal'
+                    },
+                    {
+                        id: 'main-gallery:floor-3',
+                        baseId: 'floor-3',
+                        displayName: 'Front Right',
+                        position: new THREE.Vector3(4, 0, -3),
+                        type: 'pedestal'
+                    },
+                    {
+                        id: 'main-gallery:floor-4',
+                        baseId: 'floor-4',
+                        displayName: 'Rear Left',
+                        position: new THREE.Vector3(-4, 0, 3),
+                        type: 'pedestal'
+                    },
+                    {
+                        id: 'main-gallery:floor-5',
+                        baseId: 'floor-5',
+                        displayName: 'Rear Right',
+                        position: new THREE.Vector3(4, 0, 3),
+                        type: 'pedestal'
+                    },
+                    {
+                        id: 'main-gallery:floor-center',
+                        baseId: 'floor-center',
+                        displayName: 'Center Stage',
+                        position: new THREE.Vector3(0, 0, 0),
+                        type: 'large'
+                    }
+                ],
+                doors: [
+                    {
+                        id: 'door-to-contemporary',
+                        position: { x: 6, y: 0, z: 10 },
+                        rotation: Math.PI,
+                        targetRoom: 'contemporary-wing',
+                        label: 'Contemporary Art'
+                    }
+                ]
+            },
+            'contemporary-wing': {
+                id: 'contemporary-wing',
+                name: 'Contemporary Wing',
+                dimensions: { width: 20, depth: 16, height: 5 },
+                position: { x: 0, y: 0, z: 28 },
+                theme: {
+                    wallColor: 0xf0f4ff,
+                    floorColor: 0xffffff,
+                    lighting: 'cool'
+                },
+                walls: [
+                    {
+                        id: 'contemporary-wing:north-1',
+                        baseId: 'north-1',
+                        displayName: 'Skyline Panel',
+                        position: new THREE.Vector3(-5.5, 2.5, -7.9),
+                        wall: 'back',
+                        rotation: 0,
+                        maxWidth: 6,
+                        wallLength: 20 * 0.3048
+                    },
+                    {
+                        id: 'contemporary-wing:north-2',
+                        baseId: 'north-2',
+                        displayName: 'Lightwell',
+                        position: new THREE.Vector3(0, 2.5, -7.9),
+                        wall: 'back',
+                        rotation: 0,
+                        maxWidth: 20 * 0.3048,
+                        wallLength: 20 * 0.3048
+                    },
+                    {
+                        id: 'contemporary-wing:north-3',
+                        baseId: 'north-3',
+                        displayName: 'Glass Passage',
+                        position: new THREE.Vector3(5.5, 2.5, -7.9),
+                        wall: 'back',
+                        rotation: 0,
+                        maxWidth: 6,
+                        wallLength: 20 * 0.3048
+                    },
+                    {
+                        id: 'contemporary-wing:west-1',
+                        baseId: 'west-1',
+                        displayName: 'Chromatic Stack',
+                        position: new THREE.Vector3(-9.9, 2.5, -2.5),
+                        wall: 'left',
+                        rotation: Math.PI / 2,
+                        maxWidth: 8 * 0.3048,
+                        wallLength: 16 * 0.3048
+                    },
+                    {
+                        id: 'contemporary-wing:west-2',
+                        baseId: 'west-2',
+                        displayName: 'Cascade Wall',
+                        position: new THREE.Vector3(-9.9, 2.5, 2.5),
+                        wall: 'left',
+                        rotation: Math.PI / 2,
+                        maxWidth: 8 * 0.3048,
+                        wallLength: 16 * 0.3048
+                    },
+                    {
+                        id: 'contemporary-wing:east-1',
+                        baseId: 'east-1',
+                        displayName: 'Spectrum Drift',
+                        position: new THREE.Vector3(9.9, 2.5, -2.5),
+                        wall: 'right',
+                        rotation: -Math.PI / 2,
+                        maxWidth: 8 * 0.3048,
+                        wallLength: 16 * 0.3048
+                    },
+                    {
+                        id: 'contemporary-wing:east-2',
+                        baseId: 'east-2',
+                        displayName: 'Neon Strata',
+                        position: new THREE.Vector3(9.9, 2.5, 2.5),
+                        wall: 'right',
+                        rotation: -Math.PI / 2,
+                        maxWidth: 8 * 0.3048,
+                        wallLength: 16 * 0.3048
+                    }
+                ],
+                floors: [
+                    {
+                        id: 'contemporary-wing:floor-1',
+                        baseId: 'floor-1',
+                        displayName: 'Atrium Plinth',
+                        position: new THREE.Vector3(-5, 0, -2),
+                        type: 'pedestal'
+                    },
+                    {
+                        id: 'contemporary-wing:floor-2',
+                        baseId: 'floor-2',
+                        displayName: 'Reflective Stage',
+                        position: new THREE.Vector3(0, 0, -2),
+                        type: 'large'
+                    },
+                    {
+                        id: 'contemporary-wing:floor-3',
+                        baseId: 'floor-3',
+                        displayName: 'Aurora Base',
+                        position: new THREE.Vector3(5, 0, -2),
+                        type: 'pedestal'
+                    },
+                    {
+                        id: 'contemporary-wing:floor-4',
+                        baseId: 'floor-4',
+                        displayName: 'Sculpture Garden',
+                        position: new THREE.Vector3(-5, 0, 3),
+                        type: 'pedestal'
+                    },
+                    {
+                        id: 'contemporary-wing:floor-5',
+                        baseId: 'floor-5',
+                        displayName: 'Light Pool',
+                        position: new THREE.Vector3(5, 0, 3),
+                        type: 'pedestal'
+                    }
+                ],
+                doors: [
+                    {
+                        id: 'door-to-main',
+                        position: { x: 0, y: 0, z: -8 },
+                        rotation: 0,
+                        targetRoom: 'main-gallery',
+                        label: 'Back to Main Gallery'
+                    }
+                ]
+            }
         };
 
-        const LOCATION_ID_TO_NAME_MAP = Object.keys(LOCATION_NAME_TO_ID_MAP).reduce((acc, name) => {
-            const id = LOCATION_NAME_TO_ID_MAP[name];
-            acc[id] = name;
-            return acc;
-        }, {});
-        
+        const LOCATION_NAME_TO_ID_MAP = {};
+        const LOCATION_ID_TO_NAME_MAP = {};
+        const ROOM_ID_TO_NAME_MAP = {};
+
+        Object.values(ROOMS).forEach(room => {
+            ROOM_ID_TO_NAME_MAP[room.id] = room.name;
+
+            const registerSpot = (spot) => {
+                LOCATION_NAME_TO_ID_MAP[spot.displayName] = spot.id;
+                LOCATION_NAME_TO_ID_MAP[`${room.name} - ${spot.displayName}`] = spot.id;
+                if (spot.baseId) {
+                    LOCATION_NAME_TO_ID_MAP[spot.baseId] = spot.id;
+                }
+                LOCATION_ID_TO_NAME_MAP[spot.id] = spot.displayName;
+            };
+
+            room.walls.forEach(registerSpot);
+            room.floors.forEach(registerSpot);
+        });
+
         let scene, camera, renderer;
-        let museum, artworks = [];
+        let artworks = [];
         let raycaster, mouse;
         let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false;
         let velocity = new THREE.Vector3();
@@ -920,6 +1186,9 @@
         let currentLightFactor = 1;
         let lightingAnimationFrame = null;
         let pendingArtworkLoads = 0;
+        let roomManager = null;
+        let navigationMapCanvas = null;
+        let interactKeyPressed = false;
 
         function registerGalleryLight(light) {
             const entry = { light, baseIntensity: light.intensity };
@@ -978,6 +1247,634 @@
                 transitionGalleryLighting(1);
             }
         }
+
+        function createDoor(doorConfig, roomId) {
+            const doorGroup = new THREE.Group();
+
+            const frameGeometry = new THREE.BoxGeometry(3, 4, 0.3);
+            const frameMaterial = new THREE.MeshStandardMaterial({
+                color: 0x8b7355,
+                roughness: 0.7,
+                metalness: 0.2
+            });
+            const frame = new THREE.Mesh(frameGeometry, frameMaterial);
+            frame.castShadow = true;
+            doorGroup.add(frame);
+
+            const doorGeometry = new THREE.BoxGeometry(2.8, 3.8, 0.1);
+            const doorMaterial = new THREE.MeshStandardMaterial({
+                color: 0xffffff,
+                transparent: true,
+                opacity: 0.8,
+                roughness: 0.4
+            });
+            const doorPanel = new THREE.Mesh(doorGeometry, doorMaterial);
+            doorPanel.position.z = -0.15;
+            doorGroup.add(doorPanel);
+
+            const triggerGeometry = new THREE.BoxGeometry(4, 3, 2.5);
+            const triggerMaterial = new THREE.MeshBasicMaterial({ visible: false });
+            const trigger = new THREE.Mesh(triggerGeometry, triggerMaterial);
+            trigger.name = 'door-trigger';
+            trigger.userData = {
+                type: 'door',
+                doorId: doorConfig.id,
+                targetRoom: doorConfig.targetRoom,
+                sourceRoom: roomId,
+                label: doorConfig.label
+            };
+            doorGroup.add(trigger);
+
+            const canvas = document.createElement('canvas');
+            canvas.width = 512;
+            canvas.height = 128;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#f0f0f0';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#2a2a2a';
+            ctx.font = 'bold 48px "Segoe UI", Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(doorConfig.label || 'Enter', canvas.width / 2, 80);
+
+            const signTexture = new THREE.CanvasTexture(canvas);
+            const signGeometry = new THREE.PlaneGeometry(2.4, 0.6);
+            const signMaterial = new THREE.MeshBasicMaterial({ map: signTexture });
+            const sign = new THREE.Mesh(signGeometry, signMaterial);
+            sign.position.y = 2.3;
+            sign.position.z = 0.35;
+            doorGroup.add(sign);
+
+            doorGroup.position.set(
+                doorConfig.position.x,
+                doorConfig.position.y + 2,
+                doorConfig.position.z
+            );
+            doorGroup.rotation.y = doorConfig.rotation || 0;
+
+            doorGroup.userData = {
+                type: 'door',
+                config: doorConfig,
+                roomId: roomId
+            };
+
+            return doorGroup;
+        }
+
+        class RoomManager {
+            constructor(scene) {
+                this.scene = scene;
+                this.roomMeshes = new Map();
+                this.roomSpots = new Map();
+                this.doorMeshes = new Map();
+                this.activeDoors = [];
+                this.currentRoom = null;
+                this.cameraBounds = null;
+                this.pendingArtworks = {};
+                this.loadedArtworkIds = new Set();
+                this.artworksByRoom = {};
+
+                this.createGlobalLights();
+            }
+
+            createGlobalLights() {
+                this.ambientLight = new THREE.AmbientLight(0xffffff, 0.65);
+                this.scene.add(this.ambientLight);
+                registerGalleryLight(this.ambientLight);
+
+                this.directionalLight = new THREE.DirectionalLight(0xffffff, 0.4);
+                this.directionalLight.position.set(0, 4, 2);
+                this.directionalLight.castShadow = true;
+                this.directionalLight.shadow.mapSize.width = 2048;
+                this.directionalLight.shadow.mapSize.height = 2048;
+                this.directionalLight.shadow.camera.left = -15;
+                this.directionalLight.shadow.camera.right = 15;
+                this.directionalLight.shadow.camera.top = 15;
+                this.directionalLight.shadow.camera.bottom = -15;
+                this.scene.add(this.directionalLight);
+                registerGalleryLight(this.directionalLight);
+            }
+
+            loadRoom(roomId) {
+                const roomConfig = ROOMS[roomId];
+                if (!roomConfig) {
+                    console.warn('Room not found:', roomId);
+                    return;
+                }
+
+                if (this.currentRoom && this.currentRoom !== roomId) {
+                    const currentMesh = this.roomMeshes.get(this.currentRoom);
+                    if (currentMesh) {
+                        currentMesh.visible = false;
+                    }
+                }
+
+                let roomGroup = this.roomMeshes.get(roomId);
+                if (!roomGroup) {
+                    roomGroup = this.createRoomGroup(roomConfig);
+                    this.roomMeshes.set(roomId, roomGroup);
+                } else {
+                    roomGroup.visible = true;
+                }
+
+                const spots = this.roomSpots.get(roomId) || { wallSpots: [], floorSpots: [] };
+                wallSpots = spots.wallSpots;
+                floorSpots = spots.floorSpots;
+
+                this.activeDoors = this.doorMeshes.get(roomId) || [];
+                this.currentRoom = roomId;
+
+                this.updateCameraBoundaries(roomConfig);
+                this.applyRoomTheme(roomConfig);
+
+                this.loadQueuedArtworks(roomId);
+                updateSpotCounters();
+            }
+
+            createRoomGroup(roomConfig) {
+                const roomGroup = new THREE.Group();
+                roomGroup.name = `room-${roomConfig.id}`;
+
+                const floor = new THREE.Mesh(
+                    new THREE.PlaneGeometry(roomConfig.dimensions.width, roomConfig.dimensions.depth),
+                    new THREE.MeshStandardMaterial({
+                        color: roomConfig.theme.floorColor,
+                        roughness: 0.35,
+                        metalness: 0.1
+                    })
+                );
+                floor.rotation.x = -Math.PI / 2;
+                floor.receiveShadow = true;
+                roomGroup.add(floor);
+
+                const ceiling = new THREE.Mesh(
+                    new THREE.PlaneGeometry(roomConfig.dimensions.width, roomConfig.dimensions.depth),
+                    new THREE.MeshStandardMaterial({
+                        color: 0xffffff,
+                        roughness: 0.95,
+                        metalness: 0
+                    })
+                );
+                ceiling.rotation.x = Math.PI / 2;
+                ceiling.position.y = roomConfig.dimensions.height;
+                roomGroup.add(ceiling);
+
+                this.createRoomWalls(roomGroup, roomConfig);
+
+                const spots = this.createRoomSpots(roomGroup, roomConfig);
+                this.roomSpots.set(roomConfig.id, spots);
+
+                const doors = [];
+                (roomConfig.doors || []).forEach(doorConfig => {
+                    const door = createDoor(doorConfig, roomConfig.id);
+                    doors.push(door);
+                    roomGroup.add(door);
+                });
+                this.doorMeshes.set(roomConfig.id, doors);
+
+                this.createRoomLighting(roomGroup, roomConfig, spots);
+                this.addRoomDecor(roomGroup, roomConfig);
+
+                roomGroup.position.set(
+                    roomConfig.position.x,
+                    roomConfig.position.y,
+                    roomConfig.position.z
+                );
+
+                this.scene.add(roomGroup);
+                return roomGroup;
+            }
+
+            createRoomWalls(roomGroup, roomConfig) {
+                const wallMaterial = new THREE.MeshStandardMaterial({
+                    color: roomConfig.theme.wallColor,
+                    roughness: 0.9,
+                    metalness: 0.05
+                });
+
+                const { width, depth, height } = roomConfig.dimensions;
+
+                const backWall = new THREE.Mesh(new THREE.PlaneGeometry(width, height), wallMaterial);
+                backWall.position.set(0, height / 2, -depth / 2);
+                backWall.receiveShadow = true;
+                roomGroup.add(backWall);
+
+                const frontWall = new THREE.Mesh(new THREE.PlaneGeometry(width, height), wallMaterial);
+                frontWall.position.set(0, height / 2, depth / 2);
+                frontWall.rotation.y = Math.PI;
+                roomGroup.add(frontWall);
+
+                const leftWall = new THREE.Mesh(new THREE.PlaneGeometry(depth, height), wallMaterial);
+                leftWall.position.set(-width / 2, height / 2, 0);
+                leftWall.rotation.y = Math.PI / 2;
+                leftWall.receiveShadow = true;
+                roomGroup.add(leftWall);
+
+                const rightWall = new THREE.Mesh(new THREE.PlaneGeometry(depth, height), wallMaterial);
+                rightWall.position.set(width / 2, height / 2, 0);
+                rightWall.rotation.y = -Math.PI / 2;
+                rightWall.receiveShadow = true;
+                roomGroup.add(rightWall);
+            }
+
+            createRoomSpots(roomGroup, roomConfig) {
+                const wallSpotsForRoom = [];
+                const floorSpotsForRoom = [];
+
+                roomConfig.walls.forEach(spot => {
+                    const spotMesh = new THREE.Mesh(
+                        new THREE.BoxGeometry(2, 2, 0.05),
+                        new THREE.MeshStandardMaterial({
+                            color: 0x667eea,
+                            emissive: 0x667eea,
+                            emissiveIntensity: 0.2,
+                            transparent: true,
+                            opacity: 0.3
+                        })
+                    );
+                    spotMesh.position.copy(spot.position);
+                    spotMesh.rotation.y = spot.rotation;
+                    spotMesh.name = 'wall-spot';
+                    spotMesh.visible = false;
+                    spotMesh.userData = {
+                        ...spot,
+                        roomId: roomConfig.id,
+                        occupied: false,
+                        currentWidth: 0
+                    };
+                    wallSpotsForRoom.push(spotMesh);
+                    roomGroup.add(spotMesh);
+                });
+
+                roomConfig.floors.forEach(spot => {
+                    const isLarge = spot.type === 'large';
+                    const spotMesh = new THREE.Mesh(
+                        new THREE.BoxGeometry(isLarge ? 2 : 1.2, 0.1, isLarge ? 2 : 1.2),
+                        new THREE.MeshStandardMaterial({
+                            color: 0x667eea,
+                            emissive: 0x667eea,
+                            emissiveIntensity: 0.3,
+                            transparent: true,
+                            opacity: 0.5
+                        })
+                    );
+                    spotMesh.position.copy(spot.position);
+                    spotMesh.position.y = 0.01;
+                    spotMesh.name = 'floor-spot';
+                    spotMesh.visible = false;
+                    spotMesh.userData = {
+                        ...spot,
+                        roomId: roomConfig.id,
+                        occupied: false,
+                        pedestal: null
+                    };
+                    floorSpotsForRoom.push(spotMesh);
+                    roomGroup.add(spotMesh);
+                });
+
+                return { wallSpots: wallSpotsForRoom, floorSpots: floorSpotsForRoom };
+            }
+
+            createRoomLighting(roomGroup, roomConfig, spots) {
+                const trackMaterial = new THREE.MeshStandardMaterial({
+                    color: roomConfig.theme.lighting === 'cool' ? 0x4f6ea8 : 0x4a4a4a,
+                    metalness: 0.85,
+                    roughness: 0.15
+                });
+
+                const trackHeight = roomConfig.dimensions.height - 0.05;
+                const trackOffset = 1.2;
+
+                const backTrack = new THREE.Mesh(
+                    new THREE.BoxGeometry(Math.max(2, roomConfig.dimensions.width - 2), 0.03, 0.08),
+                    trackMaterial
+                );
+                backTrack.position.set(0, trackHeight, -roomConfig.dimensions.depth / 2 + trackOffset);
+                roomGroup.add(backTrack);
+
+                const sideTrackLength = Math.max(2, roomConfig.dimensions.depth - 4);
+                const sideTrackGeometry = new THREE.BoxGeometry(0.08, 0.03, sideTrackLength);
+
+                const leftTrack = new THREE.Mesh(sideTrackGeometry, trackMaterial);
+                leftTrack.position.set(-roomConfig.dimensions.width / 2 + trackOffset, trackHeight, 0);
+                roomGroup.add(leftTrack);
+
+                const rightTrack = new THREE.Mesh(sideTrackGeometry, trackMaterial);
+                rightTrack.position.set(roomConfig.dimensions.width / 2 - trackOffset, trackHeight, 0);
+                roomGroup.add(rightTrack);
+
+                const wallLightColor = roomConfig.theme.lighting === 'cool' ? 0xd6e4ff : 0xffffff;
+                const floorLightColor = roomConfig.theme.lighting === 'cool' ? 0xcfd9ff : 0xffffff;
+
+                spots.wallSpots.forEach(spot => {
+                    const offset = new THREE.Vector3(0, 0, trackOffset);
+                    offset.applyEuler(new THREE.Euler(0, spot.userData.rotation, 0));
+
+                    const fixtureGeometry = new THREE.CylinderGeometry(0.05, 0.06, 0.15, 6);
+                    const fixture = new THREE.Mesh(fixtureGeometry, trackMaterial);
+                    fixture.position.set(
+                        spot.position.x + offset.x,
+                        trackHeight - 0.08,
+                        spot.position.z + offset.z
+                    );
+                    fixture.lookAt(spot.position.x, spot.position.y, spot.position.z);
+                    fixture.rotateX(Math.PI / 2);
+                    roomGroup.add(fixture);
+
+                    const spotLight = new THREE.SpotLight(wallLightColor, 0.5);
+                    spotLight.position.set(
+                        spot.position.x + offset.x,
+                        trackHeight - 0.1,
+                        spot.position.z + offset.z
+                    );
+                    spotLight.target.position.copy(spot.position);
+                    spotLight.angle = Math.PI / 8;
+                    spotLight.penumbra = 0.5;
+                    spotLight.distance = 8;
+                    spotLight.decay = 2;
+                    spotLight.castShadow = true;
+                    spotLight.shadow.mapSize.width = 1024;
+                    spotLight.shadow.mapSize.height = 1024;
+                    spotLight.shadow.camera.near = 0.5;
+                    spotLight.shadow.camera.far = 10;
+
+                    roomGroup.add(spotLight);
+                    roomGroup.add(spotLight.target);
+                    registerGalleryLight(spotLight);
+                });
+
+                spots.floorSpots.forEach(spot => {
+                    const spotLight = new THREE.SpotLight(floorLightColor, 0.35);
+                    spotLight.position.set(spot.position.x, 3.5, spot.position.z);
+                    spotLight.target.position.copy(spot.position);
+                    spotLight.angle = Math.PI / 6;
+                    spotLight.penumbra = 0.6;
+                    spotLight.distance = 6;
+                    spotLight.decay = 2;
+                    roomGroup.add(spotLight);
+                    roomGroup.add(spotLight.target);
+                    registerGalleryLight(spotLight);
+                });
+            }
+
+            addRoomDecor(roomGroup, roomConfig) {
+                if (roomConfig.id !== 'main-gallery') {
+                    return;
+                }
+
+                const textureLoader = new THREE.TextureLoader();
+                const woodTexture = textureLoader.load('https://t3.ftcdn.net/jpg/04/18/99/38/360_F_418993894_rtkXtiukgI1V6Rh4UQksKDNgQWc4TF2B.jpg');
+                woodTexture.wrapS = THREE.RepeatWrapping;
+                woodTexture.wrapT = THREE.RepeatWrapping;
+                woodTexture.repeat.set(2, 1);
+
+                const benchGeometry = new THREE.BoxGeometry(2.5, 0.5, 0.8);
+                const benchMaterial = new THREE.MeshStandardMaterial({ map: woodTexture, roughness: 0.6, metalness: 0.1 });
+                const bench = new THREE.Mesh(benchGeometry, benchMaterial);
+                bench.position.set(0, 0.25, 6);
+                bench.castShadow = true;
+                roomGroup.add(bench);
+            }
+
+            applyRoomTheme(roomConfig) {
+                if (this.ambientLight) {
+                    const color = roomConfig.theme.lighting === 'cool' ? 0xe0e8ff : 0xffffff;
+                    this.ambientLight.color = new THREE.Color(color);
+                }
+
+                if (this.directionalLight) {
+                    const color = roomConfig.theme.lighting === 'cool' ? 0xd4e0ff : 0xffffff;
+                    this.directionalLight.color = new THREE.Color(color);
+                }
+            }
+
+            updateCameraBoundaries(roomConfig) {
+                const { width, depth } = roomConfig.dimensions;
+                this.cameraBounds = {
+                    minX: roomConfig.position.x - width / 2 + 1,
+                    maxX: roomConfig.position.x + width / 2 - 1,
+                    minZ: roomConfig.position.z - depth / 2 + 1,
+                    maxZ: roomConfig.position.z + depth / 2 - 1
+                };
+            }
+
+            async loadQueuedArtworks(roomId) {
+                const queue = this.pendingArtworks[roomId];
+                if (!queue || queue.length === 0) {
+                    return;
+                }
+
+                const remaining = [];
+                for (const entry of queue) {
+                    if (this.loadedArtworkIds.has(entry.airtableId)) {
+                        continue;
+                    }
+
+                    const wallSpot = wallSpots.find(s => s.userData.id === entry.locationId);
+                    if (!wallSpot) {
+                        remaining.push(entry);
+                        continue;
+                    }
+
+                    await loadImageFromURL(entry.url, entry.locationId, entry.heightMeters, entry.metadata, entry.airtableId);
+                    this.loadedArtworkIds.add(entry.airtableId);
+                }
+
+                this.pendingArtworks[roomId] = remaining;
+            }
+
+            async addArtwork(entry) {
+                if (!entry || !entry.roomId) return;
+                if (this.loadedArtworkIds.has(entry.airtableId)) {
+                    return;
+                }
+
+                if (entry.roomId === this.currentRoom) {
+                    const wallSpot = wallSpots.find(s => s.userData.id === entry.locationId);
+                    if (wallSpot) {
+                        await loadImageFromURL(entry.url, entry.locationId, entry.heightMeters, entry.metadata, entry.airtableId);
+                        this.loadedArtworkIds.add(entry.airtableId);
+                        return;
+                    }
+                }
+
+                if (!this.pendingArtworks[entry.roomId]) {
+                    this.pendingArtworks[entry.roomId] = [];
+                }
+                this.pendingArtworks[entry.roomId].push(entry);
+            }
+
+            checkDoorProximity(cameraPosition) {
+                for (const door of this.activeDoors) {
+                    const doorWorldPos = new THREE.Vector3();
+                    door.getWorldPosition(doorWorldPos);
+                    const distance = cameraPosition.distanceTo(doorWorldPos);
+                    if (distance < 2.2) {
+                        return door.userData.config;
+                    }
+                }
+                return null;
+            }
+
+            transitionToRoom(targetRoomId) {
+                if (!targetRoomId || targetRoomId === this.currentRoom) {
+                    return;
+                }
+
+                this.fadeTransition(async () => {
+                    const previousRoom = this.currentRoom;
+                    this.loadRoom(targetRoomId);
+
+                    const targetRoom = ROOMS[targetRoomId];
+                    if (!targetRoom) return;
+
+                    const entryDoorConfig = (targetRoom.doors || []).find(d => d.targetRoom === previousRoom);
+                    if (entryDoorConfig) {
+                        const entryPos = new THREE.Vector3(
+                            targetRoom.position.x + entryDoorConfig.position.x,
+                            1.6,
+                            targetRoom.position.z + entryDoorConfig.position.z
+                        );
+
+                        const offset = new THREE.Vector3(0, 0, -3);
+                        offset.applyEuler(new THREE.Euler(0, entryDoorConfig.rotation || 0, 0));
+                        entryPos.add(offset);
+
+                        camera.position.copy(entryPos);
+                        camera.rotation.y = (entryDoorConfig.rotation || 0) + Math.PI;
+                    }
+                });
+            }
+
+            fadeTransition(callback) {
+                const overlay = document.createElement('div');
+                overlay.style.cssText = `
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background: black;
+                    opacity: 0;
+                    transition: opacity 0.5s;
+                    z-index: 9999;
+                    pointer-events: none;
+                `;
+                document.body.appendChild(overlay);
+
+                requestAnimationFrame(() => {
+                    overlay.style.opacity = '1';
+                });
+
+                setTimeout(async () => {
+                    await callback();
+                    overlay.style.opacity = '0';
+                    setTimeout(() => {
+                        if (overlay.parentElement) {
+                            overlay.parentElement.removeChild(overlay);
+                        }
+                    }, 500);
+                }, 500);
+            }
+        }
+
+        function createNavigationMap() {
+            const mapContainer = document.createElement('div');
+            mapContainer.id = 'navigation-map';
+            mapContainer.style.cssText = `
+                position: fixed;
+                bottom: 20px;
+                right: 20px;
+                width: 200px;
+                height: 200px;
+                background: rgba(0, 0, 0, 0.75);
+                border-radius: 12px;
+                padding: 10px;
+                backdrop-filter: blur(10px);
+                z-index: 180;
+            `;
+
+            const canvas = document.createElement('canvas');
+            canvas.width = 180;
+            canvas.height = 180;
+            canvas.style.cssText = 'width: 100%; height: 100%;';
+            mapContainer.appendChild(canvas);
+            document.body.appendChild(mapContainer);
+
+            return canvas;
+        }
+
+        function updateNavigationMap(canvas, currentRoomId, cameraPosition) {
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            const scale = 3;
+            const offsetX = canvas.width / 2;
+            const offsetY = canvas.height / 2;
+
+            Object.values(ROOMS).forEach(room => {
+                const x = offsetX + room.position.x * scale;
+                const y = offsetY + room.position.z * scale;
+                const w = room.dimensions.width * scale;
+                const h = room.dimensions.depth * scale;
+
+                ctx.fillStyle = room.id === currentRoomId ? 'rgba(102, 126, 234, 0.45)' : 'rgba(120, 120, 120, 0.25)';
+                ctx.fillRect(x - w / 2, y - h / 2, w, h);
+
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+                ctx.lineWidth = 2;
+                ctx.strokeRect(x - w / 2, y - h / 2, w, h);
+
+                (room.doors || []).forEach(door => {
+                    const doorX = x + door.position.x * scale;
+                    const doorY = y + door.position.z * scale;
+                    ctx.fillStyle = '#4ade80';
+                    ctx.fillRect(doorX - 3, doorY - 3, 6, 6);
+                });
+            });
+
+            if (cameraPosition) {
+                const playerX = offsetX + cameraPosition.x * scale;
+                const playerY = offsetY + cameraPosition.z * scale;
+                ctx.fillStyle = '#667eea';
+                ctx.beginPath();
+                ctx.arc(playerX, playerY, 4, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        function showDoorPrompt(label) {
+            let prompt = document.getElementById('door-prompt');
+            if (!prompt) {
+                prompt = document.createElement('div');
+                prompt.id = 'door-prompt';
+                prompt.style.cssText = `
+                    position: fixed;
+                    top: 50%;
+                    left: 50%;
+                    transform: translate(-50%, -50%);
+                    background: rgba(0, 0, 0, 0.8);
+                    color: white;
+                    padding: 20px 40px;
+                    border-radius: 12px;
+                    font-size: 18px;
+                    z-index: 200;
+                    backdrop-filter: blur(10px);
+                    text-align: center;
+                `;
+                document.body.appendChild(prompt);
+            }
+
+            prompt.innerHTML = `Press <strong>E</strong> to enter<br>${label}`;
+            prompt.style.display = 'block';
+        }
+
+        function hideDoorPrompt() {
+            const prompt = document.getElementById('door-prompt');
+            if (prompt) {
+                prompt.style.display = 'none';
+            }
+        }
         
         function checkAdminPassword() {
             const password = document.getElementById('admin-password').value;
@@ -1031,52 +1928,58 @@
                 
                 console.log('Filtered artwork records:', artworkRecords);
                 
+                roomManager.pendingArtworks = {};
+
+                const loadPromises = [];
+
                 for (const record of artworkRecords) {
-                    // Skip if not currently placed
                     if (!record['Currently Placed']) {
                         console.log(`Skipping ${record.Title} - not currently placed`);
                         continue;
                     }
-                    
-                    // Get art file from Art field (array of attachments)
-                    const artFile = record.Art[0]; // Get first attachment
-                    
+
+                    const artFile = record.Art[0];
                     if (!artFile || !artFile.url) {
                         console.warn(`No art file for ${record.Title}`);
                         continue;
                     }
-                    
+
+                    const locationName = extractLocationValue(
+                        record['Location Name'] ?? record['Location'] ?? record.Location
+                    );
+
+                    const parsedLocation = parseLocationData(locationName);
+                    if (!parsedLocation.locationId) {
+                        console.warn(`Could not map location for ${record.Title}:`, locationName);
+                        continue;
+                    }
+
                     const metadata = {
                         title: record.Title || '',
                         artist: record.Artist || '',
                         description: record.Description || ''
                     };
-                    
-                    const locationName = extractLocationValue(
-                        record['Location Name'] ?? record['Location'] ?? record.Location
-                    );
 
-                    console.log(`Processing ${record.Title}, Location Name:`, locationName);
-
-                    const locationId = mapLocationNameToId(locationName);
-                    
-                    if (!locationId) {
-                        console.warn(`Could not map location for ${record.Title}:`, locationName);
-                        continue;
-                    }
-                    
-                    // Convert height from inches to meters
                     const heightInches = record['Height (inches)'] || 36;
                     const heightMeters = heightInches * 0.0254;
-                    
-                    console.log(`Loading ${record.Title} at ${locationId}, height: ${heightInches}" (${heightMeters}m)`);
-                    
+
                     if (record.Type === 'Image') {
-                        await loadImageFromURL(artFile.url, locationId, heightMeters, metadata, record.id);
+                        loadPromises.push(
+                            roomManager.addArtwork({
+                                roomId: parsedLocation.roomId,
+                                locationId: parsedLocation.locationId,
+                                spotId: parsedLocation.spotId,
+                                metadata,
+                                url: artFile.url,
+                                heightMeters,
+                                airtableId: record.id
+                            })
+                        );
                     }
                 }
-                
-                updateSpotCounters();
+
+                await Promise.all(loadPromises);
+
                 document.getElementById('sync-status').textContent = `✓ Loaded ${artworkRecords.length} artworks`;
                 document.getElementById('sync-status').style.color = '#4ade80';
             } catch (error) {
@@ -1310,25 +2213,6 @@
             loadArtworksFromAirtable();
         }
         
-        const WALL_POSITIONS = [
-            { id: 'back-1', position: new THREE.Vector3(-3.5, 2.5, -9.9), wall: 'back', rotation: 0, maxWidth: 5, wallLength: 16 * 0.3048, displayName: 'back-1' },
-            { id: 'back-2', position: new THREE.Vector3(0, 2.5, -9.9), wall: 'back', rotation: 0, maxWidth: 16 * 0.3048, wallLength: 16 * 0.3048, displayName: 'back-2' },
-            { id: 'back-3', position: new THREE.Vector3(3.5, 2.5, -9.9), wall: 'back', rotation: 0, maxWidth: 5, wallLength: 16 * 0.3048, displayName: 'back-3' },
-            { id: 'left-1', position: new THREE.Vector3(-7.9, 2.5, -3), wall: 'left', rotation: Math.PI / 2, maxWidth: 10 * 0.3048, wallLength: 20 * 0.3048, displayName: 'left-1' },
-            { id: 'left-2', position: new THREE.Vector3(-7.9, 2.5, 3), wall: 'left', rotation: Math.PI / 2, maxWidth: 10 * 0.3048, wallLength: 20 * 0.3048, displayName: 'left-2' },
-            { id: 'right-1', position: new THREE.Vector3(7.9, 2.5, -3), wall: 'right', rotation: -Math.PI / 2, maxWidth: 10 * 0.3048, wallLength: 20 * 0.3048, displayName: 'right-1' },
-            { id: 'right-2', position: new THREE.Vector3(7.9, 2.5, 3), wall: 'right', rotation: -Math.PI / 2, maxWidth: 10 * 0.3048, wallLength: 20 * 0.3048, displayName: 'right-2' },
-        ];
-        
-        const FLOOR_POSITIONS = [
-            { id: 'floor-1', position: new THREE.Vector3(-4, 0, -3), type: 'pedestal', displayName: 'Front Left' },
-            { id: 'floor-2', position: new THREE.Vector3(0, 0, -3), type: 'pedestal', displayName: 'Front Center' },
-            { id: 'floor-3', position: new THREE.Vector3(4, 0, -3), type: 'pedestal', displayName: 'Front Right' },
-            { id: 'floor-4', position: new THREE.Vector3(-4, 0, 3), type: 'pedestal', displayName: 'Rear Left' },
-            { id: 'floor-5', position: new THREE.Vector3(4, 0, 3), type: 'pedestal', displayName: 'Rear Right' },
-            { id: 'floor-center', position: new THREE.Vector3(0, 0, 0), type: 'large', displayName: 'Center Stage' },
-        ];
-        
         function init() {
             scene = new THREE.Scene();
             scene.background = new THREE.Color(0xf0f0f0);
@@ -1347,234 +2231,28 @@
             raycaster = new THREE.Raycaster();
             mouse = new THREE.Vector2();
             
-            createMuseum();
-            createPlacementSpots();
-            setupLighting();
+            roomManager = new RoomManager(scene);
+            roomManager.loadRoom('main-gallery');
+
             setupControls();
             setupEventListeners();
             checkVRSupport();
             updateSpotCounters();
-            
+
             document.getElementById('loading').style.display = 'none';
-            
+
+            navigationMapCanvas = createNavigationMap();
+
             loadArtworksFromAirtable();
-            
+
             animate();
         }
         
-        function createMuseum() {
-            museum = new THREE.Group();
-            
-            const roomWidth = 16;
-            const roomDepth = 20;
-            
-            const floorGeometry = new THREE.PlaneGeometry(roomWidth, roomDepth);
-            const floorMaterial = new THREE.MeshStandardMaterial({ color: 0xfafafa, roughness: 0.3, metalness: 0.1 });
-            const floor = new THREE.Mesh(floorGeometry, floorMaterial);
-            floor.rotation.x = -Math.PI / 2;
-            floor.receiveShadow = true;
-            museum.add(floor);
-            
-            const ceilingGeometry = new THREE.PlaneGeometry(roomWidth, roomDepth);
-            const ceilingMaterial = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.95, metalness: 0 });
-            const ceiling = new THREE.Mesh(ceilingGeometry, ceilingMaterial);
-            ceiling.rotation.x = Math.PI / 2;
-            ceiling.position.y = 5;
-            museum.add(ceiling);
-            
-            const wallMaterial = new THREE.MeshStandardMaterial({ color: 0xf5f5f5, roughness: 0.9, metalness: 0.1 });
-            
-            const backWall = new THREE.Mesh(new THREE.PlaneGeometry(roomWidth, 5), wallMaterial);
-            backWall.position.z = -10;
-            backWall.position.y = 2.5;
-            backWall.receiveShadow = true;
-            backWall.name = 'wall';
-            museum.add(backWall);
-            
-            const doorWidth = 3;
-            const sideWidth = (roomWidth - doorWidth) / 2;
-            
-            const frontWallLeft = new THREE.Mesh(new THREE.PlaneGeometry(sideWidth, 5), wallMaterial);
-            frontWallLeft.position.set(-(sideWidth/2 + doorWidth/2), 2.5, 10);
-            frontWallLeft.rotation.y = Math.PI;
-            frontWallLeft.name = 'wall';
-            museum.add(frontWallLeft);
-            
-            const frontWallRight = new THREE.Mesh(new THREE.PlaneGeometry(sideWidth, 5), wallMaterial);
-            frontWallRight.position.set(sideWidth/2 + doorWidth/2, 2.5, 10);
-            frontWallRight.rotation.y = Math.PI;
-            frontWallRight.name = 'wall';
-            museum.add(frontWallRight);
-            
-            const doorTop = new THREE.Mesh(new THREE.PlaneGeometry(doorWidth, 2.5), wallMaterial);
-            doorTop.position.set(0, 3.75, 10);
-            doorTop.rotation.y = Math.PI;
-            museum.add(doorTop);
-            
-            const leftWall = new THREE.Mesh(new THREE.PlaneGeometry(roomDepth, 5), wallMaterial);
-            leftWall.position.set(-8, 2.5, 0);
-            leftWall.rotation.y = Math.PI / 2;
-            leftWall.receiveShadow = true;
-            leftWall.name = 'wall';
-            museum.add(leftWall);
-            
-            const rightWall = new THREE.Mesh(new THREE.PlaneGeometry(roomDepth, 5), wallMaterial);
-            rightWall.position.set(8, 2.5, 0);
-            rightWall.rotation.y = -Math.PI / 2;
-            rightWall.receiveShadow = true;
-            rightWall.name = 'wall';
-            museum.add(rightWall);
-            
-            const textureLoader = new THREE.TextureLoader();
-            const woodTexture = textureLoader.load('https://t3.ftcdn.net/jpg/04/18/99/38/360_F_418993894_rtkXtiukgI1V6Rh4UQksKDNgQWc4TF2B.jpg');
-            woodTexture.wrapS = THREE.RepeatWrapping;
-            woodTexture.wrapT = THREE.RepeatWrapping;
-            woodTexture.repeat.set(2, 1);
-            
-            const benchGeometry = new THREE.BoxGeometry(2.5, 0.5, 0.8);
-            const benchMaterial = new THREE.MeshStandardMaterial({ map: woodTexture, roughness: 0.6, metalness: 0.1 });
-            const bench = new THREE.Mesh(benchGeometry, benchMaterial);
-            bench.position.set(0, 0.25, 6);
-            bench.castShadow = true;
-            museum.add(bench);
-            
-            scene.add(museum);
-        }
-        
-        function createPlacementSpots() {
-            WALL_POSITIONS.forEach(spot => {
-                const spotMesh = new THREE.Mesh(
-                    new THREE.BoxGeometry(2, 2, 0.05),
-                    new THREE.MeshStandardMaterial({
-                        color: 0x667eea,
-                        emissive: 0x667eea,
-                        emissiveIntensity: 0.2,
-                        transparent: true,
-                        opacity: 0.3
-                    })
-                );
-                spotMesh.position.copy(spot.position);
-                spotMesh.rotation.y = spot.rotation;
-                spotMesh.name = 'wall-spot';
-                spotMesh.userData = { ...spot, occupied: false, currentWidth: 0 };
-                spotMesh.visible = false;
-                wallSpots.push(spotMesh);
-                scene.add(spotMesh);
-            });
-            
-            FLOOR_POSITIONS.forEach(spot => {
-                const spotMesh = new THREE.Mesh(
-                    new THREE.BoxGeometry(spot.type === 'large' ? 2 : 1.2, 0.1, spot.type === 'large' ? 2 : 1.2),
-                    new THREE.MeshStandardMaterial({
-                        color: 0x667eea,
-                        emissive: 0x667eea,
-                        emissiveIntensity: 0.3,
-                        transparent: true,
-                        opacity: 0.5
-                    })
-                );
-                spotMesh.position.copy(spot.position);
-                spotMesh.position.y = 0.01;
-                spotMesh.name = 'floor-spot';
-                spotMesh.userData = { ...spot, occupied: false, pedestal: null };
-                spotMesh.visible = false;
-                floorSpots.push(spotMesh);
-                scene.add(spotMesh);
-            });
-        }
-        
-        function setupLighting() {
-            const ambientLight = new THREE.AmbientLight(0xffffff, 0.65);
-            scene.add(ambientLight);
-            registerGalleryLight(ambientLight);
-
-            const generalLight = new THREE.DirectionalLight(0xffffff, 0.4);
-            generalLight.position.set(0, 4, 2);
-            generalLight.castShadow = true;
-            generalLight.shadow.mapSize.width = 2048;
-            generalLight.shadow.mapSize.height = 2048;
-            generalLight.shadow.camera.left = -10;
-            generalLight.shadow.camera.right = 10;
-            generalLight.shadow.camera.top = 10;
-            generalLight.shadow.camera.bottom = -10;
-            scene.add(generalLight);
-            registerGalleryLight(generalLight);
-            
-            const trackMaterial = new THREE.MeshStandardMaterial({ color: 0x4a4a4a, metalness: 0.9, roughness: 0.1 });
-            const trackHeight = 4.95;
-            const trackOffset = 1.2;
-            
-            const backTrack = new THREE.Mesh(new THREE.BoxGeometry(14, 0.03, 0.08), trackMaterial);
-            backTrack.position.set(0, trackHeight, -10 + trackOffset);
-            museum.add(backTrack);
-            
-            const sideTrackGeometry = new THREE.BoxGeometry(0.08, 0.03, 16);
-            const leftTrack = new THREE.Mesh(sideTrackGeometry, trackMaterial);
-            leftTrack.position.set(-8 + trackOffset, trackHeight, 0);
-            museum.add(leftTrack);
-            
-            const rightTrack = new THREE.Mesh(sideTrackGeometry, trackMaterial);
-            rightTrack.position.set(8 - trackOffset, trackHeight, 0);
-            museum.add(rightTrack);
-            
-            const createTrackLight = (x, z, targetX, targetZ, targetY = 2.5) => {
-                const fixtureGeometry = new THREE.CylinderGeometry(0.05, 0.06, 0.15, 6);
-                const fixture = new THREE.Mesh(fixtureGeometry, trackMaterial);
-                fixture.position.set(x, trackHeight - 0.08, z);
-                fixture.lookAt(targetX, targetY, targetZ);
-                fixture.rotateX(Math.PI / 2);
-                museum.add(fixture);
-                
-                const spotLight = new THREE.SpotLight(0xffffff, 0.5);
-                spotLight.position.set(x, trackHeight - 0.1, z);
-                spotLight.target.position.set(targetX, targetY, targetZ);
-                spotLight.angle = Math.PI / 8;
-                spotLight.penumbra = 0.5;
-                spotLight.distance = 8;
-                spotLight.decay = 2;
-                spotLight.castShadow = true;
-                spotLight.shadow.mapSize.width = 1024;
-                spotLight.shadow.mapSize.height = 1024;
-                spotLight.shadow.camera.near = 0.5;
-                spotLight.shadow.camera.far = 10;
-
-                scene.add(spotLight);
-                scene.add(spotLight.target);
-                registerGalleryLight(spotLight);
-
-                return spotLight;
-            };
-            
-            WALL_POSITIONS.forEach(spot => {
-                const offsetDir = new THREE.Vector3(0, 0, trackOffset);
-                offsetDir.applyEuler(new THREE.Euler(0, spot.rotation, 0));
-                createTrackLight(
-                    spot.position.x + offsetDir.x,
-                    spot.position.z + offsetDir.z,
-                    spot.position.x,
-                    spot.position.z,
-                    spot.position.y
-                );
-            });
-            
-            FLOOR_POSITIONS.forEach(spot => {
-                const spotLight = new THREE.SpotLight(0xffffff, 0.3);
-                spotLight.position.set(spot.position.x, 3.5, spot.position.z);
-                spotLight.target.position.copy(spot.position);
-                spotLight.angle = Math.PI / 6;
-                spotLight.penumbra = 0.6;
-                spotLight.distance = 5;
-                scene.add(spotLight);
-                scene.add(spotLight.target);
-                registerGalleryLight(spotLight);
-            });
-        }
-        
-        function createPedestal(position, type) {
-            const pedestalGeometry = type === 'large' ? 
+        function createPedestal(position, type, parent = scene) {
+            const pedestalGeometry = type === 'large' ?
                 new THREE.CylinderGeometry(1, 1, 0.8, 32) :
                 new THREE.CylinderGeometry(0.6, 0.6, 0.8, 32);
-                
+
             const pedestal = new THREE.Mesh(
                 pedestalGeometry,
                 new THREE.MeshStandardMaterial({ color: 0xe0e0e0, roughness: 0.3, metalness: 0.2 })
@@ -1583,12 +2261,12 @@
             pedestal.position.y = 0.4;
             pedestal.castShadow = true;
             pedestal.receiveShadow = true;
-            scene.add(pedestal);
-            
+            (parent || scene).add(pedestal);
+
             return pedestal;
         }
-        
-        function createPlacard(metadata, position, rotation, isFloor = false, artworkWidth = 0, artworkHeight = 0) {
+
+        function createPlacard(metadata, position, rotation, isFloor = false, artworkWidth = 0, artworkHeight = 0, parent = scene) {
             if (!metadata.title && !metadata.artist && !metadata.description) {
                 return null;
             }
@@ -1667,8 +2345,8 @@
             }
             
             placards.push(placardGroup);
-            scene.add(placardGroup);
-            
+            (parent || scene).add(placardGroup);
+
             return placardGroup;
         }
         
@@ -1899,13 +2577,12 @@
             warning.textContent = '';
             sizePreview.textContent = '';
 
-            const positions = type === '3d' ? FLOOR_POSITIONS : WALL_POSITIONS;
             const spots = type === '3d' ? floorSpots : wallSpots;
 
             const getSpotById = (id) => spots.find(s => s.userData.id === id);
 
-            positions.forEach(pos => {
-                const spotMesh = getSpotById(pos.id);
+            spots.forEach(spotMesh => {
+                const pos = spotMesh.userData;
                 const locationOption = document.createElement('div');
                 locationOption.className = 'location-option';
                 locationOption.dataset.id = pos.id;
@@ -1915,6 +2592,7 @@
                     locationOption.classList.add('occupied');
                 }
 
+                const roomName = ROOM_ID_TO_NAME_MAP[pos.roomId] || pos.roomId;
                 const friendlyName = LOCATION_ID_TO_NAME_MAP[pos.id] || pos.displayName || pos.id;
                 let noteHtml = '';
                 if (type === '3d' && pos.type) {
@@ -1922,7 +2600,7 @@
                 }
 
                 locationOption.innerHTML = `
-                    <div class="location-name">${friendlyName}</div>
+                    <div class="location-name">${roomName} - ${friendlyName}</div>
                     <div class="location-status">${isOccupied ? 'Occupied' : 'Available'}</div>
                     ${noteHtml}
                 `;
@@ -1940,13 +2618,10 @@
                 locationGrid.appendChild(locationOption);
             });
 
-            const firstAvailable = positions.find(pos => {
-                const spotMesh = getSpotById(pos.id);
-                return spotMesh && !spotMesh.userData.occupied;
-            });
+            const firstAvailableMesh = spots.find(spotMesh => spotMesh && !spotMesh.userData.occupied);
 
-            if (firstAvailable) {
-                selectedLocation = firstAvailable.id;
+            if (firstAvailableMesh) {
+                selectedLocation = firstAvailableMesh.userData.id;
                 const firstOption = locationGrid.querySelector(`[data-id="${selectedLocation}"]`);
                 if (firstOption) {
                     firstOption.classList.add('selected');
@@ -2015,7 +2690,8 @@
                 const estimateText = currentPendingArt.aspectRatio ? '' : ' (estimated)';
                 sizePreview.textContent = `Dimensions: ${heightFeet.toFixed(1)}' × ${widthFeet.toFixed(1)}'${estimateText}`;
 
-                const spot = WALL_POSITIONS.find(p => p.id === selectedLocation);
+                const spotMesh = wallSpots.find(s => s.userData.id === selectedLocation);
+                const spot = spotMesh ? spotMesh.userData : null;
                 if (spot) {
                     const wallLengthFeet = spot.wallLength / 0.3048;
                     if (widthMeters > spot.wallLength) {
@@ -2024,7 +2700,8 @@
                     }
                 }
             } else if (currentPendingArt.type === '3d') {
-                const spot = FLOOR_POSITIONS.find(p => p.id === selectedLocation);
+                const spotMesh = floorSpots.find(s => s.userData.id === selectedLocation);
+                const spot = spotMesh ? spotMesh.userData : null;
                 const friendlyName = LOCATION_ID_TO_NAME_MAP[selectedLocation] || (spot ? spot.displayName : selectedLocation);
 
                 const details = [];
@@ -2162,45 +2839,110 @@
         }
 
         function mapLocationNameToId(locationName) {
-            if (!locationName) return null;
+            const parsed = parseLocationData(locationName);
+            return parsed && parsed.locationId ? parsed.locationId : null;
+        }
 
-            // Direct match against the friendly name (e.g. "Back Left Wall")
-            if (LOCATION_NAME_TO_ID_MAP[locationName]) {
-                return LOCATION_NAME_TO_ID_MAP[locationName];
+        function parseLocationData(locationName) {
+            if (!locationName) {
+                return {
+                    roomId: 'main-gallery',
+                    spotId: null,
+                    locationId: null,
+                    displayName: null
+                };
             }
 
-            // If the value coming from Airtable is already an ID (e.g. "back-1")
-            // allow it to pass straight through.
-            if (LOCATION_ID_TO_NAME_MAP[locationName]) {
-                return locationName;
+            const value = typeof locationName === 'string'
+                ? locationName.trim()
+                : String(locationName).trim();
+
+            if (!value) {
+                return {
+                    roomId: 'main-gallery',
+                    spotId: null,
+                    locationId: null,
+                    displayName: null
+                };
             }
 
-            const normalized = typeof locationName === 'string'
-                ? locationName.trim().toLowerCase()
-                : String(locationName).trim().toLowerCase();
-
-            // Try to match ignoring case/extra whitespace for both the friendly
-            // location names and the raw IDs. This makes the mapping resilient to
-            // differences in how the data is stored in Airtable.
-            for (const [name, id] of Object.entries(LOCATION_NAME_TO_ID_MAP)) {
-                if (name.toLowerCase() === normalized) {
-                    return id;
+            if (value.includes(':')) {
+                const [roomId, baseSpotId] = value.split(':');
+                if (ROOMS[roomId]) {
+                    const room = ROOMS[roomId];
+                    const spot = [...room.walls, ...room.floors].find(s => s.id === value || s.baseId === baseSpotId);
+                    if (spot) {
+                        return {
+                            roomId,
+                            spotId: spot.baseId || baseSpotId,
+                            locationId: spot.id,
+                            displayName: spot.displayName
+                        };
+                    }
                 }
             }
 
-            for (const id of Object.keys(LOCATION_ID_TO_NAME_MAP)) {
-                if (id.toLowerCase() === normalized) {
-                    return id;
+            if (LOCATION_NAME_TO_ID_MAP[value]) {
+                const locationId = LOCATION_NAME_TO_ID_MAP[value];
+                const [roomId, baseSpotId] = locationId.split(':');
+                const room = ROOMS[roomId];
+                const spot = room ? [...room.walls, ...room.floors].find(s => s.id === locationId) : null;
+                return {
+                    roomId: roomId || 'main-gallery',
+                    spotId: (spot && spot.baseId) || baseSpotId,
+                    locationId,
+                    displayName: LOCATION_ID_TO_NAME_MAP[locationId] || baseSpotId
+                };
+            }
+
+            const parts = value.split(' - ');
+            if (parts.length >= 2) {
+                const roomName = parts[0].trim();
+                const spotName = parts.slice(1).join(' - ').trim();
+                const room = Object.values(ROOMS).find(r => r.name.toLowerCase() === roomName.toLowerCase());
+                if (room) {
+                    const spot = [...room.walls, ...room.floors].find(s => s.displayName.toLowerCase() === spotName.toLowerCase());
+                    if (spot) {
+                        return {
+                            roomId: room.id,
+                            spotId: spot.baseId || spot.id.split(':')[1],
+                            locationId: spot.id,
+                            displayName: spot.displayName
+                        };
+                    }
                 }
             }
 
-            console.warn('Could not map location name to ID:', locationName);
-            return null;
+            const fallbackRoom = ROOMS['main-gallery'];
+            const fallbackSpot = [...fallbackRoom.walls, ...fallbackRoom.floors].find(spot => {
+                return spot.displayName.toLowerCase() === value.toLowerCase() || spot.baseId === value;
+            });
+
+            if (fallbackSpot) {
+                return {
+                    roomId: fallbackRoom.id,
+                    spotId: fallbackSpot.baseId || fallbackSpot.id.split(':')[1],
+                    locationId: fallbackSpot.id,
+                    displayName: fallbackSpot.displayName
+                };
+            }
+
+            return {
+                roomId: 'main-gallery',
+                spotId: null,
+                locationId: null,
+                displayName: null
+            };
         }
         
         function mapLocationIdToName(locationId) {
             if (!locationId) return null;
-            return LOCATION_ID_TO_NAME_MAP[locationId] || null;
+            const displayName = LOCATION_ID_TO_NAME_MAP[locationId];
+            if (!displayName) return null;
+
+            const [roomId] = locationId.split(':');
+            const roomName = ROOM_ID_TO_NAME_MAP[roomId] || roomId;
+            return `${roomName} - ${displayName}`;
         }
         
         function loadImageArtwork(artData, locationId, height, metadata, heightFeet, fileName) {
@@ -2293,9 +3035,10 @@
             artworkGroup.position.add(normal.multiplyScalar(0.05));
             
             artworks.push(artworkGroup);
-            scene.add(artworkGroup);
-            
-            const placard = createPlacard(metadata, spot.position, spot.userData.rotation, false, width, height);
+            const parentGroup = spot.parent || scene;
+            parentGroup.add(artworkGroup);
+
+            const placard = createPlacard(metadata, spot.position, spot.userData.rotation, false, width, height, parentGroup);
             if (placard) {
                 artworkGroup.userData.placardIndex = placards.indexOf(placard);
             }
@@ -2354,7 +3097,8 @@
         }
         
         function process3DModel(object, name, spot, size, metadata) {
-            const pedestal = createPedestal(spot.position, spot.userData.type);
+            const parentGroup = spot.parent || scene;
+            const pedestal = createPedestal(spot.position, spot.userData.type, parentGroup);
             spot.userData.pedestal = pedestal;
             
             const box = new THREE.Box3().setFromObject(object);
@@ -2380,9 +3124,9 @@
             modelGroup.position.y = 0.85;
             
             artworks.push(modelGroup);
-            scene.add(modelGroup);
-            
-            const placard = createPlacard(metadata, spot.position, 0, true);
+            parentGroup.add(modelGroup);
+
+            const placard = createPlacard(metadata, spot.position, 0, true, 0, 0, parentGroup);
             if (placard) {
                 modelGroup.userData.placardIndex = placards.indexOf(placard);
             }
@@ -2488,9 +3232,12 @@
                         removeNearestArtwork();
                     }
                     break;
+                case 'KeyE':
+                    interactKeyPressed = true;
+                    break;
             }
         }
-        
+
         function onKeyUp(event) {
             switch(event.code) {
                 case 'ArrowUp':
@@ -2508,6 +3255,9 @@
                 case 'ArrowRight':
                 case 'KeyD':
                     moveRight = false;
+                    break;
+                case 'KeyE':
+                    interactKeyPressed = false;
                     break;
             }
         }
@@ -2562,23 +3312,31 @@
                         floorSpot.userData.occupied = false;
                         floorSpot.material.color.setHex(0x667eea);
                         floorSpot.material.emissive.setHex(0x667eea);
-                        
+
                         if (floorSpot.userData.pedestal) {
-                            scene.remove(floorSpot.userData.pedestal);
+                            const pedestalParent = floorSpot.userData.pedestal.parent;
+                            if (pedestalParent) {
+                                pedestalParent.remove(floorSpot.userData.pedestal);
+                            }
                             floorSpot.userData.pedestal = null;
                         }
                     }
-                    
-                    if (artworkGroup.userData.placardIndex !== undefined && 
+
+                    if (artworkGroup.userData.placardIndex !== undefined &&
                         placards[artworkGroup.userData.placardIndex]) {
-                        scene.remove(placards[artworkGroup.userData.placardIndex]);
+                        const placard = placards[artworkGroup.userData.placardIndex];
+                        if (placard && placard.parent) {
+                            placard.parent.remove(placard);
+                        }
                         placards[artworkGroup.userData.placardIndex] = null;
                     }
-                    
-                    scene.remove(artworkGroup);
+
+                    if (artworkGroup.parent) {
+                        artworkGroup.parent.remove(artworkGroup);
+                    }
                     const index = artworks.indexOf(artworkGroup);
                     if (index > -1) artworks.splice(index, 1);
-                    
+
                     updateSpotCounters();
                 }
             }
@@ -2656,16 +3414,18 @@
             
             currentEditingArtwork.userData.metadata = newMetadata;
             
-            if (currentEditingArtwork.userData.placardIndex !== undefined && 
+            if (currentEditingArtwork.userData.placardIndex !== undefined &&
                 placards[currentEditingArtwork.userData.placardIndex]) {
                 const oldPlacard = placards[currentEditingArtwork.userData.placardIndex];
-                scene.remove(oldPlacard);
-                
+                if (oldPlacard && oldPlacard.parent) {
+                    oldPlacard.parent.remove(oldPlacard);
+                }
+
                 const spot = wallSpots.find(s => s.userData.id === currentEditingArtwork.userData.spotId);
                 if (spot) {
                     const artworkWidth = currentEditingArtwork.userData.width;
                     const artworkHeight = currentEditingArtwork.children[1].geometry.parameters.height;
-                    const newPlacard = createPlacard(newMetadata, spot.position, spot.userData.rotation, false, artworkWidth, artworkHeight);
+                    const newPlacard = createPlacard(newMetadata, spot.position, spot.userData.rotation, false, artworkWidth, artworkHeight, spot.parent || scene);
                     if (newPlacard) {
                         placards[currentEditingArtwork.userData.placardIndex] = newPlacard;
                     }
@@ -2777,12 +3537,14 @@
                     vrSession = await navigator.xr.requestSession('immersive-vr', {
                         optionalFeatures: ['local-floor', 'bounded-floor', 'hand-tracking']
                     });
-                    
+
                     renderer.xr.setSession(vrSession);
                     vrButton.textContent = 'Exit VR Mode';
-                    
+
                     vrSession.addEventListener('end', () => {
                         vrSession = null;
+                        renderer.setAnimationLoop(null);
+                        requestAnimationFrame(animate);
                         vrButton.textContent = 'Enter VR Mode';
                     });
                 } catch (error) {
@@ -2794,11 +3556,15 @@
         }
         
         function updateMovement(delta) {
-            if (!document.pointerLockElement && !vrSession) return;
-            
+            if (!document.pointerLockElement && !vrSession) {
+                interactKeyPressed = false;
+                hideDoorPrompt();
+                return;
+            }
+
             velocity.x -= velocity.x * 10.0 * delta;
             velocity.z -= velocity.z * 10.0 * delta;
-            
+
             direction.z = Number(moveForward) - Number(moveBackward);
             direction.x = Number(moveRight) - Number(moveLeft);
             direction.normalize();
@@ -2818,32 +3584,57 @@
             forward.normalize();
             
             right.crossVectors(forward, new THREE.Vector3(0, 1, 0));
-            
+
             camera.position.add(forward.multiplyScalar(-velocity.z * delta));
             camera.position.add(right.multiplyScalar(-velocity.x * delta));
-            
-            camera.position.x = Math.max(-7, Math.min(7, camera.position.x));
-            camera.position.z = Math.max(-9, Math.min(9, camera.position.z));
+
+            if (roomManager && roomManager.cameraBounds) {
+                camera.position.x = Math.max(roomManager.cameraBounds.minX, Math.min(roomManager.cameraBounds.maxX, camera.position.x));
+                camera.position.z = Math.max(roomManager.cameraBounds.minZ, Math.min(roomManager.cameraBounds.maxZ, camera.position.z));
+            }
+
+            if (roomManager) {
+                const nearbyDoor = roomManager.checkDoorProximity(camera.position);
+                if (nearbyDoor) {
+                    showDoorPrompt(nearbyDoor.label);
+                    if (interactKeyPressed) {
+                        interactKeyPressed = false;
+                        hideDoorPrompt();
+                        roomManager.transitionToRoom(nearbyDoor.targetRoom);
+                    }
+                } else {
+                    hideDoorPrompt();
+                }
+            }
         }
-        
+
         let clock = new THREE.Clock();
-        
-        function animate() {
-            const delta = clock.getDelta();
-            
+
+        function renderFrame(delta) {
             updateMovement(delta);
-            
+
+            if (navigationMapCanvas && roomManager) {
+                updateNavigationMap(navigationMapCanvas, roomManager.currentRoom, camera.position);
+            }
+
             artworks.forEach(artwork => {
                 if (artwork.name === '3d-model') {
                     artwork.rotation.y += delta * 0.1;
                 }
             });
-            
+
             renderer.render(scene, camera);
-            
+        }
+
+        function animate() {
+            const delta = clock.getDelta();
+
+            renderFrame(delta);
+
             if (vrSession) {
                 renderer.setAnimationLoop(() => {
-                    renderer.render(scene, camera);
+                    const vrDelta = clock.getDelta();
+                    renderFrame(vrDelta);
                 });
             } else {
                 requestAnimationFrame(animate);
