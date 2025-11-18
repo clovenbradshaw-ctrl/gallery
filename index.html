@@ -2220,6 +2220,8 @@
                 roomManager.pendingArtworks = {};
 
                 const loadPromises = [];
+                const totalRecords = artworkRecords.length;
+                let eligibleCount = 0;
 
                 for (const record of artworkRecords) {
                     if (!record['Currently Placed']) {
@@ -2261,6 +2263,7 @@
                     const heightMeters = heightInches * 0.0254;
 
                     if (record.Type === 'Image') {
+                        eligibleCount++;
                         loadPromises.push(
                             roomManager.addArtwork({
                                 roomId: parsedLocation.roomId,
@@ -2272,13 +2275,23 @@
                                 airtableId: record.id
                             })
                         );
+                    } else {
+                        console.warn(`Unsupported artwork type for ${record.Title}:`, record.Type);
                     }
                 }
 
                 await Promise.all(loadPromises);
 
-                document.getElementById('sync-status').textContent = `✓ Loaded ${artworkRecords.length} artworks`;
-                document.getElementById('sync-status').style.color = '#4ade80';
+                const placedCount = loadPromises.length;
+                const statusElement = document.getElementById('sync-status');
+
+                if (placedCount > 0) {
+                    statusElement.textContent = `✓ Loaded ${placedCount} artwork${placedCount !== 1 ? 's' : ''} for this gallery (${eligibleCount}/${totalRecords} eligible)`;
+                    statusElement.style.color = '#4ade80';
+                } else {
+                    statusElement.textContent = `ℹ️ No artworks available to display for this gallery (${eligibleCount}/${totalRecords} eligible)`;
+                    statusElement.style.color = '#fbbf24';
+                }
             } catch (error) {
                 console.error('Failed to load artworks:', error);
                 document.getElementById('sync-status').textContent = '❌ Failed to load artworks';
