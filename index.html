@@ -114,12 +114,13 @@
             position: absolute;
             top: 20px;
             left: 20px;
+            right: auto;
             z-index: 100;
             background: rgba(0, 0, 0, 0.8);
             padding: 20px;
             border-radius: 12px;
             color: white;
-            max-width: 320px;
+            width: min(360px, calc(100vw - 48px));
             backdrop-filter: blur(10px);
             transition: transform 0.3s ease;
             max-height: 80vh;
@@ -725,6 +726,36 @@
             background: rgba(255, 255, 255, 0.2);
             transform: scale(1.05);
         }
+
+        @media (max-width: 640px) {
+            #ui-overlay {
+                width: calc(100vw - 32px);
+                left: 16px;
+                right: 16px;
+                top: 16px;
+                max-height: 88vh;
+            }
+
+            #ui-overlay.hidden {
+                transform: translateX(calc(-100% - 32px));
+            }
+
+            #ui-overlay:not(.hidden) + #toggle-ui {
+                left: 16px;
+                top: 16px;
+            }
+
+            .input-row {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .input-row .small-button,
+            .input-row input,
+            .input-row select {
+                width: 100%;
+            }
+        }
     </style>
 </head>
 <body>
@@ -771,9 +802,9 @@
 
             <div class="control-group">
                 <label>Room Color Temperature (K)</label>
-                <input type="range" id="color-temp-input" min="2700" max="5000" step="100" value="3200">
-                <div id="color-temp-display" class="muted-label">3200K · recommended 3000K–3500K for neutral gallery viewing</div>
-                <div class="supported-formats">Warmer (2700K-3000K) feels cozy; 3000K-3500K keeps colors true; 4000K+ feels cooler and sharper.</div>
+                <input type="range" id="color-temp-input" min="2700" max="5000" step="100" value="3400">
+                <div id="color-temp-display" class="muted-label">3400K · recommended 3300K–3600K for neutral gallery viewing</div>
+                <div class="supported-formats">Warmer (2700K-3200K) feels cozy; 3300K-3600K keeps colors true to neutral daylight; 4000K+ feels cooler and sharper.</div>
             </div>
 
             <div class="control-group">
@@ -942,7 +973,7 @@
         const ADMIN_PASSWORD = 'password';
 
         const DEFAULT_EYE_LEVEL_METERS = 1.47; // 58 inches for comfortable viewing
-        const DEFAULT_COLOR_TEMPERATURE = 3200;
+        const DEFAULT_COLOR_TEMPERATURE = 3400;
         const MIN_COLOR_TEMPERATURE = 2700;
         const MAX_COLOR_TEMPERATURE = 5000;
 
@@ -1308,10 +1339,16 @@
             return (Math.round(red) << 16) + (Math.round(green) << 8) + Math.round(blue);
         }
 
+        function getMotivatedLightHex(kelvin, blend = 0.18) {
+            const neutral = new THREE.Color(0xf7f7f5);
+            const target = new THREE.Color(colorTemperatureToHex(kelvin));
+            return target.lerp(neutral, blend).getHex();
+        }
+
         function applyColorTemperature(kelvin) {
             const temperature = clampColorTemperature(kelvin);
-            const wallColor = colorTemperatureToHex(temperature);
-            const floorColor = colorTemperatureToHex(Math.min(MAX_COLOR_TEMPERATURE, temperature + 250));
+            const wallColor = getMotivatedLightHex(temperature, 0.22);
+            const floorColor = getMotivatedLightHex(Math.min(MAX_COLOR_TEMPERATURE, temperature + 200), 0.14);
 
             Object.values(ROOMS).forEach(room => {
                 room.theme.colorTemperature = temperature;
@@ -1330,7 +1367,7 @@
 
             const display = document.getElementById('color-temp-display');
             if (display) {
-                display.textContent = `${temperature}K · recommended 3000K–3500K for neutral gallery viewing`;
+                display.textContent = `${temperature}K · recommended 3300K–3600K for neutral gallery viewing`;
             }
         }
 
@@ -1819,8 +1856,8 @@
 
             createRoomLighting(roomGroup, roomConfig, spots) {
                 const temperature = clampColorTemperature(roomConfig.theme.colorTemperature || DEFAULT_COLOR_TEMPERATURE);
-                const wallLightColor = colorTemperatureToHex(temperature);
-                const floorLightColor = colorTemperatureToHex(Math.min(MAX_COLOR_TEMPERATURE, temperature + 250));
+                const wallLightColor = getMotivatedLightHex(temperature, 0.22);
+                const floorLightColor = getMotivatedLightHex(Math.min(MAX_COLOR_TEMPERATURE, temperature + 200), 0.14);
 
                 const trackMaterial = new THREE.MeshStandardMaterial({
                     color: temperature >= 3800 ? 0x4f6ea8 : 0x4a4a4a,
@@ -1921,8 +1958,8 @@
 
             applyRoomTheme(roomConfig) {
                 const temperature = clampColorTemperature(roomConfig.theme.colorTemperature || DEFAULT_COLOR_TEMPERATURE);
-                const ambientColor = colorTemperatureToHex(temperature);
-                const accentColor = colorTemperatureToHex(Math.min(MAX_COLOR_TEMPERATURE, temperature + 250));
+                const ambientColor = getMotivatedLightHex(temperature, 0.2);
+                const accentColor = getMotivatedLightHex(Math.min(MAX_COLOR_TEMPERATURE, temperature + 200), 0.15);
 
                 if (this.ambientLight) {
                     this.ambientLight.color = new THREE.Color(ambientColor);
