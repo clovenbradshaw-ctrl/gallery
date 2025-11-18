@@ -254,6 +254,48 @@
             max-height: 120px;
             overflow-y: auto;
         }
+
+        .input-row {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            margin: 8px 0;
+        }
+
+        .input-row input,
+        .input-row select {
+            flex: 1;
+            padding: 10px;
+            border-radius: 6px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            background: rgba(255, 255, 255, 0.08);
+            color: white;
+        }
+
+        .muted-label {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 0.85em;
+            margin-top: 6px;
+        }
+
+        .small-button {
+            padding: 9px 12px;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            background: rgba(102, 126, 234, 0.8);
+            color: white;
+            transition: transform 0.2s ease;
+            font-weight: 600;
+        }
+
+        .small-button.secondary {
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .small-button:hover {
+            transform: translateY(-1px);
+        }
         
         .art-item {
             display: flex;
@@ -711,6 +753,30 @@
             </div>
 
             <div class="control-group">
+                <label>Gallery Manager</label>
+                <div class="input-row">
+                    <select id="gallery-select"></select>
+                    <button class="small-button" onclick="setActiveGallery(document.getElementById('gallery-select').value)">Open</button>
+                </div>
+                <div class="input-row">
+                    <input type="text" id="gallery-name-input" placeholder="Gallery name">
+                    <button class="small-button secondary" onclick="renameActiveGallery()">Rename</button>
+                </div>
+                <div class="input-row">
+                    <select id="gallery-room-select"></select>
+                    <button class="small-button" onclick="generateNewGallery()">New Gallery</button>
+                </div>
+                <div class="muted-label">Shareable links: ?gallery=&lt;id&gt; or ?gallery=&lt;id&gt;&amp;room=&lt;room-id&gt;</div>
+            </div>
+
+            <div class="control-group">
+                <label>Room Color Temperature (K)</label>
+                <input type="range" id="color-temp-input" min="2700" max="5000" step="100" value="3200">
+                <div id="color-temp-display" class="muted-label">3200K · recommended 3000K–3500K for neutral gallery viewing</div>
+                <div class="supported-formats">Warmer (2700K-3000K) feels cozy; 3000K-3500K keeps colors true; 4000K+ feels cooler and sharper.</div>
+            </div>
+
+            <div class="control-group">
                 <label>Upload Images or 3D Models</label>
                 <input type="file" id="file-input" multiple
                        accept="image/*,.obj,.gltf,.glb,.fbx,.stl">
@@ -799,6 +865,7 @@
             <label id="dimension-label">Height (inches):</label>
             <input type="number" id="height-input" value="36" min="6" max="144" step="6">
             <div class="dimension-info" id="size-preview"></div>
+            <div class="muted-label">Aim for artwork centers at 57–60 inches above the floor (average eye level) for comfortable viewing.</div>
         </div>
         
         <div id="size-warning" class="warning" style="display:none;"></div>
@@ -873,6 +940,13 @@
         let escapeCount = 0;
         let escapeTimer = null;
         const ADMIN_PASSWORD = 'password';
+
+        const DEFAULT_EYE_LEVEL_METERS = 1.47; // 58 inches for comfortable viewing
+        const DEFAULT_COLOR_TEMPERATURE = 3200;
+        const MIN_COLOR_TEMPERATURE = 2700;
+        const MAX_COLOR_TEMPERATURE = 5000;
+
+        const wallSpotPosition = (x, z) => new THREE.Vector3(x, DEFAULT_EYE_LEVEL_METERS, z);
         
         const WEBHOOK_URL = 'https://n8n.intelechia.com/webhook/gallery';
         const CREATE_WEBHOOK_URL = 'https://n8n.intelechia.com/webhook/create-gallery';
@@ -887,14 +961,15 @@
                 theme: {
                     wallColor: 0xf5f5f5,
                     floorColor: 0xfafafa,
-                    lighting: 'warm'
+                    lighting: 'warm',
+                    colorTemperature: DEFAULT_COLOR_TEMPERATURE
                 },
                 walls: [
                     {
                         id: 'main-gallery:back-1',
                         baseId: 'back-1',
                         displayName: 'Back Left Wall',
-                        position: new THREE.Vector3(-3.5, 2.5, -9.9),
+                        position: wallSpotPosition(-3.5, -9.9),
                         wall: 'back',
                         rotation: 0,
                         maxWidth: 5,
@@ -904,7 +979,7 @@
                         id: 'main-gallery:back-2',
                         baseId: 'back-2',
                         displayName: 'Back Center Wall',
-                        position: new THREE.Vector3(0, 2.5, -9.9),
+                        position: wallSpotPosition(0, -9.9),
                         wall: 'back',
                         rotation: 0,
                         maxWidth: 16 * 0.3048,
@@ -914,7 +989,7 @@
                         id: 'main-gallery:back-3',
                         baseId: 'back-3',
                         displayName: 'Back Right Wall',
-                        position: new THREE.Vector3(3.5, 2.5, -9.9),
+                        position: wallSpotPosition(3.5, -9.9),
                         wall: 'back',
                         rotation: 0,
                         maxWidth: 5,
@@ -924,7 +999,7 @@
                         id: 'main-gallery:left-1',
                         baseId: 'left-1',
                         displayName: 'Left Front Wall',
-                        position: new THREE.Vector3(-7.9, 2.5, -3),
+                        position: wallSpotPosition(-7.9, -3),
                         wall: 'left',
                         rotation: Math.PI / 2,
                         maxWidth: 10 * 0.3048,
@@ -934,7 +1009,7 @@
                         id: 'main-gallery:left-2',
                         baseId: 'left-2',
                         displayName: 'Left Back Wall',
-                        position: new THREE.Vector3(-7.9, 2.5, 3),
+                        position: wallSpotPosition(-7.9, 3),
                         wall: 'left',
                         rotation: Math.PI / 2,
                         maxWidth: 10 * 0.3048,
@@ -944,7 +1019,7 @@
                         id: 'main-gallery:right-1',
                         baseId: 'right-1',
                         displayName: 'Right Front Wall',
-                        position: new THREE.Vector3(7.9, 2.5, -3),
+                        position: wallSpotPosition(7.9, -3),
                         wall: 'right',
                         rotation: -Math.PI / 2,
                         maxWidth: 10 * 0.3048,
@@ -954,7 +1029,7 @@
                         id: 'main-gallery:right-2',
                         baseId: 'right-2',
                         displayName: 'Right Back Wall',
-                        position: new THREE.Vector3(7.9, 2.5, 3),
+                        position: wallSpotPosition(7.9, 3),
                         wall: 'right',
                         rotation: -Math.PI / 2,
                         maxWidth: 10 * 0.3048,
@@ -1023,14 +1098,15 @@
                 theme: {
                     wallColor: 0xf0f4ff,
                     floorColor: 0xffffff,
-                    lighting: 'cool'
+                    lighting: 'cool',
+                    colorTemperature: DEFAULT_COLOR_TEMPERATURE
                 },
                 walls: [
                     {
                         id: 'contemporary-wing:north-1',
                         baseId: 'north-1',
                         displayName: 'Skyline Panel',
-                        position: new THREE.Vector3(-5.5, 2.5, -7.9),
+                        position: wallSpotPosition(-5.5, -7.9),
                         wall: 'back',
                         rotation: 0,
                         maxWidth: 6,
@@ -1040,7 +1116,7 @@
                         id: 'contemporary-wing:north-2',
                         baseId: 'north-2',
                         displayName: 'Lightwell',
-                        position: new THREE.Vector3(0, 2.5, -7.9),
+                        position: wallSpotPosition(0, -7.9),
                         wall: 'back',
                         rotation: 0,
                         maxWidth: 20 * 0.3048,
@@ -1050,7 +1126,7 @@
                         id: 'contemporary-wing:north-3',
                         baseId: 'north-3',
                         displayName: 'Glass Passage',
-                        position: new THREE.Vector3(5.5, 2.5, -7.9),
+                        position: wallSpotPosition(5.5, -7.9),
                         wall: 'back',
                         rotation: 0,
                         maxWidth: 6,
@@ -1060,7 +1136,7 @@
                         id: 'contemporary-wing:west-1',
                         baseId: 'west-1',
                         displayName: 'Chromatic Stack',
-                        position: new THREE.Vector3(-9.9, 2.5, -2.5),
+                        position: wallSpotPosition(-9.9, -2.5),
                         wall: 'left',
                         rotation: Math.PI / 2,
                         maxWidth: 8 * 0.3048,
@@ -1070,7 +1146,7 @@
                         id: 'contemporary-wing:west-2',
                         baseId: 'west-2',
                         displayName: 'Cascade Wall',
-                        position: new THREE.Vector3(-9.9, 2.5, 2.5),
+                        position: wallSpotPosition(-9.9, 2.5),
                         wall: 'left',
                         rotation: Math.PI / 2,
                         maxWidth: 8 * 0.3048,
@@ -1080,7 +1156,7 @@
                         id: 'contemporary-wing:east-1',
                         baseId: 'east-1',
                         displayName: 'Spectrum Drift',
-                        position: new THREE.Vector3(9.9, 2.5, -2.5),
+                        position: wallSpotPosition(9.9, -2.5),
                         wall: 'right',
                         rotation: -Math.PI / 2,
                         maxWidth: 8 * 0.3048,
@@ -1090,7 +1166,7 @@
                         id: 'contemporary-wing:east-2',
                         baseId: 'east-2',
                         displayName: 'Neon Strata',
-                        position: new THREE.Vector3(9.9, 2.5, 2.5),
+                        position: wallSpotPosition(9.9, 2.5),
                         wall: 'right',
                         rotation: -Math.PI / 2,
                         maxWidth: 8 * 0.3048,
@@ -1189,9 +1265,11 @@
         let roomManager = null;
         let navigationMapCanvas = null;
         let interactKeyPressed = false;
+        let galleries = [];
+        let activeGalleryId = null;
 
-        function registerGalleryLight(light) {
-            const entry = { light, baseIntensity: light.intensity };
+        function registerGalleryLight(light, category = 'general') {
+            const entry = { light, baseIntensity: light.intensity, category };
             galleryLights.push(entry);
             light.intensity = entry.baseIntensity * currentLightFactor;
         }
@@ -1201,6 +1279,211 @@
             galleryLights.forEach(({ light, baseIntensity }) => {
                 light.intensity = baseIntensity * factor;
             });
+        }
+
+        function clampColorTemperature(temp) {
+            const parsed = typeof temp === 'number' ? temp : parseFloat(temp);
+            if (!isFinite(parsed)) return DEFAULT_COLOR_TEMPERATURE;
+            return Math.min(MAX_COLOR_TEMPERATURE, Math.max(MIN_COLOR_TEMPERATURE, Math.round(parsed)));
+        }
+
+        function colorTemperatureToHex(kelvin) {
+            const temp = kelvin / 100;
+            let red, green, blue;
+
+            if (temp <= 66) {
+                red = 255;
+                green = 99.4708025861 * Math.log(temp) - 161.1195681661;
+                blue = temp <= 19 ? 0 : 138.5177312231 * Math.log(temp - 10) - 305.0447927307;
+            } else {
+                red = 329.698727446 * Math.pow(temp - 60, -0.1332047592);
+                green = 288.1221695283 * Math.pow(temp - 60, -0.0755148492);
+                blue = 255;
+            }
+
+            red = Math.min(255, Math.max(0, red));
+            green = Math.min(255, Math.max(0, green));
+            blue = Math.min(255, Math.max(0, blue));
+
+            return (Math.round(red) << 16) + (Math.round(green) << 8) + Math.round(blue);
+        }
+
+        function applyColorTemperature(kelvin) {
+            const temperature = clampColorTemperature(kelvin);
+            const wallColor = colorTemperatureToHex(temperature);
+            const floorColor = colorTemperatureToHex(Math.min(MAX_COLOR_TEMPERATURE, temperature + 250));
+
+            Object.values(ROOMS).forEach(room => {
+                room.theme.colorTemperature = temperature;
+            });
+
+            galleryLights.forEach(entry => {
+                const targetColor = entry.category === 'floor' ? floorColor : wallColor;
+                if (entry.light && entry.light.color) {
+                    entry.light.color = new THREE.Color(targetColor);
+                }
+            });
+
+            if (roomManager && roomManager.currentRoom) {
+                roomManager.applyRoomTheme(ROOMS[roomManager.currentRoom]);
+            }
+
+            const display = document.getElementById('color-temp-display');
+            if (display) {
+                display.textContent = `${temperature}K · recommended 3000K–3500K for neutral gallery viewing`;
+            }
+        }
+
+        function getDefaultGalleries() {
+            return Object.values(ROOMS).map(room => ({
+                id: room.id,
+                name: room.name,
+                homeRoom: room.id,
+                colorTemperature: room.theme?.colorTemperature || DEFAULT_COLOR_TEMPERATURE
+            }));
+        }
+
+        function loadGalleryState() {
+            try {
+                const stored = localStorage.getItem('vr-gallery:galleries');
+                const parsed = stored ? JSON.parse(stored) : null;
+                galleries = Array.isArray(parsed) && parsed.length ? parsed : getDefaultGalleries();
+            } catch (e) {
+                galleries = getDefaultGalleries();
+            }
+
+            const storedActive = localStorage.getItem('vr-gallery:activeGallery');
+            if (storedActive && galleries.find(g => g.id === storedActive)) {
+                activeGalleryId = storedActive;
+            } else {
+                activeGalleryId = galleries[0]?.id || null;
+            }
+        }
+
+        function saveGalleryState() {
+            try {
+                localStorage.setItem('vr-gallery:galleries', JSON.stringify(galleries));
+                if (activeGalleryId) {
+                    localStorage.setItem('vr-gallery:activeGallery', activeGalleryId);
+                }
+            } catch (e) {
+                console.warn('Could not persist gallery state', e);
+            }
+        }
+
+        function getActiveGallery() {
+            return galleries.find(g => g.id === activeGalleryId) || galleries[0];
+        }
+
+        function renderGalleryControls() {
+            const gallerySelect = document.getElementById('gallery-select');
+            const roomSelect = document.getElementById('gallery-room-select');
+
+            if (gallerySelect) {
+                gallerySelect.innerHTML = '';
+                galleries.forEach(gallery => {
+                    const option = document.createElement('option');
+                    option.value = gallery.id;
+                    option.textContent = `${gallery.name} (${gallery.id})`;
+                    gallerySelect.appendChild(option);
+                });
+            }
+
+            if (roomSelect) {
+                roomSelect.innerHTML = '';
+                Object.values(ROOMS).forEach(room => {
+                    const option = document.createElement('option');
+                    option.value = room.id;
+                    option.textContent = `${room.name} (${room.id})`;
+                    roomSelect.appendChild(option);
+                });
+            }
+
+            const activeGallery = getActiveGallery();
+            if (activeGallery) {
+                if (gallerySelect) gallerySelect.value = activeGallery.id;
+                const nameInput = document.getElementById('gallery-name-input');
+                if (nameInput) nameInput.value = activeGallery.name;
+                if (roomSelect) roomSelect.value = activeGallery.homeRoom;
+                const tempInput = document.getElementById('color-temp-input');
+                if (tempInput) tempInput.value = activeGallery.colorTemperature || DEFAULT_COLOR_TEMPERATURE;
+                applyColorTemperature(activeGallery.colorTemperature || DEFAULT_COLOR_TEMPERATURE);
+            }
+        }
+
+        function setActiveGallery(galleryId, options = {}) {
+            const gallery = galleries.find(g => g.id === galleryId) || getActiveGallery();
+            if (!gallery) return;
+
+            activeGalleryId = gallery.id;
+            saveGalleryState();
+            renderGalleryControls();
+
+            if (roomManager && !options.skipRoomLoad && gallery.homeRoom && ROOMS[gallery.homeRoom]) {
+                roomManager.loadRoom(gallery.homeRoom);
+            }
+
+            if (!options.skipArtReload) {
+                loadArtworksFromAirtable();
+            }
+
+            if (!options.fromURL) {
+                const params = new URLSearchParams(window.location.search);
+                params.set('gallery', gallery.id);
+                params.set('room', gallery.homeRoom || 'main-gallery');
+                window.history.replaceState({}, '', `${window.location.pathname}?${params.toString()}`);
+            }
+        }
+
+        function generateNewGallery() {
+            const nameInput = document.getElementById('gallery-name-input');
+            const name = (nameInput?.value || '').trim() || `Gallery ${galleries.length + 1}`;
+            const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'gallery';
+            const id = `${slug}-${Date.now().toString(36).slice(-4)}`;
+
+            galleries.push({
+                id,
+                name,
+                homeRoom: getActiveGallery()?.homeRoom || 'main-gallery',
+                colorTemperature: getActiveGallery()?.colorTemperature || DEFAULT_COLOR_TEMPERATURE
+            });
+
+            saveGalleryState();
+            renderGalleryControls();
+            setActiveGallery(id);
+        }
+
+        function renameActiveGallery() {
+            const gallery = getActiveGallery();
+            if (!gallery) return;
+
+            const nameInput = document.getElementById('gallery-name-input');
+            const newName = (nameInput?.value || '').trim();
+            if (!newName) return;
+
+            gallery.name = newName;
+            saveGalleryState();
+            renderGalleryControls();
+        }
+
+        function updateActiveGalleryRoom(roomId) {
+            const gallery = getActiveGallery();
+            if (!gallery || !roomId || !ROOMS[roomId]) return;
+
+            gallery.homeRoom = roomId;
+            saveGalleryState();
+            if (roomManager) {
+                roomManager.loadRoom(roomId);
+            }
+        }
+
+        function updateActiveGalleryColorTemperature(temp) {
+            const gallery = getActiveGallery();
+            if (!gallery) return;
+
+            gallery.colorTemperature = clampColorTemperature(temp);
+            saveGalleryState();
+            applyColorTemperature(gallery.colorTemperature);
         }
 
         function transitionGalleryLighting(targetFactor, duration = 800) {
@@ -1339,7 +1622,7 @@
             createGlobalLights() {
                 this.ambientLight = new THREE.AmbientLight(0xffffff, 0.65);
                 this.scene.add(this.ambientLight);
-                registerGalleryLight(this.ambientLight);
+                registerGalleryLight(this.ambientLight, 'ambient');
 
                 this.directionalLight = new THREE.DirectionalLight(0xffffff, 0.4);
                 this.directionalLight.position.set(0, 4, 2);
@@ -1351,7 +1634,7 @@
                 this.directionalLight.shadow.camera.top = 15;
                 this.directionalLight.shadow.camera.bottom = -15;
                 this.scene.add(this.directionalLight);
-                registerGalleryLight(this.directionalLight);
+                registerGalleryLight(this.directionalLight, 'directional');
             }
 
             loadRoom(roomId) {
@@ -1535,8 +1818,12 @@
             }
 
             createRoomLighting(roomGroup, roomConfig, spots) {
+                const temperature = clampColorTemperature(roomConfig.theme.colorTemperature || DEFAULT_COLOR_TEMPERATURE);
+                const wallLightColor = colorTemperatureToHex(temperature);
+                const floorLightColor = colorTemperatureToHex(Math.min(MAX_COLOR_TEMPERATURE, temperature + 250));
+
                 const trackMaterial = new THREE.MeshStandardMaterial({
-                    color: roomConfig.theme.lighting === 'cool' ? 0x4f6ea8 : 0x4a4a4a,
+                    color: temperature >= 3800 ? 0x4f6ea8 : 0x4a4a4a,
                     metalness: 0.85,
                     roughness: 0.15
                 });
@@ -1561,9 +1848,6 @@
                 const rightTrack = new THREE.Mesh(sideTrackGeometry, trackMaterial);
                 rightTrack.position.set(roomConfig.dimensions.width / 2 - trackOffset, trackHeight, 0);
                 roomGroup.add(rightTrack);
-
-                const wallLightColor = roomConfig.theme.lighting === 'cool' ? 0xd6e4ff : 0xffffff;
-                const floorLightColor = roomConfig.theme.lighting === 'cool' ? 0xcfd9ff : 0xffffff;
 
                 spots.wallSpots.forEach(spot => {
                     const offset = new THREE.Vector3(0, 0, trackOffset);
@@ -1599,7 +1883,7 @@
 
                     roomGroup.add(spotLight);
                     roomGroup.add(spotLight.target);
-                    registerGalleryLight(spotLight);
+                    registerGalleryLight(spotLight, 'wall');
                 });
 
                 spots.floorSpots.forEach(spot => {
@@ -1612,7 +1896,7 @@
                     spotLight.decay = 2;
                     roomGroup.add(spotLight);
                     roomGroup.add(spotLight.target);
-                    registerGalleryLight(spotLight);
+                    registerGalleryLight(spotLight, 'floor');
                 });
             }
 
@@ -1636,14 +1920,16 @@
             }
 
             applyRoomTheme(roomConfig) {
+                const temperature = clampColorTemperature(roomConfig.theme.colorTemperature || DEFAULT_COLOR_TEMPERATURE);
+                const ambientColor = colorTemperatureToHex(temperature);
+                const accentColor = colorTemperatureToHex(Math.min(MAX_COLOR_TEMPERATURE, temperature + 250));
+
                 if (this.ambientLight) {
-                    const color = roomConfig.theme.lighting === 'cool' ? 0xe0e8ff : 0xffffff;
-                    this.ambientLight.color = new THREE.Color(color);
+                    this.ambientLight.color = new THREE.Color(ambientColor);
                 }
 
                 if (this.directionalLight) {
-                    const color = roomConfig.theme.lighting === 'cool' ? 0xd4e0ff : 0xffffff;
-                    this.directionalLight.color = new THREE.Color(color);
+                    this.directionalLight.color = new THREE.Color(accentColor);
                 }
             }
 
@@ -1907,6 +2193,9 @@
         
         async function loadArtworksFromAirtable() {
             try {
+                const activeGallery = getActiveGallery();
+                const galleryFilterId = activeGallery?.id || null;
+
                 const response = await fetch(WEBHOOK_URL);
                 if (!response.ok) {
                     throw new Error(`Failed to fetch artworks: ${response.status}`);
@@ -1925,7 +2214,7 @@
                     !record['Location ID'] && // Exclude location records
                     !record['Exhibition ID'] // Exclude exhibition records
                 );
-                
+
                 console.log('Filtered artwork records:', artworkRecords);
                 
                 roomManager.pendingArtworks = {};
@@ -1942,6 +2231,14 @@
                     if (!artFile || !artFile.url) {
                         console.warn(`No art file for ${record.Title}`);
                         continue;
+                    }
+
+                    const recordGalleryId = record['Gallery ID'] || record['Gallery'] || record['GalleryId'];
+                    if (galleryFilterId) {
+                        if (!recordGalleryId || recordGalleryId !== galleryFilterId) {
+                            console.log(`Skipping ${record.Title} because it belongs to a different gallery`, recordGalleryId);
+                            continue;
+                        }
                     }
 
                     const locationName = extractLocationValue(
@@ -2094,6 +2391,12 @@
                 Notes: artworkData.notes || ''
             };
 
+            const gallery = getActiveGallery();
+            if (gallery) {
+                payload['Gallery ID'] = gallery.id;
+                payload['Gallery Name'] = gallery.name;
+            }
+
             if (heightFeet !== undefined) {
                 const roundedHeightFeet = roundToTwoDecimals(heightFeet);
                 if (roundedHeightFeet !== undefined) {
@@ -2217,22 +2520,49 @@
             scene = new THREE.Scene();
             scene.background = new THREE.Color(0xf0f0f0);
             scene.fog = new THREE.Fog(0xf0f0f0, 10, 25);
-            
+
             camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-            camera.position.set(0, 1.6, 7);
-            
+            camera.position.set(0, DEFAULT_EYE_LEVEL_METERS, 7);
+
             renderer = new THREE.WebGLRenderer({ antialias: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
             renderer.shadowMap.enabled = true;
             renderer.shadowMap.type = THREE.PCFSoftShadowMap;
             renderer.xr.enabled = true;
             document.getElementById('canvas-container').appendChild(renderer.domElement);
-            
+
             raycaster = new THREE.Raycaster();
             mouse = new THREE.Vector2();
-            
+
             roomManager = new RoomManager(scene);
-            roomManager.loadRoom('main-gallery');
+            loadGalleryState();
+            renderGalleryControls();
+
+            const params = new URLSearchParams(window.location.search);
+            const galleryFromURL = params.get('gallery');
+            const roomFromURL = params.get('room');
+
+            if (galleryFromURL) {
+                const existing = galleries.find(g => g.id === galleryFromURL);
+                if (existing) {
+                    activeGalleryId = galleryFromURL;
+                } else {
+                    galleries.push({
+                        id: galleryFromURL,
+                        name: `Gallery ${galleryFromURL}`,
+                        homeRoom: 'main-gallery',
+                        colorTemperature: DEFAULT_COLOR_TEMPERATURE
+                    });
+                    activeGalleryId = galleryFromURL;
+                    saveGalleryState();
+                }
+            }
+
+            const initialGallery = getActiveGallery();
+            const initialRoom = (roomFromURL && ROOMS[roomFromURL]) ? roomFromURL : (initialGallery?.homeRoom || 'main-gallery');
+
+            setActiveGallery(initialGallery?.id, { skipArtReload: true, skipRoomLoad: true, fromURL: true });
+            roomManager.loadRoom(initialRoom);
 
             setupControls();
             setupEventListeners();
@@ -2468,11 +2798,26 @@
             document.getElementById('toggle-ui').addEventListener('click', () => {
                 document.getElementById('ui-overlay').classList.toggle('hidden');
             });
-            
+
             document.getElementById('vr-button').addEventListener('click', toggleVR);
-            
+
+            const gallerySelect = document.getElementById('gallery-select');
+            if (gallerySelect) {
+                gallerySelect.addEventListener('change', (event) => setActiveGallery(event.target.value));
+            }
+
+            const galleryRoomSelect = document.getElementById('gallery-room-select');
+            if (galleryRoomSelect) {
+                galleryRoomSelect.addEventListener('change', (event) => updateActiveGalleryRoom(event.target.value));
+            }
+
+            const colorTempInput = document.getElementById('color-temp-input');
+            if (colorTempInput) {
+                colorTempInput.addEventListener('input', (event) => updateActiveGalleryColorTemperature(event.target.value));
+            }
+
             document.getElementById('height-input').addEventListener('input', updateSizePreview);
-            
+
             document.getElementById('viewer-close').addEventListener('click', closeArtViewer);
             document.getElementById('art-viewer').addEventListener('click', (e) => {
                 if (e.target === document.getElementById('art-viewer')) {
