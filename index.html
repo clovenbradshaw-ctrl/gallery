@@ -1889,6 +1889,8 @@
                 spots.wallSpots.forEach(spot => {
                     const offset = new THREE.Vector3(0, 0, trackOffset);
                     offset.applyEuler(new THREE.Euler(0, spot.userData.rotation, 0));
+                    const normal = new THREE.Vector3(0, 0, 1).applyEuler(new THREE.Euler(0, spot.userData.rotation, 0));
+                    const targetPosition = spot.position.clone().add(normal.clone().multiplyScalar(0.1));
 
                     const fixtureGeometry = new THREE.CylinderGeometry(0.05, 0.06, 0.15, 6);
                     const fixture = new THREE.Mesh(fixtureGeometry, trackMaterial);
@@ -1897,7 +1899,7 @@
                         trackHeight - 0.08,
                         spot.position.z + offset.z
                     );
-                    fixture.lookAt(spot.position.x, spot.position.y, spot.position.z);
+                    fixture.lookAt(targetPosition.x, targetPosition.y, targetPosition.z);
                     fixture.rotateX(Math.PI / 2);
                     roomGroup.add(fixture);
 
@@ -1907,7 +1909,7 @@
                         trackHeight - 0.1,
                         spot.position.z + offset.z
                     );
-                    spotLight.target.position.copy(spot.position);
+                    spotLight.target.position.copy(targetPosition);
                     spotLight.angle = Math.PI / 8;
                     spotLight.penumbra = 0.5;
                     spotLight.distance = 8;
@@ -3425,13 +3427,40 @@
             
             artworkGroup.position.copy(spot.position);
             artworkGroup.rotation.y = spot.userData.rotation;
-            
+
             const normal = new THREE.Vector3(0, 0, 1);
             normal.applyEuler(new THREE.Euler(0, spot.userData.rotation, 0));
             artworkGroup.position.add(normal.multiplyScalar(0.05));
-            
-            artworks.push(artworkGroup);
+
             const parentGroup = spot.parent || scene;
+            const roomHeight = (spot.userData.roomId && ROOMS[spot.userData.roomId])
+                ? ROOMS[spot.userData.roomId].dimensions.height
+                : spot.position.y + 2.5;
+            const wireAnchor = new THREE.Vector3(
+                spot.position.x,
+                roomHeight - 0.05,
+                spot.position.z
+            );
+            const wireEnd = new THREE.Vector3(
+                spot.position.x,
+                spot.position.y + (height / 2) + 0.1,
+                spot.position.z
+            ).add(normal.clone().multiplyScalar(0.05));
+            const wireVector = new THREE.Vector3().subVectors(wireEnd, wireAnchor);
+            const wireLength = wireVector.length();
+            const wireGeometry = new THREE.CylinderGeometry(0.007, 0.007, wireLength, 8);
+            const wireMaterial = new THREE.MeshStandardMaterial({ color: 0x555555, metalness: 0.6, roughness: 0.4 });
+            const wire = new THREE.Mesh(wireGeometry, wireMaterial);
+            const wireMidpoint = new THREE.Vector3().addVectors(wireAnchor, wireEnd).multiplyScalar(0.5);
+            wire.position.copy(wireMidpoint);
+            wire.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), wireVector.clone().normalize());
+            wire.castShadow = false;
+            wire.receiveShadow = false;
+            parentGroup.add(wire);
+
+            artworkGroup.userData.wire = wire;
+
+            artworks.push(artworkGroup);
             parentGroup.add(artworkGroup);
 
             const placard = createPlacard(metadata, spot.position, spot.userData.rotation, false, width, height, parentGroup);
@@ -3725,6 +3754,11 @@
                             placard.parent.remove(placard);
                         }
                         placards[artworkGroup.userData.placardIndex] = null;
+                    }
+
+                    if (artworkGroup.userData.wire && artworkGroup.userData.wire.parent) {
+                        artworkGroup.userData.wire.parent.remove(artworkGroup.userData.wire);
+                        artworkGroup.userData.wire = null;
                     }
 
                     if (artworkGroup.parent) {
