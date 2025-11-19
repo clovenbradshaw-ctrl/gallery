@@ -3773,23 +3773,58 @@
         }
         
         function onCanvasClick(event) {
-            if (!document.pointerLockElement) return;
-            
-            raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
-            
+            const pointer = new THREE.Vector2(0, 0);
+
+            if (!document.pointerLockElement) {
+                const rect = renderer.domElement.getBoundingClientRect();
+                pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+                pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+            }
+
+            raycaster.setFromCamera(pointer, camera);
+
             const artIntersects = raycaster.intersectObjects(artworks, true);
             if (artIntersects.length > 0) {
                 let artworkGroup = artIntersects[0].object;
                 while (artworkGroup.parent && !artworkGroup.userData.metadata) {
                     artworkGroup = artworkGroup.parent;
                 }
-                
+
                 if (artworkGroup.userData.metadata) {
                     if (isAdmin && artworkGroup.userData.imageUrl) {
                         showEditDialog(artworkGroup);
                     } else if (artworkGroup.userData.imageUrl) {
                         showArtViewer(artworkGroup.userData);
                     }
+                    return;
+                }
+            }
+
+            const ray = raycaster.ray;
+            let closestArtwork = null;
+            let closestDistance = Infinity;
+            const NEAR_THRESHOLD = 0.75;
+
+            artworks.forEach(artwork => {
+                const box = new THREE.Box3().setFromObject(artwork);
+                const sphere = box.getBoundingSphere(new THREE.Sphere());
+
+                const toCenter = new THREE.Vector3().subVectors(sphere.center, ray.origin);
+                const projection = toCenter.dot(ray.direction);
+                if (projection < 0) return;
+
+                const distanceToRay = Math.sqrt(ray.distanceSqToPoint(sphere.center));
+                if (distanceToRay <= sphere.radius + NEAR_THRESHOLD && distanceToRay < closestDistance) {
+                    closestDistance = distanceToRay;
+                    closestArtwork = artwork;
+                }
+            });
+
+            if (closestArtwork && closestArtwork.userData.metadata) {
+                if (isAdmin && closestArtwork.userData.imageUrl) {
+                    showEditDialog(closestArtwork);
+                } else if (closestArtwork.userData.imageUrl) {
+                    showArtViewer(closestArtwork.userData);
                 }
             }
         }
