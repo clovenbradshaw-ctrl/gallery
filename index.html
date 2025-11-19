@@ -587,31 +587,29 @@
         }
 
         #viewer-info {
-            position: absolute;
-            left: 50%;
-            bottom: 20px;
-            transform: translateX(-50%);
+            position: relative;
             background: rgba(10, 10, 10, 0.85);
             color: white;
             text-align: left;
-            max-width: 80vw;
+            width: min(860px, 90vw);
             padding: 16px 24px;
-            border-radius: 8px 8px 0 0;
+            border-radius: 12px;
             box-shadow: 0 12px 35px rgba(0, 0, 0, 0.6);
             transition: opacity 0.2s ease, transform 0.2s ease;
             opacity: 1;
             pointer-events: auto;
+            margin-top: 6px;
         }
 
         #art-viewer.fullscreen #viewer-info {
-            max-width: min(960px, 90vw);
-            bottom: 40px;
+            width: min(960px, 90vw);
+            margin-top: 16px;
         }
 
         #viewer-info.hidden {
             opacity: 0;
             pointer-events: none;
-            transform: translate(-50%, 40px);
+            transform: translateY(16px);
         }
 
         #viewer-title {
