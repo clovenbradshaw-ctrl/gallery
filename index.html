@@ -974,6 +974,7 @@
         const ADMIN_PASSWORD = 'password';
 
         const DEFAULT_EYE_LEVEL_METERS = 1.47; // 58 inches for comfortable viewing
+        const ARTWORK_SCALE_FACTOR = 2;
         const DEFAULT_COLOR_TEMPERATURE = 3400;
         const MIN_COLOR_TEMPERATURE = 2700;
         const MAX_COLOR_TEMPERATURE = 5000;
@@ -2349,9 +2350,10 @@
                     textureLoader.setCrossOrigin('anonymous');
                     textureLoader.load(url, (texture) => {
                         try {
-                            const width = height * aspectRatio;
+                            const scaledHeight = height * ARTWORK_SCALE_FACTOR;
+                            const scaledWidth = scaledHeight * aspectRatio;
                             createArtworkMesh(texture, metadata.title || 'Untitled', wallSpot,
-                                { width, height }, metadata, url, airtableId);
+                                { width: scaledWidth, height: scaledHeight }, metadata, url, airtableId);
                         } catch (placementError) {
                             console.error('Failed to place artwork from URL:', placementError);
                         } finally {
@@ -3079,10 +3081,11 @@
 
             if (currentPendingArt.type === 'image') {
                 const aspectRatio = currentPendingArt.aspectRatio || 1.5;
-                const widthMeters = heightMeters * aspectRatio;
+                const scaledHeightMeters = heightMeters * ARTWORK_SCALE_FACTOR;
+                const widthMeters = scaledHeightMeters * aspectRatio;
                 const widthFeet = widthMeters / 0.3048;
                 const estimateText = currentPendingArt.aspectRatio ? '' : ' (estimated)';
-                sizePreview.textContent = `Dimensions: ${heightFeet.toFixed(1)}' × ${widthFeet.toFixed(1)}'${estimateText}`;
+                sizePreview.textContent = `Displayed dimensions: ${(heightFeet * ARTWORK_SCALE_FACTOR).toFixed(1)}' × ${widthFeet.toFixed(1)}'${estimateText}`;
 
                 const spotMesh = wallSpots.find(s => s.userData.id === selectedLocation);
                 const spot = spotMesh ? spotMesh.userData : null;
@@ -3352,7 +3355,8 @@
                 beginArtworkLoad();
                 textureLoader.load(artData.imageUrl, async (texture) => {
                     try {
-                        const width = height * artData.aspectRatio;
+                        const scaledHeight = height * ARTWORK_SCALE_FACTOR;
+                        const scaledWidth = scaledHeight * artData.aspectRatio;
 
                         let airtableId = null;
                         if (isAdmin) {
@@ -3380,7 +3384,7 @@
                         }
 
                         createArtworkMesh(texture, fileName, wallSpot,
-                            { width, height }, metadata, artData.imageUrl, airtableId);
+                            { width: scaledWidth, height: scaledHeight }, metadata, artData.imageUrl, airtableId);
                         updateArtQueue(fileName, artData.imageUrl, 'Placed on wall');
                     } finally {
                         endArtworkLoad();
