@@ -2274,11 +2274,9 @@
                     }
 
                     const recordGalleryId = record['Gallery ID'] || record['Gallery'] || record['GalleryId'];
-                    if (galleryFilterId) {
-                        if (!recordGalleryId || recordGalleryId !== galleryFilterId) {
-                            console.log(`Skipping ${record.Title} because it belongs to a different gallery`, recordGalleryId);
-                            continue;
-                        }
+                    if (galleryFilterId && recordGalleryId && recordGalleryId !== galleryFilterId) {
+                        console.log(`Skipping ${record.Title} - belongs to ${recordGalleryId}`);
+                        continue;
                     }
 
                     const locationName = extractLocationValue(
