@@ -754,6 +754,290 @@
             .input-row select {
                 width: 100%;
             }
+
+            #placement-dialog,
+            #edit-dialog {
+                min-width: unset;
+                width: calc(100vw - 32px);
+                max-width: calc(100vw - 32px);
+                padding: 20px;
+                left: 16px;
+                right: 16px;
+                transform: translate(0, -50%);
+            }
+
+            .location-grid {
+                grid-template-columns: 1fr;
+            }
+
+            #viewer-title {
+                font-size: 1.4em;
+            }
+
+            #viewer-artist {
+                font-size: 1.1em;
+            }
+
+            #viewer-description {
+                font-size: 1em;
+                padding: 15px;
+            }
+
+            .viewer-toolbar {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .viewer-actions {
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+
+            #viewer-info {
+                width: calc(100vw - 40px);
+                padding: 12px 16px;
+            }
+
+            #viewer-content {
+                padding: 10px;
+            }
+
+            #viewer-image {
+                max-height: 40vh;
+            }
+        }
+
+        /* Mobile Controls */
+        #mobile-controls {
+            display: none;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 150;
+            pointer-events: none;
+            padding: 20px;
+            padding-bottom: max(20px, env(safe-area-inset-bottom));
+        }
+
+        #mobile-controls.active {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+        }
+
+        /* Virtual Joystick */
+        #joystick-container {
+            position: relative;
+            width: 120px;
+            height: 120px;
+            pointer-events: auto;
+        }
+
+        #joystick-base {
+            position: absolute;
+            width: 120px;
+            height: 120px;
+            background: rgba(255, 255, 255, 0.15);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            backdrop-filter: blur(5px);
+        }
+
+        #joystick-stick {
+            position: absolute;
+            width: 50px;
+            height: 50px;
+            background: rgba(255, 255, 255, 0.4);
+            border: 2px solid rgba(255, 255, 255, 0.6);
+            border-radius: 50%;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            transition: none;
+        }
+
+        /* Mobile Action Buttons */
+        #mobile-action-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            pointer-events: auto;
+        }
+
+        .mobile-action-btn {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: rgba(102, 126, 234, 0.6);
+            border: 2px solid rgba(255, 255, 255, 0.4);
+            color: white;
+            font-size: 12px;
+            font-weight: 600;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(5px);
+            cursor: pointer;
+            transition: all 0.15s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .mobile-action-btn:active {
+            transform: scale(0.95);
+            background: rgba(102, 126, 234, 0.9);
+        }
+
+        .mobile-action-btn svg {
+            width: 24px;
+            height: 24px;
+            margin-bottom: 2px;
+        }
+
+        .mobile-action-btn.interact-btn {
+            background: rgba(74, 222, 128, 0.6);
+        }
+
+        .mobile-action-btn.interact-btn:active {
+            background: rgba(74, 222, 128, 0.9);
+        }
+
+        /* Touch look zone overlay */
+        #touch-look-zone {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 50;
+            display: none;
+            touch-action: none;
+        }
+
+        #touch-look-zone.active {
+            display: block;
+        }
+
+        /* Mobile start screen */
+        #mobile-start-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 600;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            backdrop-filter: blur(10px);
+        }
+
+        #mobile-start-screen.active {
+            display: flex;
+        }
+
+        #mobile-start-screen h2 {
+            color: white;
+            font-size: 1.8em;
+            margin-bottom: 20px;
+            text-align: center;
+            border-bottom: none;
+            padding: 0;
+        }
+
+        #mobile-start-screen p {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 1em;
+            margin-bottom: 30px;
+            text-align: center;
+            padding: 0 20px;
+            max-width: 320px;
+        }
+
+        #start-experience-btn {
+            padding: 16px 40px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 30px;
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+
+        #start-experience-btn:active {
+            transform: scale(0.98);
+        }
+
+        .mobile-instructions {
+            margin-top: 40px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            max-width: 300px;
+        }
+
+        .mobile-instructions h4 {
+            color: #667eea;
+            margin: 0 0 15px 0;
+            font-size: 0.9em;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .mobile-instructions ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 0.9em;
+            line-height: 1.8;
+        }
+
+        /* Mobile toggle button */
+        #toggle-ui {
+            min-width: 44px;
+            min-height: 44px;
+        }
+
+        /* Larger touch targets for buttons */
+        @media (pointer: coarse) {
+            button, .small-button, .file-label, .location-option {
+                min-height: 44px;
+            }
+
+            #viewer-close {
+                width: 50px;
+                height: 50px;
+                font-size: 28px;
+            }
+
+            .zoom-btn {
+                width: 50px;
+                height: 50px;
+            }
+
+            .viewer-btn {
+                padding: 12px 20px;
+            }
+        }
+
+        /* Door prompt mobile styling */
+        #door-prompt {
+            bottom: 160px;
+        }
+
+        @media (max-width: 640px) {
+            #door-prompt {
+                bottom: 180px;
+                font-size: 14px;
+                padding: 10px 20px;
+            }
         }
     </style>
 </head>
@@ -771,7 +1055,52 @@
     
     <div id="loading">Loading museum...</div>
     <div id="canvas-container"></div>
-    
+
+    <!-- Mobile Start Screen -->
+    <div id="mobile-start-screen">
+        <h2>VR Art Museum</h2>
+        <p>Explore a virtual gallery with beautiful artwork</p>
+        <button id="start-experience-btn">Enter Gallery</button>
+        <div class="mobile-instructions">
+            <h4>Controls</h4>
+            <ul>
+                <li>Drag anywhere to look around</li>
+                <li>Use joystick (left) to move</li>
+                <li>Tap artwork to view details</li>
+                <li>Use door button near exits</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Touch Look Zone -->
+    <div id="touch-look-zone"></div>
+
+    <!-- Mobile Controls -->
+    <div id="mobile-controls">
+        <div id="joystick-container">
+            <div id="joystick-base"></div>
+            <div id="joystick-stick"></div>
+        </div>
+        <div id="mobile-action-buttons">
+            <button class="mobile-action-btn interact-btn" id="mobile-interact-btn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
+                    <polyline points="10 17 15 12 10 7"/>
+                    <line x1="15" y1="12" x2="3" y2="12"/>
+                </svg>
+                Door
+            </button>
+            <button class="mobile-action-btn" id="mobile-menu-btn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="3" y1="12" x2="21" y2="12"/>
+                    <line x1="3" y1="6" x2="21" y2="6"/>
+                    <line x1="3" y1="18" x2="21" y2="18"/>
+                </svg>
+                Menu
+            </button>
+        </div>
+    </div>
+
     <div id="ui-overlay">
         <h2>VR Art Museum</h2>
         
@@ -1278,6 +1607,12 @@
         let raycaster, mouse;
         let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false;
         let velocity = new THREE.Vector3();
+
+        // Mobile controls
+        let isMobile = false;
+        let mobileControlsActive = false;
+        let joystickData = { active: false, x: 0, y: 0 };
+        let touchLookData = { active: false, startX: 0, startY: 0, identifier: null };
         let direction = new THREE.Vector3();
         let vrSession = null;
         let artQueue = [];
@@ -2617,6 +2952,7 @@
 
             setupControls();
             setupEventListeners();
+            initMobileControls();
             checkVRSupport();
             updateSpotCounters();
 
@@ -2732,10 +3068,13 @@
         }
         
         function setupControls() {
+            // Only use pointer lock on desktop
             renderer.domElement.addEventListener('click', () => {
-                renderer.domElement.requestPointerLock();
+                if (!isMobile && !mobileControlsActive) {
+                    renderer.domElement.requestPointerLock();
+                }
             });
-            
+
             document.addEventListener('pointerlockchange', () => {
                 if (document.pointerLockElement === renderer.domElement) {
                     document.addEventListener('mousemove', onMouseMove);
@@ -2751,14 +3090,233 @@
         function onMouseMove(event) {
             const movementX = event.movementX || 0;
             const movementY = event.movementY || 0;
-            
+
             yaw -= movementX * 0.002;
             pitch -= movementY * 0.002;
             pitch = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, pitch));
-            
+
             camera.rotation.set(pitch, yaw, 0, 'YXZ');
         }
-        
+
+        // Mobile controls setup
+        function detectMobile() {
+            return (
+                'ontouchstart' in window ||
+                navigator.maxTouchPoints > 0 ||
+                window.matchMedia('(pointer: coarse)').matches
+            );
+        }
+
+        function initMobileControls() {
+            isMobile = detectMobile();
+
+            if (!isMobile) return;
+
+            // Show mobile start screen
+            const startScreen = document.getElementById('mobile-start-screen');
+            startScreen.classList.add('active');
+
+            // Hide UI overlay initially on mobile
+            document.getElementById('ui-overlay').classList.add('hidden');
+
+            // Start button handler
+            document.getElementById('start-experience-btn').addEventListener('click', startMobileExperience);
+
+            // Menu button handler
+            document.getElementById('mobile-menu-btn').addEventListener('click', () => {
+                document.getElementById('ui-overlay').classList.toggle('hidden');
+            });
+
+            // Interact button handler
+            document.getElementById('mobile-interact-btn').addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                interactKeyPressed = true;
+            });
+
+            document.getElementById('mobile-interact-btn').addEventListener('touchend', (e) => {
+                e.preventDefault();
+                interactKeyPressed = false;
+            });
+        }
+
+        function startMobileExperience() {
+            const startScreen = document.getElementById('mobile-start-screen');
+            startScreen.classList.remove('active');
+
+            mobileControlsActive = true;
+
+            // Activate mobile controls
+            document.getElementById('mobile-controls').classList.add('active');
+            document.getElementById('touch-look-zone').classList.add('active');
+
+            // Setup touch controls
+            setupTouchLook();
+            setupJoystick();
+        }
+
+        function setupTouchLook() {
+            const touchZone = document.getElementById('touch-look-zone');
+
+            touchZone.addEventListener('touchstart', (e) => {
+                // Ignore if touching UI elements
+                if (e.target !== touchZone) return;
+
+                const touch = e.changedTouches[0];
+                touchLookData.active = true;
+                touchLookData.startX = touch.clientX;
+                touchLookData.startY = touch.clientY;
+                touchLookData.identifier = touch.identifier;
+            }, { passive: true });
+
+            touchZone.addEventListener('touchmove', (e) => {
+                if (!touchLookData.active) return;
+
+                // Find our touch
+                let touch = null;
+                for (let i = 0; i < e.changedTouches.length; i++) {
+                    if (e.changedTouches[i].identifier === touchLookData.identifier) {
+                        touch = e.changedTouches[i];
+                        break;
+                    }
+                }
+
+                if (!touch) return;
+
+                const deltaX = touch.clientX - touchLookData.startX;
+                const deltaY = touch.clientY - touchLookData.startY;
+
+                // Apply look rotation
+                yaw -= deltaX * 0.003;
+                pitch -= deltaY * 0.003;
+                pitch = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, pitch));
+
+                camera.rotation.set(pitch, yaw, 0, 'YXZ');
+
+                // Update start position for continuous movement
+                touchLookData.startX = touch.clientX;
+                touchLookData.startY = touch.clientY;
+            }, { passive: true });
+
+            touchZone.addEventListener('touchend', (e) => {
+                for (let i = 0; i < e.changedTouches.length; i++) {
+                    if (e.changedTouches[i].identifier === touchLookData.identifier) {
+                        touchLookData.active = false;
+                        touchLookData.identifier = null;
+                        break;
+                    }
+                }
+            }, { passive: true });
+
+            // Handle tap on artwork
+            touchZone.addEventListener('click', (e) => {
+                handleMobileTap(e);
+            });
+        }
+
+        function handleMobileTap(event) {
+            const rect = renderer.domElement.getBoundingClientRect();
+            const pointer = new THREE.Vector2();
+            pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+            pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+            raycaster.setFromCamera(pointer, camera);
+            const intersects = raycaster.intersectObjects(artworks, true);
+
+            if (intersects.length > 0) {
+                let artworkGroup = intersects[0].object;
+                while (artworkGroup.parent && !artworkGroup.userData.metadata) {
+                    artworkGroup = artworkGroup.parent;
+                }
+
+                if (artworkGroup.userData.metadata) {
+                    showArtViewer(artworkGroup.userData);
+                }
+            }
+        }
+
+        function setupJoystick() {
+            const container = document.getElementById('joystick-container');
+            const stick = document.getElementById('joystick-stick');
+            const baseRadius = 60; // Half of base width
+            const maxDistance = 35;
+
+            let joystickTouchId = null;
+
+            container.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                const touch = e.changedTouches[0];
+                joystickTouchId = touch.identifier;
+                joystickData.active = true;
+                updateJoystickPosition(touch);
+            });
+
+            container.addEventListener('touchmove', (e) => {
+                e.preventDefault();
+                if (!joystickData.active) return;
+
+                for (let i = 0; i < e.changedTouches.length; i++) {
+                    if (e.changedTouches[i].identifier === joystickTouchId) {
+                        updateJoystickPosition(e.changedTouches[i]);
+                        break;
+                    }
+                }
+            });
+
+            const endJoystick = (e) => {
+                for (let i = 0; i < e.changedTouches.length; i++) {
+                    if (e.changedTouches[i].identifier === joystickTouchId) {
+                        joystickData.active = false;
+                        joystickData.x = 0;
+                        joystickData.y = 0;
+                        joystickTouchId = null;
+
+                        // Reset stick position
+                        stick.style.transform = 'translate(-50%, -50%)';
+
+                        // Reset movement flags
+                        moveForward = false;
+                        moveBackward = false;
+                        moveLeft = false;
+                        moveRight = false;
+                        break;
+                    }
+                }
+            };
+
+            container.addEventListener('touchend', endJoystick);
+            container.addEventListener('touchcancel', endJoystick);
+
+            function updateJoystickPosition(touch) {
+                const rect = container.getBoundingClientRect();
+                const centerX = rect.left + baseRadius;
+                const centerY = rect.top + baseRadius;
+
+                let deltaX = touch.clientX - centerX;
+                let deltaY = touch.clientY - centerY;
+
+                // Clamp to max distance
+                const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+                if (distance > maxDistance) {
+                    deltaX = (deltaX / distance) * maxDistance;
+                    deltaY = (deltaY / distance) * maxDistance;
+                }
+
+                // Normalize to -1 to 1
+                joystickData.x = deltaX / maxDistance;
+                joystickData.y = deltaY / maxDistance;
+
+                // Update stick visual position
+                stick.style.transform = `translate(calc(-50% + ${deltaX}px), calc(-50% + ${deltaY}px))`;
+
+                // Set movement flags based on joystick position
+                const threshold = 0.2;
+                moveForward = joystickData.y < -threshold;
+                moveBackward = joystickData.y > threshold;
+                moveLeft = joystickData.x < -threshold;
+                moveRight = joystickData.x > threshold;
+            }
+        }
+
         function loadArtworkFromURL() {
             if (!isAdmin) return;
 
@@ -4021,7 +4579,8 @@
         }
         
         function updateMovement(delta) {
-            if (!document.pointerLockElement && !vrSession) {
+            // Allow movement on mobile, desktop (with pointer lock), or VR
+            if (!document.pointerLockElement && !vrSession && !mobileControlsActive) {
                 interactKeyPressed = false;
                 hideDoorPrompt();
                 return;
