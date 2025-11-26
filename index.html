@@ -1039,6 +1039,362 @@
                 padding: 10px 20px;
             }
         }
+
+        /* Catalogue Styles */
+        #catalogue-dialog {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            z-index: 400;
+            display: none;
+            justify-content: center;
+            align-items: flex-start;
+            backdrop-filter: blur(10px);
+            overflow-y: auto;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        #catalogue-dialog.active {
+            display: flex;
+        }
+
+        .catalogue-container {
+            background: rgba(30, 30, 30, 0.95);
+            border-radius: 12px;
+            max-width: 1200px;
+            width: 100%;
+            max-height: calc(100vh - 40px);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .catalogue-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 24px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            flex-shrink: 0;
+        }
+
+        .catalogue-header h2 {
+            margin: 0;
+            color: #667eea;
+            border: none;
+            padding: 0;
+        }
+
+        .catalogue-close {
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            color: white;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            font-size: 20px;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .catalogue-close:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .catalogue-toolbar {
+            display: flex;
+            gap: 12px;
+            padding: 16px 24px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            flex-wrap: wrap;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        .catalogue-search {
+            flex: 1;
+            min-width: 200px;
+            padding: 10px 14px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.05);
+            color: white;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .catalogue-search::placeholder {
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .catalogue-filter {
+            padding: 10px 14px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.05);
+            color: white;
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        .catalogue-stats {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 13px;
+            margin-left: auto;
+        }
+
+        .catalogue-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 16px;
+            padding: 20px 24px;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .catalogue-item {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            overflow: hidden;
+            transition: transform 0.2s, box-shadow 0.2s;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .catalogue-item:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+        }
+
+        .catalogue-item.placed {
+            opacity: 0.6;
+        }
+
+        .catalogue-item.placed::after {
+            content: 'PLACED';
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #4ade80;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: bold;
+        }
+
+        .catalogue-item-image {
+            width: 100%;
+            aspect-ratio: 1;
+            object-fit: cover;
+            background: rgba(0, 0, 0, 0.3);
+        }
+
+        .catalogue-item-info {
+            padding: 12px;
+        }
+
+        .catalogue-item-title {
+            font-weight: 600;
+            color: white;
+            font-size: 14px;
+            margin-bottom: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .catalogue-item-price {
+            color: #4ade80;
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .catalogue-item-actions {
+            padding: 0 12px 12px;
+            display: flex;
+            gap: 8px;
+        }
+
+        .catalogue-btn {
+            flex: 1;
+            padding: 8px 12px;
+            border: none;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .catalogue-btn.primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .catalogue-btn.primary:hover {
+            transform: translateY(-1px);
+        }
+
+        .catalogue-btn.secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+        }
+
+        .catalogue-btn.secondary:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        /* Catalogue Detail Modal */
+        #catalogue-detail {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 450;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        #catalogue-detail.active {
+            display: flex;
+        }
+
+        .catalogue-detail-content {
+            background: rgba(30, 30, 30, 0.98);
+            border-radius: 12px;
+            max-width: 800px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .catalogue-detail-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 24px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .catalogue-detail-header h3 {
+            margin: 0;
+            color: #667eea;
+        }
+
+        .catalogue-detail-body {
+            display: flex;
+            gap: 24px;
+            padding: 24px;
+        }
+
+        @media (max-width: 640px) {
+            .catalogue-detail-body {
+                flex-direction: column;
+            }
+        }
+
+        .catalogue-detail-image {
+            flex: 0 0 300px;
+            max-width: 300px;
+        }
+
+        .catalogue-detail-image img {
+            width: 100%;
+            border-radius: 8px;
+        }
+
+        .catalogue-detail-form {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .catalogue-detail-form label {
+            display: block;
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 13px;
+            margin-bottom: 6px;
+        }
+
+        .catalogue-detail-form input,
+        .catalogue-detail-form select,
+        .catalogue-detail-form textarea {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.05);
+            color: white;
+            border-radius: 6px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+
+        .catalogue-detail-form textarea {
+            min-height: 80px;
+            resize: vertical;
+        }
+
+        .catalogue-detail-actions {
+            display: flex;
+            gap: 12px;
+            padding: 20px 24px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .catalogue-detail-actions button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .catalogue-detail-actions .place-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            flex: 1;
+        }
+
+        .catalogue-detail-actions .cancel-btn {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+        }
+
+        @media (max-width: 640px) {
+            .catalogue-grid {
+                grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+                gap: 12px;
+                padding: 16px;
+            }
+
+            .catalogue-item-info {
+                padding: 10px;
+            }
+
+            .catalogue-item-title {
+                font-size: 13px;
+            }
+
+            .catalogue-detail-image {
+                flex: none;
+                max-width: 100%;
+            }
+        }
     </style>
 </head>
 <body>
@@ -1165,6 +1521,14 @@
                 <div>Available Sculpture Spots: <span id="floor-spots" class="spot-available">0/0</span></div>
             </div>
 
+            <div class="control-group">
+                <label>Art Catalogue</label>
+                <button onclick="openCatalogue()" style="width: 100%; padding: 12px; background: linear-gradient(135deg, #4ade80 0%, #22c55e 100%); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 500; font-size: 1em;">
+                    Open Catalogue (<span id="catalogue-count">0</span> items)
+                </button>
+                <div class="supported-formats">Browse and place artwork from your catalogue</div>
+            </div>
+
             <div id="art-queue"></div>
         </div>
 
@@ -1284,6 +1648,73 @@
                 <div id="viewer-title"></div>
                 <div id="viewer-artist"></div>
                 <div id="viewer-description"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Catalogue Dialog -->
+    <div id="catalogue-dialog">
+        <div class="catalogue-container">
+            <div class="catalogue-header">
+                <h2>Art Catalogue</h2>
+                <button class="catalogue-close" onclick="closeCatalogue()">×</button>
+            </div>
+            <div class="catalogue-toolbar">
+                <input type="text" class="catalogue-search" id="catalogue-search" placeholder="Search artwork..." oninput="filterCatalogue()">
+                <select class="catalogue-filter" id="catalogue-filter" onchange="filterCatalogue()">
+                    <option value="all">All Items</option>
+                    <option value="unplaced">Not Placed</option>
+                    <option value="placed">Placed</option>
+                </select>
+                <div class="catalogue-stats" id="catalogue-stats">0 items</div>
+            </div>
+            <div class="catalogue-grid" id="catalogue-grid">
+                <!-- Catalogue items will be rendered here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Catalogue Detail Dialog -->
+    <div id="catalogue-detail">
+        <div class="catalogue-detail-content">
+            <div class="catalogue-detail-header">
+                <h3>Place Artwork</h3>
+                <button class="catalogue-close" onclick="closeCatalogueDetail()">×</button>
+            </div>
+            <div class="catalogue-detail-body">
+                <div class="catalogue-detail-image">
+                    <img id="catalogue-detail-img" src="" alt="Artwork preview">
+                </div>
+                <div class="catalogue-detail-form">
+                    <div>
+                        <label>Title</label>
+                        <input type="text" id="catalogue-title" placeholder="Artwork title">
+                    </div>
+                    <div>
+                        <label>Artist</label>
+                        <input type="text" id="catalogue-artist" placeholder="Artist name">
+                    </div>
+                    <div>
+                        <label>Description</label>
+                        <textarea id="catalogue-description" placeholder="Optional description..."></textarea>
+                    </div>
+                    <div>
+                        <label>Gallery</label>
+                        <select id="catalogue-gallery"></select>
+                    </div>
+                    <div>
+                        <label>Location</label>
+                        <select id="catalogue-location"></select>
+                    </div>
+                    <div>
+                        <label>Height (inches)</label>
+                        <input type="number" id="catalogue-height" value="36" min="6" max="144" step="6">
+                    </div>
+                </div>
+            </div>
+            <div class="catalogue-detail-actions">
+                <button class="cancel-btn" onclick="closeCatalogueDetail()">Cancel</button>
+                <button class="place-btn" onclick="placeCatalogueItem()">Place in Gallery</button>
             </div>
         </div>
     </div>
@@ -1541,6 +1972,367 @@
 
         // Global event store instance
         const eventStore = new XanoEventStore();
+
+        // ============================================
+        // ART CATALOGUE SYSTEM
+        // ============================================
+
+        const CATALOGUE_STORAGE_KEY = 'vr-gallery:catalogue';
+        let artCatalogue = [];
+        let selectedCatalogueItem = null;
+
+        // Default catalogue with Morning Coffee Artist products
+        const DEFAULT_CATALOGUE = [
+            { id: "cat_1", title: "Diamond in the Rough card", product_url: "https://morningcoffeeartist.myshopify.com/products/diamond-in-the-rough-card", price: 2.0, currency: "USD", image_url: "https://morningcoffeeartist.myshopify.com/cdn/shop/files/rn-image_picker_lib_temp_c2179723-9d37-4aa8-ba9e-f722688f807b.jpg?v=1752939675", artist: "Morning Coffee Artist" },
+            { id: "cat_2", title: "Our Lives Are As An Unwritten Song", product_url: "https://morningcoffeeartist.myshopify.com/products/our-lives-are-as-an-unwritten-song-1", price: 40.0, currency: "USD", image_url: "https://morningcoffeeartist.myshopify.com/cdn/shop/files/rn-image_picker_lib_temp_7d0ab824-694c-405e-ae6b-0e92fe32bbfa.jpg?v=1753160311", artist: "Morning Coffee Artist" },
+            { id: "cat_3", title: "Bishop Budd & Reverend Martin Luther King JR", product_url: "https://morningcoffeeartist.myshopify.com/products/bishop-budd-reverend-martin-luther-king-jr", price: 2.0, currency: "USD", image_url: "https://morningcoffeeartist.myshopify.com/cdn/shop/files/rn-image_picker_lib_temp_08c3035b-f822-4fe0-8eb7-f04af51c667a.jpg?v=1753160661", artist: "Morning Coffee Artist" },
+            { id: "cat_4", title: "What Would You Do", product_url: "https://morningcoffeeartist.myshopify.com/products/what-would-you-do", price: 250.0, currency: "USD", image_url: "https://morningcoffeeartist.myshopify.com/cdn/shop/files/rn-image_picker_lib_temp_7a1f890d-e225-431c-ba54-3729b1cbe9d5.jpg?v=1750442756", artist: "Morning Coffee Artist" },
+            { id: "cat_5", title: "The Well", product_url: "https://morningcoffeeartist.myshopify.com/products/the-well", price: 75.0, currency: "USD", image_url: "https://morningcoffeeartist.myshopify.com/cdn/shop/files/rn-image_picker_lib_temp_923c8c72-7552-4fd8-8224-fe62e18909ba.jpg?v=1750443254", artist: "Morning Coffee Artist" },
+            { id: "cat_6", title: "Summer Sunset", product_url: "https://morningcoffeeartist.myshopify.com/products/summer-sunset", price: 65.0, currency: "USD", image_url: "https://morningcoffeeartist.myshopify.com/cdn/shop/files/rn-image_picker_lib_temp_2a4b3c19-0fd6-4cbf-8744-f334c06dcfa1.jpg?v=1750635332", artist: "Morning Coffee Artist" },
+            { id: "cat_7", title: "Strength and Beauty", product_url: "https://morningcoffeeartist.myshopify.com/products/strength", price: 250.0, currency: "USD", image_url: "https://morningcoffeeartist.myshopify.com/cdn/shop/files/rn-image_picker_lib_temp_7bbb1a29-b094-455d-a278-bac86c4d6300.jpg?v=1750443254", artist: "Morning Coffee Artist" },
+            { id: "cat_8", title: "Rojo Wave", product_url: "https://morningcoffeeartist.myshopify.com/products/rojo-wave", price: 500.0, currency: "USD", image_url: "https://morningcoffeeartist.myshopify.com/cdn/shop/files/rn-image_picker_lib_temp_00342091-46ff-4b1f-9841-6e743b3e03d3.jpg?v=1750442756", artist: "Morning Coffee Artist" },
+            { id: "cat_9", title: "Rise and Fall", product_url: "https://morningcoffeeartist.myshopify.com/products/rise-and-fall", price: 500.0, currency: "USD", image_url: "https://morningcoffeeartist.myshopify.com/cdn/shop/files/rn-image_picker_lib_temp_73164819-29cc-4924-ba87-f1016f8d66cd.jpg?v=1750442756", artist: "Morning Coffee Artist" },
+            { id: "cat_10", title: "Revolt", product_url: "https://morningcoffeeartist.myshopify.com/products/revolt", price: 500.0, currency: "USD", image_url: "https://morningcoffeeartist.myshopify.com/cdn/shop/files/rn-image_picker_lib_temp_44871858-5596-4404-82e2-f314081f133e.jpg?v=1750443254", artist: "Morning Coffee Artist" },
+            { id: "cat_11", title: "Retrospect", product_url: "https://morningcoffeeartist.myshopify.com/products/retrospect", price: 500.0, currency: "USD", image_url: "https://morningcoffeeartist.myshopify.com/cdn/shop/files/rn-image_picker_lib_temp_bf2fc151-a2ed-4b40-b558-e944b9a36c51.jpg?v=1750442756", artist: "Morning Coffee Artist" },
+            { id: "cat_12", title: "painting", product_url: "https://morningcoffeeartist.myshopify.com/products/untitled-jun13_19-54", price: 50.0, currency: "USD", image_url: "https://morningcoffeeartist.myshopify.com/cdn/shop/files/rn-image_picker_lib_temp_ea0f693a-0066-4458-94bc-093272f13b75.jpg?v=1750442756", artist: "Morning Coffee Artist" },
+            { id: "cat_13", title: "No Place Like Art", product_url: "https://morningcoffeeartist.myshopify.com/products/no-place-like-art", price: 500.0, currency: "USD", image_url: "https://morningcoffeeartist.myshopify.com/cdn/shop/files/rn-image_picker_lib_temp_df52e93c-3242-44a5-8542-ba305f252db5.jpg?v=1750443254", artist: "Morning Coffee Artist" },
+            { id: "cat_14", title: "Next Time", product_url: "https://morningcoffeeartist.myshopify.com/products/next-time", price: 500.0, currency: "USD", image_url: "https://morningcoffeeartist.myshopify.com/cdn/shop/files/rn-image_picker_lib_temp_8c04eba0-380b-4adb-bed3-87d5be6c207b.jpg?v=1750443254", artist: "Morning Coffee Artist" },
+            { id: "cat_15", title: "Morning Coffee Artist", product_url: "https://morningcoffeeartist.myshopify.com/products/morning-coffee-artist", price: 0.0, currency: "USD", image_url: "https://morningcoffeeartist.myshopify.com/cdn/shop/files/rn-image_picker_lib_temp_80370a57-1b60-4970-abdb-5c6196caaf5e.jpg?v=1750441412", artist: "Morning Coffee Artist" },
+            { id: "cat_16", title: "Monday Money", product_url: "https://morningcoffeeartist.myshopify.com/products/monday-money", price: 500.0, currency: "USD", image_url: "https://morningcoffeeartist.myshopify.com/cdn/shop/files/rn-image_picker_lib_temp_d2f10cc2-6957-4846-b536-5e62d5688351.jpg?v=1750442756", artist: "Morning Coffee Artist" },
+            { id: "cat_17", title: "Mississippi River Sunset", product_url: "https://morningcoffeeartist.myshopify.com/products/mississippi-river-sunset2", price: 0.0, currency: "USD", image_url: "https://morningcoffeeartist.myshopify.com/cdn/shop/files/rn-image_picker_lib_temp_2cebb52e-a282-4818-a9af-abbc06e96e08.jpg?v=1750442223", artist: "Morning Coffee Artist" },
+            { id: "cat_18", title: "LRG", product_url: "https://morningcoffeeartist.myshopify.com/products/lrg", price: 500.0, currency: "USD", image_url: "https://morningcoffeeartist.myshopify.com/cdn/shop/files/rn-image_picker_lib_temp_dd02f130-d5d3-4255-a75d-1602acc56304.jpg?v=1750443254", artist: "Morning Coffee Artist" },
+            { id: "cat_19", title: "Lemonade", product_url: "https://morningcoffeeartist.myshopify.com/products/lemonade", price: 100.0, currency: "USD", image_url: "https://morningcoffeeartist.myshopify.com/cdn/shop/files/rn-image_picker_lib_temp_cb1b7b1c-16ed-489f-bc86-8a1c0e3ee71d.jpg?v=1750442756", artist: "Morning Coffee Artist" },
+            { id: "cat_20", title: "Laser Tuned", product_url: "https://morningcoffeeartist.myshopify.com/products/laser-tuned", price: 500.0, currency: "USD", image_url: "https://morningcoffeeartist.myshopify.com/cdn/shop/files/rn-image_picker_lib_temp_06c461d1-8a24-40a9-bcf9-0e3501c5aa17.jpg?v=1750442756", artist: "Morning Coffee Artist" },
+            { id: "cat_21", title: "Jun20_13:44", product_url: "https://morningcoffeeartist.myshopify.com/products/untitled-jun20_13-44", price: 150.0, currency: "USD", image_url: "https://morningcoffeeartist.myshopify.com/cdn/shop/files/rn-image_picker_lib_temp_51b596e2-26f5-408e-9e50-76c22912d50b.jpg?v=1750442224", artist: "Morning Coffee Artist" },
+            { id: "cat_22", title: "Forcast", product_url: "https://morningcoffeeartist.myshopify.com/products/forcast", price: 500.0, currency: "USD", image_url: "https://morningcoffeeartist.myshopify.com/cdn/shop/files/rn-image_picker_lib_temp_c24b25b1-efc9-424e-a0fe-c3a498e3d72f.jpg?v=1750443254", artist: "Morning Coffee Artist" },
+            { id: "cat_23", title: "FLYING SOUTH AT SUNSET", product_url: "https://morningcoffeeartist.myshopify.com/products/untitled-jun22_18-36", price: 125.0, currency: "USD", image_url: "https://morningcoffeeartist.myshopify.com/cdn/shop/files/rn-image_picker_lib_temp_a6e2b205-1eec-47b3-94d7-8622d31528bb.jpg?v=1750442224", artist: "Morning Coffee Artist" },
+            { id: "cat_24", title: "Flying Dragon", product_url: "https://morningcoffeeartist.myshopify.com/products/new-product", price: 125.0, currency: "USD", image_url: "https://morningcoffeeartist.myshopify.com/cdn/shop/files/rn-image_picker_lib_temp_a1fc714b-f372-413b-8f70-fe5ee4577dca.jpg?v=1750442756", artist: "Morning Coffee Artist" },
+            { id: "cat_25", title: "Fahrenheit", product_url: "https://morningcoffeeartist.myshopify.com/products/fahrenheit", price: 60.0, currency: "USD", image_url: "https://morningcoffeeartist.myshopify.com/cdn/shop/files/rn-image_picker_lib_temp_7d1282e6-cc81-416c-9f35-fee1d5a2ce3c.jpg?v=1750442756", artist: "Morning Coffee Artist" },
+            { id: "cat_26", title: "Engineering", product_url: "https://morningcoffeeartist.myshopify.com/products/engineering", price: 500.0, currency: "USD", image_url: "https://morningcoffeeartist.myshopify.com/cdn/shop/files/rn-image_picker_lib_temp_99553705-b203-4b6e-b79a-713b3e359054.jpg?v=1750442756", artist: "Morning Coffee Artist" },
+            { id: "cat_27", title: "Diamond In The Rough", product_url: "https://morningcoffeeartist.myshopify.com/products/diamond", price: 500.0, currency: "USD", image_url: "https://morningcoffeeartist.myshopify.com/cdn/shop/files/rn-image_picker_lib_temp_b8a43ab8-31fd-4c94-a749-63b1636dab52.jpg?v=1750443254", artist: "Morning Coffee Artist" },
+            { id: "cat_28", title: "Deception", product_url: "https://morningcoffeeartist.myshopify.com/products/deception", price: 150.0, currency: "USD", image_url: "https://morningcoffeeartist.myshopify.com/cdn/shop/files/rn-image_picker_lib_temp_ed345e03-410d-46b7-a82b-cb956c59ed7e.jpg?v=1750442756", artist: "Morning Coffee Artist" },
+            { id: "cat_29", title: "Data Green", product_url: "https://morningcoffeeartist.myshopify.com/products/data-green", price: 500.0, currency: "USD", image_url: "https://morningcoffeeartist.myshopify.com/cdn/shop/files/rn-image_picker_lib_temp_e8352e19-a77b-4f0a-bcc5-3e29fb276b14.jpg?v=1750443254", artist: "Morning Coffee Artist" },
+            { id: "cat_30", title: "CYNTHIA ERIVO", product_url: "https://morningcoffeeartist.myshopify.com/products/cynthia-erivo", price: 500.0, currency: "USD", image_url: "https://morningcoffeeartist.myshopify.com/cdn/shop/files/rn-image_picker_lib_temp_c789e7b7-1cce-4bf3-b172-1d0fccf8ba77.jpg?v=1750443254", artist: "Morning Coffee Artist" },
+            { id: "cat_31", title: "By Product", product_url: "https://morningcoffeeartist.myshopify.com/products/by-product", price: 250.0, currency: "USD", image_url: "https://morningcoffeeartist.myshopify.com/cdn/shop/files/rn-image_picker_lib_temp_d24cb0b4-d692-4056-8abc-e85a5847fd01.jpg?v=1750443254", artist: "Morning Coffee Artist" },
+            { id: "cat_32", title: "Butter Fly Tree", product_url: "https://morningcoffeeartist.myshopify.com/products/butter-fly-tree", price: 500.0, currency: "USD", image_url: "https://morningcoffeeartist.myshopify.com/cdn/shop/files/rn-image_picker_lib_temp_38772f71-cb91-46a5-addf-535ea8d6c207.jpg?v=1750443254", artist: "Morning Coffee Artist" },
+            { id: "cat_33", title: "Business Card", product_url: "https://morningcoffeeartist.myshopify.com/products/business", price: 50.0, currency: "USD", image_url: "https://morningcoffeeartist.myshopify.com/cdn/shop/files/rn-image_picker_lib_temp_9b376652-a97a-417a-9f8b-4902385cdba6.jpg?v=1752306224", artist: "Morning Coffee Artist" },
+            { id: "cat_34", title: "A Splash in Time", product_url: "https://morningcoffeeartist.myshopify.com/products/a-splash-in-time", price: 0.0, currency: "USD", image_url: "https://morningcoffeeartist.myshopify.com/cdn/shop/files/rn-image_picker_lib_temp_6f50cf47-1df7-4bb8-aeec-cbe450d4d8df.jpg?v=1750442756", artist: "Morning Coffee Artist" },
+            { id: "cat_35", title: "40,000 FT ABOVE BRAZIL", product_url: "https://morningcoffeeartist.myshopify.com/products/untitled-jun21_14-54", price: 0.0, currency: "USD", image_url: "https://morningcoffeeartist.myshopify.com/cdn/shop/files/rn-image_picker_lib_temp_e5de26a4-c68f-4337-8026-069a030df2de.jpg?v=1750442224", artist: "Morning Coffee Artist" },
+            { id: "cat_36", title: "3rd Shift", product_url: "https://morningcoffeeartist.myshopify.com/products/3rd-shift", price: 0.0, currency: "USD", image_url: "https://morningcoffeeartist.myshopify.com/cdn/shop/files/rn-image_picker_lib_temp_03618faf-0cad-4262-82f9-1fd51931e2b3.jpg?v=1750442756", artist: "Morning Coffee Artist" }
+        ];
+
+        // Load catalogue from localStorage or use defaults
+        function loadCatalogue() {
+            const stored = localStorage.getItem(CATALOGUE_STORAGE_KEY);
+            if (stored) {
+                try {
+                    artCatalogue = JSON.parse(stored);
+                } catch (e) {
+                    console.error('Failed to parse catalogue:', e);
+                    artCatalogue = [...DEFAULT_CATALOGUE];
+                }
+            } else {
+                artCatalogue = [...DEFAULT_CATALOGUE];
+                saveCatalogue();
+            }
+            updateCatalogueCount();
+        }
+
+        // Save catalogue to localStorage
+        function saveCatalogue() {
+            localStorage.setItem(CATALOGUE_STORAGE_KEY, JSON.stringify(artCatalogue));
+            updateCatalogueCount();
+        }
+
+        // Update catalogue count display
+        function updateCatalogueCount() {
+            const countEl = document.getElementById('catalogue-count');
+            if (countEl) {
+                countEl.textContent = artCatalogue.length;
+            }
+        }
+
+        // Check if a catalogue item is placed in the gallery
+        function isCatalogueItemPlaced(catalogueId) {
+            const placedArtworks = eventStore.getPlacedArtworks();
+            return placedArtworks.some(artwork => artwork.catalogueId === catalogueId);
+        }
+
+        // Open catalogue dialog
+        function openCatalogue() {
+            if (!isAdmin) return;
+            document.getElementById('catalogue-dialog').classList.add('active');
+            renderCatalogue();
+        }
+
+        // Close catalogue dialog
+        function closeCatalogue() {
+            document.getElementById('catalogue-dialog').classList.remove('active');
+        }
+
+        // Filter catalogue based on search and filter
+        function filterCatalogue() {
+            renderCatalogue();
+        }
+
+        // Render catalogue grid
+        function renderCatalogue() {
+            const grid = document.getElementById('catalogue-grid');
+            const searchTerm = document.getElementById('catalogue-search').value.toLowerCase();
+            const filter = document.getElementById('catalogue-filter').value;
+
+            let filteredItems = artCatalogue.filter(item => {
+                const matchesSearch = item.title.toLowerCase().includes(searchTerm) ||
+                                     (item.artist && item.artist.toLowerCase().includes(searchTerm));
+
+                if (!matchesSearch) return false;
+
+                const isPlaced = isCatalogueItemPlaced(item.id);
+                if (filter === 'placed' && !isPlaced) return false;
+                if (filter === 'unplaced' && isPlaced) return false;
+
+                return true;
+            });
+
+            // Update stats
+            const stats = document.getElementById('catalogue-stats');
+            const placedCount = artCatalogue.filter(item => isCatalogueItemPlaced(item.id)).length;
+            stats.textContent = `${filteredItems.length} of ${artCatalogue.length} items (${placedCount} placed)`;
+
+            // Render items
+            grid.innerHTML = filteredItems.map(item => {
+                const isPlaced = isCatalogueItemPlaced(item.id);
+                const priceDisplay = item.price > 0 ? `$${item.price.toFixed(2)}` : 'Price on request';
+
+                return `
+                    <div class="catalogue-item ${isPlaced ? 'placed' : ''}" onclick="openCatalogueDetail('${item.id}')">
+                        <img class="catalogue-item-image" src="${item.image_url}" alt="${item.title}" loading="lazy">
+                        <div class="catalogue-item-info">
+                            <div class="catalogue-item-title">${item.title}</div>
+                            <div class="catalogue-item-price">${priceDisplay}</div>
+                        </div>
+                        <div class="catalogue-item-actions">
+                            <button class="catalogue-btn primary" onclick="event.stopPropagation(); openCatalogueDetail('${item.id}')">
+                                ${isPlaced ? 'View' : 'Place'}
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Open catalogue detail for placement
+        function openCatalogueDetail(catalogueId) {
+            const item = artCatalogue.find(i => i.id === catalogueId);
+            if (!item) return;
+
+            selectedCatalogueItem = item;
+
+            // Populate form
+            document.getElementById('catalogue-detail-img').src = item.image_url;
+            document.getElementById('catalogue-title').value = item.title;
+            document.getElementById('catalogue-artist').value = item.artist || 'Morning Coffee Artist';
+            document.getElementById('catalogue-description').value = item.description || '';
+            document.getElementById('catalogue-height').value = 36;
+
+            // Populate gallery dropdown
+            const gallerySelect = document.getElementById('catalogue-gallery');
+            const galleries = JSON.parse(localStorage.getItem('vr-gallery:galleries') || '[]');
+            const activeGalleryId = localStorage.getItem('vr-gallery:activeGallery');
+
+            gallerySelect.innerHTML = galleries.map(g =>
+                `<option value="${g.id}" ${g.id === activeGalleryId ? 'selected' : ''}>${g.name}</option>`
+            ).join('') || '<option value="">Default Gallery</option>';
+
+            // Populate location dropdown
+            populateCatalogueLocations();
+
+            document.getElementById('catalogue-detail').classList.add('active');
+        }
+
+        // Populate location dropdown based on selected gallery
+        function populateCatalogueLocations() {
+            const locationSelect = document.getElementById('catalogue-location');
+            const placedArtworks = eventStore.getPlacedArtworks();
+            const occupiedLocations = new Set(placedArtworks.map(a => a.locationId));
+
+            let options = [];
+
+            // Add wall spots from all rooms
+            Object.values(ROOMS).forEach(room => {
+                room.walls.forEach(wall => {
+                    const isOccupied = occupiedLocations.has(wall.id);
+                    options.push({
+                        id: wall.id,
+                        name: `${room.name} - ${wall.displayName}`,
+                        type: 'wall',
+                        occupied: isOccupied
+                    });
+                });
+            });
+
+            // Add floor spots from all rooms
+            Object.values(ROOMS).forEach(room => {
+                room.floors.forEach(floor => {
+                    const isOccupied = occupiedLocations.has(floor.id);
+                    options.push({
+                        id: floor.id,
+                        name: `${room.name} - ${floor.displayName} (Floor)`,
+                        type: 'floor',
+                        occupied: isOccupied
+                    });
+                });
+            });
+
+            locationSelect.innerHTML = options.map(opt =>
+                `<option value="${opt.id}" ${opt.occupied ? 'disabled' : ''}>${opt.name}${opt.occupied ? ' (Occupied)' : ''}</option>`
+            ).join('');
+        }
+
+        // Close catalogue detail dialog
+        function closeCatalogueDetail() {
+            document.getElementById('catalogue-detail').classList.remove('active');
+            selectedCatalogueItem = null;
+        }
+
+        // Place catalogue item in gallery
+        async function placeCatalogueItem() {
+            if (!selectedCatalogueItem || !isAdmin) return;
+
+            const title = document.getElementById('catalogue-title').value.trim();
+            const artist = document.getElementById('catalogue-artist').value.trim();
+            const description = document.getElementById('catalogue-description').value.trim();
+            const galleryId = document.getElementById('catalogue-gallery').value;
+            const locationId = document.getElementById('catalogue-location').value;
+            const heightInches = parseFloat(document.getElementById('catalogue-height').value) || 36;
+
+            if (!title || !artist) {
+                alert('Please enter a title and artist name.');
+                return;
+            }
+
+            if (!locationId) {
+                alert('Please select a location for the artwork.');
+                return;
+            }
+
+            // Find location details
+            let locationName = '';
+            let roomId = '';
+
+            Object.values(ROOMS).forEach(room => {
+                const wall = room.walls.find(w => w.id === locationId);
+                const floor = room.floors.find(f => f.id === locationId);
+                if (wall) {
+                    locationName = wall.displayName;
+                    roomId = room.id;
+                } else if (floor) {
+                    locationName = floor.displayName;
+                    roomId = room.id;
+                }
+            });
+
+            try {
+                // Load image to get dimensions
+                const img = new Image();
+                img.crossOrigin = 'anonymous';
+
+                await new Promise((resolve, reject) => {
+                    img.onload = resolve;
+                    img.onerror = reject;
+                    img.src = selectedCatalogueItem.image_url;
+                });
+
+                const aspectRatio = img.width / img.height;
+                const heightMeters = (heightInches * 0.0254);
+                const widthInches = heightInches * aspectRatio;
+
+                // Create artwork event
+                const objectId = generateObjectId('art');
+                const eventData = {
+                    verb: 'create',
+                    op: 'artwork_upload',
+                    object_type: 'artwork',
+                    object_id: objectId,
+                    frame: 'classic',
+                    scale: '1',
+                    data: {
+                        title: title,
+                        artist: artist,
+                        description: description,
+                        imageUrl: selectedCatalogueItem.image_url,
+                        heightInches: heightInches,
+                        heightMeters: heightMeters,
+                        widthInches: widthInches,
+                        aspectRatio: aspectRatio,
+                        locationId: locationId,
+                        locationName: locationName,
+                        roomId: roomId,
+                        galleryId: galleryId || 'default',
+                        catalogueId: selectedCatalogueItem.id,
+                        productUrl: selectedCatalogueItem.product_url,
+                        price: selectedCatalogueItem.price,
+                        currency: selectedCatalogueItem.currency
+                    }
+                };
+
+                const result = await eventStore.postEvent(eventData);
+                console.log('Catalogue artwork placed:', result);
+
+                // Close dialogs
+                closeCatalogueDetail();
+                closeCatalogue();
+
+                // Refresh gallery if we're in the target room
+                if (typeof roomManager !== 'undefined' && roomManager.currentRoomId === roomId) {
+                    // Load the artwork into the scene
+                    const artworkData = {
+                        id: objectId,
+                        ...eventData.data,
+                        placed: true
+                    };
+                    roomManager.addArtwork(artworkData);
+                }
+
+                alert(`"${title}" has been placed in ${locationName}!`);
+
+            } catch (error) {
+                console.error('Failed to place catalogue artwork:', error);
+                alert('Failed to place artwork. Please try again.');
+            }
+        }
+
+        // Add item to catalogue (for future expansion)
+        function addToCatalogue(item) {
+            const newItem = {
+                id: 'cat_' + Date.now().toString(36),
+                title: item.title || 'Untitled',
+                artist: item.artist || 'Unknown Artist',
+                image_url: item.image_url,
+                product_url: item.product_url || '',
+                price: item.price || 0,
+                currency: item.currency || 'USD',
+                description: item.description || ''
+            };
+            artCatalogue.push(newItem);
+            saveCatalogue();
+            return newItem;
+        }
+
+        // Remove item from catalogue
+        function removeFromCatalogue(catalogueId) {
+            artCatalogue = artCatalogue.filter(item => item.id !== catalogueId);
+            saveCatalogue();
+        }
+
+        // Initialize catalogue on load
+        document.addEventListener('DOMContentLoaded', () => {
+            loadCatalogue();
+        });
+
+        // ============================================
+        // END ART CATALOGUE SYSTEM
+        // ============================================
 
         const ROOMS = {
             'main-gallery': {
