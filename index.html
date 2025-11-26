@@ -1308,9 +1308,239 @@
 
         const wallSpotPosition = (x, z) => new THREE.Vector3(x, DEFAULT_EYE_LEVEL_METERS, z);
         
-        const WEBHOOK_URL = 'https://n8n.intelechia.com/webhook/gallery';
-        const CREATE_WEBHOOK_URL = 'https://n8n.intelechia.com/webhook/create-gallery';
-        const EDIT_WEBHOOK_URL = 'https://n8n.intelechia.com/webhook/edit-gallery';
+        // Xano Activity Stream API
+        const XANO_API_URL = 'https://xvkq-pq7i-idtl.n7d.xano.io/api:gx-QnxD1/events';
+
+        // Generate unique event ID
+        function generateEventUID() {
+            return 'evt_' + Date.now().toString(36) + '_' + Math.random().toString(36).substring(2, 11);
+        }
+
+        // Generate unique object ID
+        function generateObjectId(prefix = 'obj') {
+            return prefix + '_' + Date.now().toString(36) + '_' + Math.random().toString(36).substring(2, 8);
+        }
+
+        // Get or create actor ID (session-based)
+        function getActorId() {
+            let actorId = localStorage.getItem('vr-gallery:actor-id');
+            if (!actorId) {
+                actorId = 'actor_' + Date.now().toString(36) + '_' + Math.random().toString(36).substring(2, 8);
+                localStorage.setItem('vr-gallery:actor-id', actorId);
+            }
+            return actorId;
+        }
+
+        // XanoEventStore - Activity Stream Manager
+        class XanoEventStore {
+            constructor() {
+                this.events = [];
+                this.state = {
+                    artworks: {},      // object_id -> current state
+                    rooms: {},         // room configurations
+                    galleries: {}      // gallery configurations
+                };
+            }
+
+            // Fetch all events from Xano
+            async fetchEvents() {
+                try {
+                    const response = await fetch(XANO_API_URL);
+                    if (!response.ok) {
+                        throw new Error(`Failed to fetch events: ${response.status}`);
+                    }
+                    this.events = await response.json();
+                    console.log('Fetched events from Xano:', this.events.length);
+                    this.reconstructState();
+                    return this.events;
+                } catch (error) {
+                    console.error('Failed to fetch events:', error);
+                    throw error;
+                }
+            }
+
+            // Post a new event to Xano
+            async postEvent(eventData) {
+                const event = {
+                    event_uid: generateEventUID(),
+                    verb: eventData.verb,
+                    op: eventData.op || '',
+                    frame: eventData.frame || '',
+                    scale: eventData.scale || '',
+                    published: new Date().toISOString(),
+                    actor_id: getActorId(),
+                    object_type: eventData.object_type,
+                    object_id: eventData.object_id,
+                    data: eventData.data || {}
+                };
+
+                console.log('Posting event to Xano:', event);
+
+                try {
+                    const response = await fetch(XANO_API_URL, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(event)
+                    });
+
+                    if (!response.ok) {
+                        const errorText = await response.text();
+                        throw new Error(`Failed to post event: ${response.status} - ${errorText}`);
+                    }
+
+                    const result = await response.json();
+                    console.log('Event posted successfully:', result);
+
+                    // Add to local events and update state
+                    this.events.push({ ...event, id: result.id, created_at: result.created_at });
+                    this.applyEvent(event);
+
+                    return result;
+                } catch (error) {
+                    console.error('Failed to post event:', error);
+                    throw error;
+                }
+            }
+
+            // Reconstruct current state from event history
+            reconstructState() {
+                // Reset state
+                this.state = {
+                    artworks: {},
+                    rooms: {},
+                    galleries: {}
+                };
+
+                // Sort events by created_at/published timestamp
+                const sortedEvents = [...this.events].sort((a, b) => {
+                    const timeA = new Date(a.created_at || a.published).getTime();
+                    const timeB = new Date(b.created_at || b.published).getTime();
+                    return timeA - timeB;
+                });
+
+                // Apply each event in order
+                for (const event of sortedEvents) {
+                    this.applyEvent(event);
+                }
+
+                console.log('State reconstructed:', this.state);
+            }
+
+            // Apply a single event to state
+            applyEvent(event) {
+                const { verb, object_type, object_id, data } = event;
+
+                switch (object_type) {
+                    case 'artwork':
+                        this.applyArtworkEvent(verb, object_id, data, event);
+                        break;
+                    case 'room':
+                        this.applyRoomEvent(verb, object_id, data, event);
+                        break;
+                    case 'gallery':
+                        this.applyGalleryEvent(verb, object_id, data, event);
+                        break;
+                    default:
+                        console.warn('Unknown object_type:', object_type);
+                }
+            }
+
+            applyArtworkEvent(verb, object_id, data, event) {
+                switch (verb) {
+                    case 'create':
+                        this.state.artworks[object_id] = {
+                            id: object_id,
+                            ...data,
+                            frame: event.frame || data.frame || 'classic',
+                            scale: event.scale || data.scale || '1',
+                            placed: true,
+                            created_at: event.created_at || event.published
+                        };
+                        break;
+                    case 'update':
+                        if (this.state.artworks[object_id]) {
+                            this.state.artworks[object_id] = {
+                                ...this.state.artworks[object_id],
+                                ...data,
+                                frame: event.frame || this.state.artworks[object_id].frame,
+                                scale: event.scale || this.state.artworks[object_id].scale,
+                                updated_at: event.created_at || event.published
+                            };
+                        }
+                        break;
+                    case 'delete':
+                        if (this.state.artworks[object_id]) {
+                            this.state.artworks[object_id].placed = false;
+                            this.state.artworks[object_id].deleted_at = event.created_at || event.published;
+                        }
+                        break;
+                    case 'place':
+                        if (this.state.artworks[object_id]) {
+                            this.state.artworks[object_id].placed = true;
+                            this.state.artworks[object_id].location = data.location;
+                            this.state.artworks[object_id].locationName = data.locationName;
+                            this.state.artworks[object_id].roomId = data.roomId;
+                        }
+                        break;
+                    case 'unplace':
+                        if (this.state.artworks[object_id]) {
+                            this.state.artworks[object_id].placed = false;
+                        }
+                        break;
+                }
+            }
+
+            applyRoomEvent(verb, object_id, data, event) {
+                switch (verb) {
+                    case 'create':
+                    case 'update':
+                        this.state.rooms[object_id] = {
+                            id: object_id,
+                            ...this.state.rooms[object_id],
+                            ...data
+                        };
+                        break;
+                    case 'delete':
+                        delete this.state.rooms[object_id];
+                        break;
+                }
+            }
+
+            applyGalleryEvent(verb, object_id, data, event) {
+                switch (verb) {
+                    case 'create':
+                    case 'update':
+                        this.state.galleries[object_id] = {
+                            id: object_id,
+                            ...this.state.galleries[object_id],
+                            ...data
+                        };
+                        break;
+                    case 'delete':
+                        delete this.state.galleries[object_id];
+                        break;
+                }
+            }
+
+            // Get all placed artworks
+            getPlacedArtworks(galleryId = null) {
+                return Object.values(this.state.artworks).filter(artwork => {
+                    if (!artwork.placed) return false;
+                    if (galleryId && artwork.galleryId && artwork.galleryId !== galleryId) return false;
+                    return true;
+                });
+            }
+
+            // Get artwork by ID
+            getArtwork(objectId) {
+                return this.state.artworks[objectId] || null;
+            }
+        }
+
+        // Global event store instance
+        const eventStore = new XanoEventStore();
 
         const ROOMS = {
             'main-gallery': {
@@ -2325,7 +2555,8 @@
 
                 const remaining = [];
                 for (const entry of queue) {
-                    if (this.loadedArtworkIds.has(entry.airtableId)) {
+                    const artworkId = entry.eventId || entry.airtableId;
+                    if (this.loadedArtworkIds.has(artworkId)) {
                         continue;
                     }
 
@@ -2335,8 +2566,8 @@
                         continue;
                     }
 
-                    await loadImageFromURL(entry.url, entry.locationId, entry.heightMeters, entry.metadata, entry.airtableId);
-                    this.loadedArtworkIds.add(entry.airtableId);
+                    await loadImageFromURL(entry.url, entry.locationId, entry.heightMeters, entry.metadata, artworkId);
+                    this.loadedArtworkIds.add(artworkId);
                 }
 
                 this.pendingArtworks[roomId] = remaining;
@@ -2344,15 +2575,16 @@
 
             async addArtwork(entry) {
                 if (!entry || !entry.roomId) return;
-                if (this.loadedArtworkIds.has(entry.airtableId)) {
+                const artworkId = entry.eventId || entry.airtableId;
+                if (this.loadedArtworkIds.has(artworkId)) {
                     return;
                 }
 
                 if (entry.roomId === this.currentRoom) {
                     const wallSpot = wallSpots.find(s => s.userData.id === entry.locationId);
                     if (wallSpot) {
-                        await loadImageFromURL(entry.url, entry.locationId, entry.heightMeters, entry.metadata, entry.airtableId);
-                        this.loadedArtworkIds.add(entry.airtableId);
+                        await loadImageFromURL(entry.url, entry.locationId, entry.heightMeters, entry.metadata, artworkId);
+                        this.loadedArtworkIds.add(artworkId);
                         return;
                     }
                 }
@@ -2565,91 +2797,73 @@
             loadArtworksFromAirtable();
         }
         
-        async function loadArtworksFromAirtable() {
+        async function loadArtworksFromEvents() {
             try {
                 const activeGallery = getActiveGallery();
                 const galleryFilterId = activeGallery?.id || null;
 
-                const response = await fetch(WEBHOOK_URL);
-                if (!response.ok) {
-                    throw new Error(`Failed to fetch artworks: ${response.status}`);
-                }
-                
-                const data = await response.json();
-                console.log('Loaded data from webhook:', data);
-                
-                // Filter for ONLY artwork records (have Title, Artist, Type, and Art fields)
-                const artworkRecords = data.filter(record => 
-                    record.Title && 
-                    record.Artist && 
-                    record.Type && 
-                    record.Art && 
-                    record.Art.length > 0 &&
-                    !record['Location ID'] && // Exclude location records
-                    !record['Exhibition ID'] // Exclude exhibition records
-                );
+                // Fetch all events and reconstruct state
+                await eventStore.fetchEvents();
 
-                console.log('Filtered artwork records:', artworkRecords);
-                
+                // Get placed artworks from reconstructed state
+                const placedArtworks = eventStore.getPlacedArtworks(galleryFilterId);
+                console.log('Placed artworks from event store:', placedArtworks);
+
                 roomManager.pendingArtworks = {};
 
                 const loadPromises = [];
-                const totalRecords = artworkRecords.length;
+                const totalRecords = Object.keys(eventStore.state.artworks).length;
                 let eligibleCount = 0;
 
-                for (const record of artworkRecords) {
-                    if (!record['Currently Placed']) {
-                        console.log(`Skipping ${record.Title} - not currently placed`);
+                for (const artwork of placedArtworks) {
+                    // Skip if no image URL
+                    if (!artwork.imageUrl) {
+                        console.warn(`No image URL for ${artwork.title}`);
                         continue;
                     }
 
-                    const artFile = record.Art[0];
-                    if (!artFile || !artFile.url) {
-                        console.warn(`No art file for ${record.Title}`);
+                    // Parse location from artwork data
+                    const locationId = artwork.locationId || artwork.location;
+                    const locationName = artwork.locationName;
+
+                    let parsedLocation;
+                    if (locationId && locationId.includes(':')) {
+                        // Full location ID format: roomId:spotId
+                        const [roomId, spotId] = locationId.split(':');
+                        parsedLocation = { roomId, spotId, locationId };
+                    } else if (locationName) {
+                        parsedLocation = parseLocationData(locationName);
+                    } else {
+                        console.warn(`Could not determine location for ${artwork.title}`);
                         continue;
                     }
 
-                    const recordGalleryId = record['Gallery ID'] || record['Gallery'] || record['GalleryId'];
-                    if (galleryFilterId && recordGalleryId && recordGalleryId !== galleryFilterId) {
-                        console.log(`Skipping ${record.Title} - belongs to ${recordGalleryId}`);
-                        continue;
-                    }
-
-                    const locationName = extractLocationValue(
-                        record['Location Name'] ?? record['Location'] ?? record.Location
-                    );
-
-                    const parsedLocation = parseLocationData(locationName);
                     if (!parsedLocation.locationId) {
-                        console.warn(`Could not map location for ${record.Title}:`, locationName);
+                        console.warn(`Could not map location for ${artwork.title}:`, locationName);
                         continue;
                     }
 
                     const metadata = {
-                        title: record.Title || '',
-                        artist: record.Artist || '',
-                        description: record.Description || ''
+                        title: artwork.title || '',
+                        artist: artwork.artist || '',
+                        description: artwork.description || ''
                     };
 
-                    const heightInches = record['Height (inches)'] || 36;
-                    const heightMeters = heightInches * 0.0254;
+                    // Height in meters (default 36 inches = 0.9144m)
+                    const heightMeters = artwork.heightMeters || (artwork.heightInches ? artwork.heightInches * 0.0254 : 0.9144);
 
-                    if (record.Type === 'Image') {
-                        eligibleCount++;
-                        loadPromises.push(
-                            roomManager.addArtwork({
-                                roomId: parsedLocation.roomId,
-                                locationId: parsedLocation.locationId,
-                                spotId: parsedLocation.spotId,
-                                metadata,
-                                url: artFile.url,
-                                heightMeters,
-                                airtableId: record.id
-                            })
-                        );
-                    } else {
-                        console.warn(`Unsupported artwork type for ${record.Title}:`, record.Type);
-                    }
+                    eligibleCount++;
+                    loadPromises.push(
+                        roomManager.addArtwork({
+                            roomId: parsedLocation.roomId,
+                            locationId: parsedLocation.locationId,
+                            spotId: parsedLocation.spotId,
+                            metadata,
+                            url: artwork.imageUrl,
+                            heightMeters,
+                            eventId: artwork.id  // Use event object_id instead of airtableId
+                        })
+                    );
                 }
 
                 await Promise.all(loadPromises);
@@ -2658,20 +2872,23 @@
                 const statusElement = document.getElementById('sync-status');
 
                 if (placedCount > 0) {
-                    statusElement.textContent = `✓ Loaded ${placedCount} artwork${placedCount !== 1 ? 's' : ''} for this gallery (${eligibleCount}/${totalRecords} eligible)`;
+                    statusElement.textContent = `✓ Loaded ${placedCount} artwork${placedCount !== 1 ? 's' : ''} from events (${eligibleCount}/${totalRecords} total)`;
                     statusElement.style.color = '#4ade80';
                 } else {
-                    statusElement.textContent = `ℹ️ No artworks available to display for this gallery (${eligibleCount}/${totalRecords} eligible)`;
+                    statusElement.textContent = `ℹ️ No artworks available to display (${totalRecords} in database)`;
                     statusElement.style.color = '#fbbf24';
                 }
             } catch (error) {
-                console.error('Failed to load artworks:', error);
+                console.error('Failed to load artworks from events:', error);
                 document.getElementById('sync-status').textContent = '❌ Failed to load artworks';
                 document.getElementById('sync-status').style.color = '#ff6b6b';
             }
         }
+
+        // Alias for backward compatibility
+        const loadArtworksFromAirtable = loadArtworksFromEvents;
         
-        async function loadImageFromURL(url, locationId, height, metadata, airtableId) {
+        async function loadImageFromURL(url, locationId, height, metadata, artworkId) {
             const wallSpot = wallSpots.find(s => s.userData.id === locationId);
             if (!wallSpot || wallSpot.userData.occupied) return;
 
@@ -2688,7 +2905,7 @@
                             const scaledHeight = height * ARTWORK_SCALE_FACTOR;
                             const scaledWidth = scaledHeight * aspectRatio;
                             createArtworkMesh(texture, metadata.title || 'Untitled', wallSpot,
-                                { width: scaledWidth, height: scaledHeight }, metadata, url, airtableId);
+                                { width: scaledWidth, height: scaledHeight }, metadata, url, artworkId);
                         } catch (placementError) {
                             console.error('Failed to place artwork from URL:', placementError);
                         } finally {
@@ -2729,177 +2946,161 @@
             return Math.round(value * 100) / 100;
         }
 
-        async function createArtworkInAirtable(artworkData) {
-            console.log('=== CREATE ARTWORK IN AIRTABLE ===');
+        async function createArtworkEvent(artworkData) {
+            console.log('=== CREATE ARTWORK EVENT ===');
             console.log('Is Admin?:', isAdmin);
             console.log('Artwork Data:', artworkData);
 
             if (!isAdmin) {
-                console.log('Not admin, skipping Airtable save');
+                console.log('Not admin, skipping event creation');
                 return null;
             }
 
             const heightFeet = typeof artworkData.heightFeet === 'number' ? artworkData.heightFeet : undefined;
             const heightInches = heightFeet !== undefined ? heightFeet * 12 : undefined;
+            const heightMeters = heightInches ? heightInches * 0.0254 : undefined;
             const aspectRatio = typeof artworkData.aspectRatio === 'number' && artworkData.aspectRatio > 0
                 ? artworkData.aspectRatio
                 : null;
             const widthInches = aspectRatio && heightInches !== undefined ? heightInches * aspectRatio : null;
 
-            let fileExtension = '';
-            if (artworkData.imageUrl) {
-                const urlWithoutQuery = artworkData.imageUrl.split('?')[0];
-                const extensionMatch = urlWithoutQuery.match(/\.([a-z0-9]+)$/i);
-                fileExtension = extensionMatch ? extensionMatch[1].toLowerCase() : '';
-            }
+            // Generate unique artwork ID
+            const objectId = artworkData.artworkId || generateObjectId('art');
 
-            const normalizedExtension = fileExtension || 'jpg';
-            const fileFormat = artworkData.imageUrl ? normalizedExtension.toUpperCase() : '';
-            const attachmentFileName = `${sanitizeFileName(artworkData.originalFileName || artworkData.title)}.${normalizedExtension}`;
-            const attachments = artworkData.imageUrl ? [{
-                url: artworkData.imageUrl,
-                filename: attachmentFileName
-            }] : [];
+            // Get gallery info
+            const gallery = getActiveGallery();
 
-            const payload = {
-                Title: artworkData.title || 'Untitled',
-                'Artwork ID': artworkData.artworkId || generateArtworkId(artworkData.title),
-                Artist: artworkData.artist || '',
-                Description: artworkData.description || '',
-                Type: artworkData.type,
-                Art: attachments,
-                'File Format': fileFormat,
-                'Date Added': new Date().toISOString(),
-                'Currently Placed': true,
-                Location: artworkData.locationId ? [artworkData.locationId] : [],
-                'Location Name': artworkData.locationName ? [artworkData.locationName] : [],
-                Tags: Array.isArray(artworkData.tags) ? artworkData.tags : [],
-                Notes: artworkData.notes || ''
+            // Prepare event data
+            const eventData = {
+                verb: 'create',
+                op: 'artwork_upload',
+                frame: artworkData.frame || 'classic',
+                scale: artworkData.scale || '1',
+                object_type: 'artwork',
+                object_id: objectId,
+                data: {
+                    title: artworkData.title || 'Untitled',
+                    artist: artworkData.artist || '',
+                    description: artworkData.description || '',
+                    type: artworkData.type || 'Image',
+                    imageUrl: artworkData.imageUrl || '',
+                    originalFileName: artworkData.originalFileName || '',
+                    heightFeet: heightFeet ? roundToTwoDecimals(heightFeet) : undefined,
+                    heightInches: heightInches ? roundToTwoDecimals(heightInches) : undefined,
+                    heightMeters: heightMeters ? roundToTwoDecimals(heightMeters) : undefined,
+                    widthInches: widthInches ? roundToTwoDecimals(widthInches) : undefined,
+                    aspectRatio: aspectRatio,
+                    locationId: artworkData.locationId || '',
+                    locationName: artworkData.locationName || '',
+                    roomId: artworkData.roomId || '',
+                    galleryId: gallery?.id || '',
+                    galleryName: gallery?.name || '',
+                    tags: Array.isArray(artworkData.tags) ? artworkData.tags : [],
+                    notes: artworkData.notes || ''
+                }
             };
 
-            const gallery = getActiveGallery();
-            if (gallery) {
-                payload['Gallery ID'] = gallery.id;
-                payload['Gallery Name'] = gallery.name;
-            }
+            console.log('Posting create event:', eventData);
 
-            if (heightFeet !== undefined) {
-                const roundedHeightFeet = roundToTwoDecimals(heightFeet);
-                if (roundedHeightFeet !== undefined) {
-                    payload['Height (feet)'] = roundedHeightFeet;
-                }
-            }
-
-            if (heightInches !== undefined) {
-                const roundedHeightInches = roundToTwoDecimals(heightInches);
-                if (roundedHeightInches !== undefined) {
-                    payload['Height (inches)'] = roundedHeightInches;
-                }
-            }
-
-            const roundedWidthInches = widthInches !== null ? roundToTwoDecimals(widthInches) : undefined;
-            if (roundedWidthInches !== undefined) {
-                payload['Width (inches)'] = roundedWidthInches;
-            }
-
-            console.log('Sending to webhook:', CREATE_WEBHOOK_URL);
-            console.log('Payload:', payload);
-            
             try {
-                const response = await fetch(CREATE_WEBHOOK_URL, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(payload)
-                });
-                
-                console.log('Response status:', response.status);
-                console.log('Response OK?:', response.ok);
-                
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    console.error('Error response:', errorText);
-                    throw new Error(`Failed to create artwork: ${response.status} - ${errorText}`);
-                }
-                
-                const result = await response.json();
-                console.log('Artwork created in Airtable:', result);
-                return result.id || null;
+                const result = await eventStore.postEvent(eventData);
+                console.log('Artwork event created:', result);
+                return objectId;
             } catch (error) {
-                console.error('Failed to create artwork in Airtable:', error);
+                console.error('Failed to create artwork event:', error);
                 return null;
             }
         }
-        
-        async function updateArtworkInAirtable(artworkData) {
+
+        // Alias for backward compatibility
+        const createArtworkInAirtable = createArtworkEvent;
+
+        async function updateArtworkEvent(artworkData) {
             if (!isAdmin) return null;
 
+            const objectId = artworkData.id || artworkData.eventId;
+            if (!objectId) {
+                console.error('No object ID provided for update');
+                return null;
+            }
+
+            // Prepare update data - only include fields that are being updated
+            const updateData = {};
+
+            if (artworkData.title !== undefined) updateData.title = artworkData.title;
+            if (artworkData.artist !== undefined) updateData.artist = artworkData.artist;
+            if (artworkData.description !== undefined) updateData.description = artworkData.description;
+
+            if (artworkData.heightFeet !== undefined) {
+                updateData.heightFeet = roundToTwoDecimals(artworkData.heightFeet);
+                updateData.heightInches = roundToTwoDecimals(artworkData.heightFeet * 12);
+                updateData.heightMeters = roundToTwoDecimals(artworkData.heightFeet * 12 * 0.0254);
+            }
+
+            if (artworkData.location !== undefined) updateData.locationId = artworkData.location;
+            if (artworkData.locationName !== undefined) updateData.locationName = artworkData.locationName;
+            if (artworkData.roomId !== undefined) updateData.roomId = artworkData.roomId;
+
+            // Handle placement status
+            if (artworkData.currentlyPlaced !== undefined) {
+                updateData.placed = artworkData.currentlyPlaced;
+            }
+
+            const eventData = {
+                verb: 'update',
+                op: 'artwork_edit',
+                frame: artworkData.frame || '',
+                scale: artworkData.scale || '',
+                object_type: 'artwork',
+                object_id: objectId,
+                data: updateData
+            };
+
+            console.log('Posting update event:', eventData);
+
             try {
-                const payload = {
-                    id: artworkData.id,
-                    Title: artworkData.title,
-                    Artist: artworkData.artist,
-                    Description: artworkData.description,
-                    'Currently Placed': artworkData.currentlyPlaced !== undefined ? artworkData.currentlyPlaced : true
-                };
-
-                if (artworkData.heightFeet !== undefined) {
-                    const roundedFeet = roundToTwoDecimals(artworkData.heightFeet);
-                    if (roundedFeet !== undefined) {
-                        payload['Height (feet)'] = roundedFeet;
-                    }
-
-                    const roundedInches = roundToTwoDecimals(artworkData.heightFeet * 12);
-                    if (roundedInches !== undefined) {
-                        payload['Height (inches)'] = roundedInches;
-                    }
-                }
-
-                if (artworkData.location) {
-                    payload.Location = [artworkData.location];
-                }
-
-                if (artworkData.locationName) {
-                    payload['Location Name'] = [artworkData.locationName];
-                }
-
-                const response = await fetch(EDIT_WEBHOOK_URL, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(payload)
-                });
-                
-                if (!response.ok) {
-                    throw new Error(`Failed to update artwork: ${response.status}`);
-                }
-                
-                return await response.json();
+                const result = await eventStore.postEvent(eventData);
+                console.log('Artwork update event created:', result);
+                return result;
             } catch (error) {
-                console.error('Failed to update artwork:', error);
+                console.error('Failed to create update event:', error);
                 return null;
             }
         }
-        
-        async function deleteArtworkFromAirtable(airtableId) {
-            if (!isAdmin || !airtableId) return;
-            
+
+        // Alias for backward compatibility
+        const updateArtworkInAirtable = updateArtworkEvent;
+
+        async function deleteArtworkEvent(objectId) {
+            if (!isAdmin || !objectId) return;
+
+            const eventData = {
+                verb: 'delete',
+                op: 'artwork_remove',
+                object_type: 'artwork',
+                object_id: objectId,
+                data: {
+                    placed: false
+                }
+            };
+
+            console.log('Posting delete event:', eventData);
+
             try {
-                await updateArtworkInAirtable({
-                    id: airtableId,
-                    currentlyPlaced: false
-                });
+                await eventStore.postEvent(eventData);
+                console.log('Artwork delete event created');
             } catch (error) {
-                console.error('Failed to delete from Airtable:', error);
+                console.error('Failed to create delete event:', error);
             }
         }
-        
+
+        // Alias for backward compatibility
+        const deleteArtworkFromAirtable = deleteArtworkEvent;
+
         function saveAirtableConfig() {
-            document.getElementById('sync-status').textContent = '⏳ Loading artworks from webhook...';
+            document.getElementById('sync-status').textContent = '⏳ Loading artworks from events...';
             document.getElementById('sync-status').style.color = '#667eea';
-            loadArtworksFromAirtable();
+            loadArtworksFromEvents();
         }
         
         function init() {
@@ -3916,14 +4117,17 @@
                         const scaledHeight = height * ARTWORK_SCALE_FACTOR;
                         const scaledWidth = scaledHeight * artData.aspectRatio;
 
-                        let airtableId = null;
+                        let artworkId = null;
                         if (isAdmin) {
-                            console.log('Admin mode - saving to Airtable...');
-                            // Send to Airtable
+                            console.log('Admin mode - posting artwork event...');
+                            // Post event to Xano
                             const locationName = mapLocationIdToName(locationId);
                             console.log('Mapped location name:', locationName);
 
-                            airtableId = await createArtworkInAirtable({
+                            // Extract roomId from locationId (format: roomId:spotId)
+                            const roomId = locationId.includes(':') ? locationId.split(':')[0] : '';
+
+                            artworkId = await createArtworkEvent({
                                 title: metadata.title,
                                 artist: metadata.artist,
                                 description: metadata.description,
@@ -3932,17 +4136,18 @@
                                 type: 'Image',
                                 locationId: locationId,
                                 locationName: locationName,
+                                roomId: roomId,
                                 imageUrl: artData.imageUrl,
                                 originalFileName: fileName
                             });
 
-                            console.log('Returned Airtable ID:', airtableId);
+                            console.log('Returned artwork ID:', artworkId);
                         } else {
-                            console.log('Public mode - not saving to Airtable');
+                            console.log('Public mode - not saving event');
                         }
 
                         createArtworkMesh(texture, fileName, wallSpot,
-                            { width: scaledWidth, height: scaledHeight }, metadata, artData.imageUrl, airtableId);
+                            { width: scaledWidth, height: scaledHeight }, metadata, artData.imageUrl, artworkId);
                         updateArtQueue(fileName, artData.imageUrl, 'Placed on wall');
                     } finally {
                         endArtworkLoad();
@@ -3956,31 +4161,31 @@
             }
         }
         
-        function createArtworkMesh(texture, name, spot, dimensions, metadata, imageUrl, airtableId = null) {
+        function createArtworkMesh(texture, name, spot, dimensions, metadata, imageUrl, artworkId = null) {
             const width = dimensions.width;
             const height = dimensions.height;
-            
+
             const frameGeometry = new THREE.BoxGeometry(width + 0.1, height + 0.1, 0.05);
             const frameMaterial = new THREE.MeshStandardMaterial({ color: 0x8b7355, roughness: 0.8, metalness: 0.2 });
             const frame = new THREE.Mesh(frameGeometry, frameMaterial);
             frame.castShadow = true;
-            
+
             const artGeometry = new THREE.PlaneGeometry(width, height);
             const artMaterial = new THREE.MeshStandardMaterial({ map: texture, roughness: 0.3, metalness: 0.1 });
             const art = new THREE.Mesh(artGeometry, artMaterial);
             art.position.z = 0.026;
-            
+
             const artworkGroup = new THREE.Group();
             artworkGroup.add(frame);
             artworkGroup.add(art);
             artworkGroup.name = 'artwork';
-            artworkGroup.userData = { 
-                name: name, 
+            artworkGroup.userData = {
+                name: name,
                 spotId: spot.userData.id,
                 width: width,
                 metadata: metadata,
                 imageUrl: imageUrl,
-                airtableId: airtableId
+                artworkId: artworkId  // Event object_id or legacy airtableId
             };
             
             artworkGroup.position.copy(spot.position);
@@ -4159,11 +4364,11 @@
             // Show sync status
             if (isAdmin && status.includes('Placed')) {
                 const syncStatus = document.getElementById('sync-status');
-                syncStatus.textContent = '⏳ Saving to Airtable...';
+                syncStatus.textContent = '⏳ Saving to database...';
                 syncStatus.style.color = '#667eea';
-                
+
                 setTimeout(() => {
-                    syncStatus.textContent = '✓ Saved to Airtable';
+                    syncStatus.textContent = '✓ Saved to database';
                     syncStatus.style.color = '#4ade80';
                 }, 2000);
             }
@@ -4277,8 +4482,8 @@
                 }
                 
                 if (artworkGroup.userData.spotId) {
-                    if (isAdmin && artworkGroup.userData.airtableId) {
-                        deleteArtworkFromAirtable(artworkGroup.userData.airtableId);
+                    if (isAdmin && artworkGroup.userData.artworkId) {
+                        deleteArtworkEvent(artworkGroup.userData.artworkId);
                     }
                     
                     const wallSpot = wallSpots.find(s => s.userData.id === artworkGroup.userData.spotId);
@@ -4425,9 +4630,9 @@
             const heightInches = parseFloat(document.getElementById('edit-height-input').value);
             const heightFeet = heightInches / 12;
             
-            if (currentEditingArtwork.userData.airtableId) {
-                await updateArtworkInAirtable({
-                    id: currentEditingArtwork.userData.airtableId,
+            if (currentEditingArtwork.userData.artworkId) {
+                await updateArtworkEvent({
+                    id: currentEditingArtwork.userData.artworkId,
                     title: newMetadata.title,
                     artist: newMetadata.artist,
                     description: newMetadata.description,
