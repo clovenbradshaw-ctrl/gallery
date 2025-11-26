@@ -1622,7 +1622,25 @@
             <label>Height (inches):</label>
             <input type="number" id="edit-height-input" value="36" min="6" max="144" step="6">
         </div>
-        
+
+        <div class="section-divider">
+            <label>Gateway Room (optional):</label>
+            <select id="edit-gateway-select">
+                <option value="">None - Normal Painting</option>
+            </select>
+            <small style="opacity: 0.7; display: block; margin-top: 5px;">When set, clicking this painting transports you to another room</small>
+        </div>
+
+        <div class="section-divider">
+            <label>Display Mode:</label>
+            <select id="edit-display-mode">
+                <option value="single">Single Image</option>
+                <option value="slider">Multiple Images (Slider)</option>
+                <option value="grid">Multiple Images (Grid)</option>
+            </select>
+            <small style="opacity: 0.7; display: block; margin-top: 5px;">Slider mode: Click to cycle through images. Grid mode: Show all images at once.</small>
+        </div>
+
         <div>
             <button onclick="saveArtworkEdit()">Save Changes</button>
             <button class="cancel" onclick="cancelEdit()">Cancel</button>
@@ -3375,7 +3393,7 @@
                 if (entry.roomId === this.currentRoom) {
                     const wallSpot = wallSpots.find(s => s.userData.id === entry.locationId);
                     if (wallSpot) {
-                        await loadImageFromURL(entry.url, entry.locationId, entry.heightMeters, entry.metadata, artworkId);
+                        await loadImageFromURL(entry.url, entry.locationId, entry.heightMeters, entry.metadata, artworkId, entry);
                         this.loadedArtworkIds.add(artworkId);
                         return;
                     }
@@ -3653,7 +3671,12 @@
                             metadata,
                             url: artwork.imageUrl,
                             heightMeters,
-                            eventId: artwork.id  // Use event object_id instead of airtableId
+                            eventId: artwork.id,  // Use event object_id instead of airtableId
+                            // Pass full artwork data for gateway and multi-image features
+                            gatewayTo: artwork.gatewayTo,
+                            displayMode: artwork.displayMode,
+                            images: artwork.images,
+                            currentImageIndex: artwork.currentImageIndex
                         })
                     );
                 }
@@ -3680,9 +3703,22 @@
         // Alias for backward compatibility
         const loadArtworksFromAirtable = loadArtworksFromEvents;
         
-        async function loadImageFromURL(url, locationId, height, metadata, artworkId) {
+        async function loadImageFromURL(url, locationId, height, metadata, artworkId, artworkData = null) {
             const wallSpot = wallSpots.find(s => s.userData.id === locationId);
             if (!wallSpot || wallSpot.userData.occupied) return;
+
+            // Check if this is a grid layout with multiple images
+            if (artworkData?.displayMode === 'grid' && artworkData?.images && artworkData.images.length > 1) {
+                beginArtworkLoad();
+                try {
+                    createGridLayout(wallSpot, artworkData.images, metadata, artworkId, artworkData);
+                } catch (error) {
+                    console.error('Failed to create grid layout:', error);
+                } finally {
+                    endArtworkLoad();
+                }
+                return;
+            }
 
             return new Promise((resolve) => {
                 beginArtworkLoad();
@@ -3697,7 +3733,7 @@
                             const scaledHeight = height * ARTWORK_SCALE_FACTOR;
                             const scaledWidth = scaledHeight * aspectRatio;
                             createArtworkMesh(texture, metadata.title || 'Untitled', wallSpot,
-                                { width: scaledWidth, height: scaledHeight }, metadata, url, artworkId);
+                                { width: scaledWidth, height: scaledHeight }, metadata, url, artworkId, artworkData);
                         } catch (placementError) {
                             console.error('Failed to place artwork from URL:', placementError);
                         } finally {
@@ -3788,7 +3824,13 @@
                     galleryId: gallery?.id || '',
                     galleryName: gallery?.name || '',
                     tags: Array.isArray(artworkData.tags) ? artworkData.tags : [],
-                    notes: artworkData.notes || ''
+                    notes: artworkData.notes || '',
+                    // Gateway feature: artwork can transport to another room
+                    gatewayTo: artworkData.gatewayTo || '',
+                    // Multi-image feature: support multiple images in one spot
+                    images: Array.isArray(artworkData.images) ? artworkData.images : [],
+                    displayMode: artworkData.displayMode || 'single', // 'single', 'grid', 'slider'
+                    currentImageIndex: artworkData.currentImageIndex || 0
                 }
             };
 
@@ -3837,6 +3879,12 @@
             if (artworkData.currentlyPlaced !== undefined) {
                 updateData.placed = artworkData.currentlyPlaced;
             }
+
+            // Handle gateway and display mode
+            if (artworkData.gatewayTo !== undefined) updateData.gatewayTo = artworkData.gatewayTo;
+            if (artworkData.displayMode !== undefined) updateData.displayMode = artworkData.displayMode;
+            if (artworkData.images !== undefined) updateData.images = artworkData.images;
+            if (artworkData.currentImageIndex !== undefined) updateData.currentImageIndex = artworkData.currentImageIndex;
 
             const eventData = {
                 verb: 'update',
@@ -4953,7 +5001,7 @@
             }
         }
         
-        function createArtworkMesh(texture, name, spot, dimensions, metadata, imageUrl, artworkId = null) {
+        function createArtworkMesh(texture, name, spot, dimensions, metadata, imageUrl, artworkId = null, artworkData = null) {
             const width = dimensions.width;
             const height = dimensions.height;
 
@@ -4977,7 +5025,12 @@
                 width: width,
                 metadata: metadata,
                 imageUrl: imageUrl,
-                artworkId: artworkId  // Event object_id or legacy airtableId
+                artworkId: artworkId,  // Event object_id or legacy airtableId
+                // Gateway and multi-image data
+                gatewayTo: artworkData?.gatewayTo || '',
+                displayMode: artworkData?.displayMode || 'single',
+                images: artworkData?.images || [],
+                currentImageIndex: artworkData?.currentImageIndex || 0
             };
             
             artworkGroup.position.copy(spot.position);
@@ -5346,6 +5399,21 @@
                 }
 
                 if (artworkGroup.userData.metadata) {
+                    // Check if this artwork is a gateway to another room
+                    if (artworkGroup.userData.gatewayTo && ROOMS[artworkGroup.userData.gatewayTo]) {
+                        console.log('Gateway painting clicked, transitioning to:', artworkGroup.userData.gatewayTo);
+                        roomManager.transitionToRoom(artworkGroup.userData.gatewayTo);
+                        return;
+                    }
+
+                    // Check if this is a multi-image display with slider mode
+                    if (artworkGroup.userData.displayMode === 'slider' && artworkGroup.userData.images && artworkGroup.userData.images.length > 1) {
+                        // Cycle to next image in slider
+                        cycleSliderImage(artworkGroup);
+                        return;
+                    }
+
+                    // Normal interaction: edit or view
                     if (isAdmin && artworkGroup.userData.imageUrl) {
                         showEditDialog(artworkGroup);
                     } else if (artworkGroup.userData.imageUrl) {
@@ -5376,6 +5444,20 @@
             });
 
             if (closestArtwork && closestArtwork.userData.metadata) {
+                // Check if this artwork is a gateway to another room
+                if (closestArtwork.userData.gatewayTo && ROOMS[closestArtwork.userData.gatewayTo]) {
+                    console.log('Gateway painting clicked (fallback), transitioning to:', closestArtwork.userData.gatewayTo);
+                    roomManager.transitionToRoom(closestArtwork.userData.gatewayTo);
+                    return;
+                }
+
+                // Check if this is a multi-image display with slider mode
+                if (closestArtwork.userData.displayMode === 'slider' && closestArtwork.userData.images && closestArtwork.userData.images.length > 1) {
+                    cycleSliderImage(closestArtwork);
+                    return;
+                }
+
+                // Normal interaction
                 if (isAdmin && closestArtwork.userData.imageUrl) {
                     showEditDialog(closestArtwork);
                 } else if (closestArtwork.userData.imageUrl) {
@@ -5384,20 +5466,230 @@
             }
         }
         
+        // Create a grid layout of multiple artworks in one spot
+        function createGridLayout(spot, imagesData, metadata, artworkId, artworkData) {
+            if (!imagesData || imagesData.length === 0) return;
+
+            const gridGroup = new THREE.Group();
+            gridGroup.name = 'artwork-grid';
+            gridGroup.userData = {
+                name: metadata.title || 'Untitled Grid',
+                spotId: spot.userData.id,
+                metadata: metadata,
+                artworkId: artworkId,
+                gatewayTo: artworkData?.gatewayTo || '',
+                displayMode: 'grid',
+                images: imagesData,
+                isGrid: true
+            };
+
+            // Calculate grid dimensions (2x2, 2x3, 3x3, etc.)
+            const imageCount = imagesData.length;
+            const cols = Math.ceil(Math.sqrt(imageCount));
+            const rows = Math.ceil(imageCount / cols);
+
+            // Size each image to fit in grid
+            const maxGridWidth = spot.userData.maxWidth * 0.3048 * 0.9; // 90% of spot width
+            const imageWidth = maxGridWidth / cols * 0.9; // With some spacing
+            const imageHeight = imageWidth; // Square for simplicity
+            const spacing = imageWidth * 0.15;
+
+            const gridWidth = cols * imageWidth + (cols - 1) * spacing;
+            const gridHeight = rows * imageHeight + (rows - 1) * spacing;
+
+            gridGroup.position.copy(spot.position);
+            gridGroup.rotation.y = spot.userData.rotation;
+
+            const normal = new THREE.Vector3(0, 0, 1);
+            normal.applyEuler(new THREE.Euler(0, spot.userData.rotation, 0));
+            gridGroup.position.add(normal.multiplyScalar(0.05));
+
+            const parentGroup = spot.parent || scene;
+
+            // Create each image in the grid
+            let loadedCount = 0;
+            imagesData.forEach((imageData, index) => {
+                if (!imageData.imageUrl) return;
+
+                const col = index % cols;
+                const row = Math.floor(index / cols);
+
+                const xOffset = (col - (cols - 1) / 2) * (imageWidth + spacing);
+                const yOffset = ((rows - 1) / 2 - row) * (imageHeight + spacing);
+
+                const textureLoader = new THREE.TextureLoader();
+                textureLoader.setCrossOrigin('anonymous');
+                textureLoader.load(imageData.imageUrl, (texture) => {
+                    const frameGeometry = new THREE.BoxGeometry(imageWidth + 0.05, imageHeight + 0.05, 0.03);
+                    const frameMaterial = new THREE.MeshStandardMaterial({ color: 0x8b7355, roughness: 0.8, metalness: 0.2 });
+                    const frame = new THREE.Mesh(frameGeometry, frameMaterial);
+                    frame.castShadow = true;
+
+                    const artGeometry = new THREE.PlaneGeometry(imageWidth, imageHeight);
+                    const artMaterial = new THREE.MeshStandardMaterial({ map: texture, roughness: 0.3, metalness: 0.1 });
+                    const art = new THREE.Mesh(artGeometry, artMaterial);
+                    art.position.z = 0.016;
+
+                    const imageGroup = new THREE.Group();
+                    imageGroup.add(frame);
+                    imageGroup.add(art);
+                    imageGroup.position.set(xOffset, yOffset, 0);
+                    imageGroup.userData = {
+                        metadata: {
+                            title: imageData.title || metadata.title || 'Untitled',
+                            artist: imageData.artist || metadata.artist || '',
+                            description: imageData.description || metadata.description || ''
+                        },
+                        imageUrl: imageData.imageUrl,
+                        gridIndex: index
+                    };
+
+                    gridGroup.add(imageGroup);
+
+                    loadedCount++;
+                    if (loadedCount === imagesData.length) {
+                        // All images loaded, add wires and placard
+                        const roomHeight = (spot.userData.roomId && ROOMS[spot.userData.roomId])
+                            ? ROOMS[spot.userData.roomId].dimensions.height
+                            : spot.position.y + 2.5;
+
+                        const wireAnchor = new THREE.Vector3(
+                            spot.position.x,
+                            roomHeight - 0.05,
+                            spot.position.z
+                        );
+                        const wireEnd = new THREE.Vector3(
+                            spot.position.x,
+                            spot.position.y + (gridHeight / 2) + 0.1,
+                            spot.position.z
+                        ).add(normal.clone().multiplyScalar(0.05));
+
+                        const wireVector = new THREE.Vector3().subVectors(wireEnd, wireAnchor);
+                        const wireLength = wireVector.length();
+                        const wireGeometry = new THREE.CylinderGeometry(0.007, 0.007, wireLength, 8);
+                        const wireMaterial = new THREE.MeshStandardMaterial({ color: 0x555555, metalness: 0.6, roughness: 0.4 });
+                        const wire = new THREE.Mesh(wireGeometry, wireMaterial);
+                        const wireMidpoint = new THREE.Vector3().addVectors(wireAnchor, wireEnd).multiplyScalar(0.5);
+                        wire.position.copy(wireMidpoint);
+                        wire.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), wireVector.clone().normalize());
+                        wire.castShadow = false;
+                        wire.receiveShadow = false;
+                        parentGroup.add(wire);
+
+                        gridGroup.userData.wire = wire;
+                    }
+                }, undefined, (error) => {
+                    console.error('Failed to load grid image:', imageData.imageUrl, error);
+                });
+            });
+
+            artworks.push(gridGroup);
+            parentGroup.add(gridGroup);
+
+            const placard = createPlacard(metadata, spot.position, spot.userData.rotation, false, gridWidth, gridHeight, parentGroup);
+            if (placard) {
+                gridGroup.userData.placardIndex = placards.indexOf(placard);
+            }
+
+            spot.userData.occupied = true;
+            spot.userData.currentWidth = gridWidth;
+            spot.material.color.setHex(0xff6b6b);
+            spot.material.emissive.setHex(0xff6b6b);
+
+            updateSpotCounters();
+        }
+
+        // Cycle to the next image in a slider display
+        function cycleSliderImage(artworkGroup) {
+            if (!artworkGroup.userData.images || artworkGroup.userData.images.length <= 1) return;
+
+            // Update current index
+            const currentIndex = artworkGroup.userData.currentImageIndex || 0;
+            const nextIndex = (currentIndex + 1) % artworkGroup.userData.images.length;
+            artworkGroup.userData.currentImageIndex = nextIndex;
+
+            // Get next image data
+            const nextImage = artworkGroup.userData.images[nextIndex];
+            if (!nextImage || !nextImage.imageUrl) return;
+
+            // Animate the painting sliding up/down on its wire
+            animateSliderTransition(artworkGroup, nextImage);
+        }
+
+        // Animate the slider transition with wire movement
+        function animateSliderTransition(artworkGroup, newImageData) {
+            const art = artworkGroup.children.find(child => child.geometry && child.geometry.type === 'PlaneGeometry');
+            if (!art) return;
+
+            const duration = 600; // milliseconds
+            const startTime = Date.now();
+            const originalY = artworkGroup.position.y;
+            const slideDistance = 0.5; // meters to slide down then back up
+
+            // Load the new texture
+            const textureLoader = new THREE.TextureLoader();
+            textureLoader.setCrossOrigin('anonymous');
+            textureLoader.load(newImageData.imageUrl, (newTexture) => {
+                // Animate the slide
+                const animate = () => {
+                    const elapsed = Date.now() - startTime;
+                    const progress = Math.min(elapsed / duration, 1);
+
+                    // Ease in-out motion
+                    const eased = progress < 0.5
+                        ? 2 * progress * progress
+                        : 1 - Math.pow(-2 * progress + 2, 2) / 2;
+
+                    // Slide down then up (double peak for swap effect)
+                    const yOffset = progress < 0.5
+                        ? -slideDistance * (eased * 2)
+                        : -slideDistance * (2 - eased * 2);
+
+                    artworkGroup.position.y = originalY + yOffset;
+
+                    // Swap texture at midpoint
+                    if (progress >= 0.5 && art.material.map !== newTexture) {
+                        art.material.map = newTexture;
+                        art.material.needsUpdate = true;
+
+                        // Update metadata
+                        if (newImageData.title || newImageData.artist || newImageData.description) {
+                            artworkGroup.userData.metadata = {
+                                title: newImageData.title || artworkGroup.userData.metadata.title,
+                                artist: newImageData.artist || artworkGroup.userData.metadata.artist,
+                                description: newImageData.description || artworkGroup.userData.metadata.description
+                            };
+                        }
+                        artworkGroup.userData.imageUrl = newImageData.imageUrl;
+                    }
+
+                    if (progress < 1) {
+                        requestAnimationFrame(animate);
+                    } else {
+                        artworkGroup.position.y = originalY;
+                    }
+                };
+
+                animate();
+            }, undefined, (error) => {
+                console.error('Failed to load slider image:', error);
+            });
+        }
+
         function showEditDialog(artworkGroup) {
             currentEditingArtwork = artworkGroup;
             const dialog = document.getElementById('edit-dialog');
-            
+
             document.getElementById('edit-artwork-name').textContent = artworkGroup.userData.name;
             document.getElementById('edit-title-input').value = artworkGroup.userData.metadata.title || '';
             document.getElementById('edit-artist-input').value = artworkGroup.userData.metadata.artist || '';
             document.getElementById('edit-description-input').value = artworkGroup.userData.metadata.description || '';
-            
-            const heightMeters = artworkGroup.userData.width / (artworkGroup.userData.imageUrl ? 
+
+            const heightMeters = artworkGroup.userData.width / (artworkGroup.userData.imageUrl ?
                 (artworkGroup.children[1].geometry.parameters.width / artworkGroup.children[1].geometry.parameters.height) : 1);
             const heightInches = heightMeters / 0.0254;
             document.getElementById('edit-height-input').value = heightInches.toFixed(0);
-            
+
             const imagePreview = document.getElementById('edit-image-preview');
             if (artworkGroup.userData.imageUrl) {
                 document.getElementById('edit-preview-img').src = artworkGroup.userData.imageUrl;
@@ -5405,7 +5697,22 @@
             } else {
                 imagePreview.style.display = 'none';
             }
-            
+
+            // Populate gateway room dropdown
+            const gatewaySelect = document.getElementById('edit-gateway-select');
+            gatewaySelect.innerHTML = '<option value="">None - Normal Painting</option>';
+            Object.values(ROOMS).forEach(room => {
+                const option = document.createElement('option');
+                option.value = room.id;
+                option.textContent = room.name;
+                gatewaySelect.appendChild(option);
+            });
+            gatewaySelect.value = artworkGroup.userData.gatewayTo || '';
+
+            // Set display mode
+            const displayModeSelect = document.getElementById('edit-display-mode');
+            displayModeSelect.value = artworkGroup.userData.displayMode || 'single';
+
             dialog.classList.add('active');
             document.exitPointerLock();
         }
@@ -5421,18 +5728,27 @@
             
             const heightInches = parseFloat(document.getElementById('edit-height-input').value);
             const heightFeet = heightInches / 12;
-            
+
+            // Get gateway and display mode settings
+            const gatewayTo = document.getElementById('edit-gateway-select').value;
+            const displayMode = document.getElementById('edit-display-mode').value;
+
             if (currentEditingArtwork.userData.artworkId) {
                 await updateArtworkEvent({
                     id: currentEditingArtwork.userData.artworkId,
                     title: newMetadata.title,
                     artist: newMetadata.artist,
                     description: newMetadata.description,
-                    heightFeet: heightFeet
+                    heightFeet: heightFeet,
+                    gatewayTo: gatewayTo,
+                    displayMode: displayMode
                 });
             }
-            
+
+            // Update local artwork data
             currentEditingArtwork.userData.metadata = newMetadata;
+            currentEditingArtwork.userData.gatewayTo = gatewayTo;
+            currentEditingArtwork.userData.displayMode = displayMode;
             
             if (currentEditingArtwork.userData.placardIndex !== undefined &&
                 placards[currentEditingArtwork.userData.placardIndex]) {
