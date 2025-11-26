@@ -3041,21 +3041,21 @@
             
             placardGroup.position.copy(position);
             placardGroup.rotation.y = rotation;
-            
+
             if (isFloor) {
                 placardGroup.position.y = 0.9;
             } else {
-                const halfArtworkHeight = artworkHeight / 2;
-                const placardHeight = 0.25;
-                const safeGap = 0.3;
-                
-                const verticalOffset = -(halfArtworkHeight + placardHeight/2 + safeGap);
-                
-                let horizontalOffset = 0;
-                if (artworkHeight > 3) {
-                    horizontalOffset = (artworkWidth / 2) + 0.3;
-                }
-                
+                // Position placard to the right side of the artwork (like real galleries)
+                const placardWidth = 0.4;
+                const safeGap = 0.15; // Gap between artwork edge and placard
+
+                // Horizontal offset: place placard to the right of artwork with safe gap
+                const horizontalOffset = (artworkWidth / 2) + (placardWidth / 2) + safeGap;
+
+                // Vertical offset: align placard center with artwork center
+                // This keeps it at a comfortable reading height relative to the art
+                const verticalOffset = 0;
+
                 const offset = new THREE.Vector3(horizontalOffset, verticalOffset, 0.05);
                 offset.applyEuler(new THREE.Euler(0, rotation, 0));
                 placardGroup.position.add(offset);
