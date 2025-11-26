@@ -1745,8 +1745,21 @@
             
             <label style="margin-top: 15px;"><strong>Description:</strong> <span class="optional-label">(optional)</span></label>
             <textarea id="description-input" placeholder="Add a description..."></textarea>
+
+            <label style="margin-top: 15px;"><strong>Product URL:</strong> <span class="optional-label">(optional)</span></label>
+            <input type="url" id="product-url-input" placeholder="https://shop.example.com/artwork">
+
+            <label style="margin-top: 15px;"><strong>Price:</strong> <span class="optional-label">(optional)</span></label>
+            <div style="display: flex; gap: 10px;">
+                <input type="number" id="price-input" placeholder="0.00" min="0" step="0.01" style="flex: 1;">
+                <select id="currency-input" style="width: 100px;">
+                    <option value="USD">USD</option>
+                    <option value="EUR">EUR</option>
+                    <option value="GBP">GBP</option>
+                </select>
+            </div>
         </div>
-        
+
         <div class="section-divider">
             <label>Select Location:</label>
             <div id="location-grid" class="location-grid"></div>
@@ -1784,8 +1797,21 @@
             
             <label>Description:</label>
             <textarea id="edit-description-input" placeholder="Add a description..."></textarea>
+
+            <label style="margin-top: 15px;">Product URL:</label>
+            <input type="url" id="edit-product-url-input" placeholder="https://shop.example.com/artwork">
+
+            <label style="margin-top: 15px;">Price:</label>
+            <div style="display: flex; gap: 10px;">
+                <input type="number" id="edit-price-input" placeholder="0.00" min="0" step="0.01" style="flex: 1;">
+                <select id="edit-currency-input" style="width: 100px;">
+                    <option value="USD">USD</option>
+                    <option value="EUR">EUR</option>
+                    <option value="GBP">GBP</option>
+                </select>
+            </div>
         </div>
-        
+
         <div class="section-divider">
             <label>Height (inches):</label>
             <input type="number" id="edit-height-input" value="36" min="6" max="144" step="6">
@@ -1853,6 +1879,8 @@
             <div id="viewer-title"></div>
             <div id="viewer-artist"></div>
             <div id="viewer-description"></div>
+            <div id="viewer-price" style="margin-top: 10px; font-weight: bold;"></div>
+            <div id="viewer-product-link" style="margin-top: 5px;"></div>
         </div>
     </div>
 
@@ -2529,9 +2557,57 @@
             saveCatalogue();
         }
 
+        // Migrate catalogue to database
+        async function migrateCatalogueToDatabase() {
+            const MIGRATION_KEY = 'vr-gallery:catalogue-migrated';
+
+            // Check if migration has already been done
+            if (localStorage.getItem(MIGRATION_KEY) === 'true') {
+                console.log('Catalogue already migrated to database');
+                return;
+            }
+
+            console.log('Starting catalogue migration to database...');
+
+            try {
+                // Create events for each catalogue item
+                for (const item of DEFAULT_CATALOGUE) {
+                    const eventData = {
+                        verb: 'create',
+                        op: 'catalogue_item',
+                        object_type: 'catalogue_item',
+                        object_id: item.id,
+                        frame: '',
+                        scale: '',
+                        data: {
+                            title: item.title,
+                            artist: item.artist,
+                            imageUrl: item.image_url,
+                            productUrl: item.product_url,
+                            price: item.price,
+                            currency: item.currency,
+                            description: item.description || ''
+                        }
+                    };
+
+                    await eventStore.postEvent(eventData);
+                    console.log(`Migrated catalogue item: ${item.title}`);
+                }
+
+                // Mark migration as complete
+                localStorage.setItem(MIGRATION_KEY, 'true');
+                console.log('Catalogue migration completed successfully!');
+            } catch (error) {
+                console.error('Failed to migrate catalogue:', error);
+                alert('Failed to migrate catalogue to database. Please check the console for details.');
+            }
+        }
+
         // Initialize catalogue on load
         document.addEventListener('DOMContentLoaded', () => {
             loadCatalogue();
+            // Migrate catalogue to database on first load
+            migrateCatalogueToDatabase();
         });
 
         // ============================================
@@ -4029,7 +4105,11 @@
                     // Multi-image feature: support multiple images in one spot
                     images: Array.isArray(artworkData.images) ? artworkData.images : [],
                     displayMode: artworkData.displayMode || 'single', // 'single', 'grid', 'slider'
-                    currentImageIndex: artworkData.currentImageIndex || 0
+                    currentImageIndex: artworkData.currentImageIndex || 0,
+                    // E-commerce fields
+                    productUrl: artworkData.productUrl || artworkData.product_url || '',
+                    price: typeof artworkData.price === 'number' ? artworkData.price : (artworkData.price || undefined),
+                    currency: artworkData.currency || 'USD'
                 }
             };
 
@@ -4084,6 +4164,11 @@
             if (artworkData.displayMode !== undefined) updateData.displayMode = artworkData.displayMode;
             if (artworkData.images !== undefined) updateData.images = artworkData.images;
             if (artworkData.currentImageIndex !== undefined) updateData.currentImageIndex = artworkData.currentImageIndex;
+
+            // Handle e-commerce fields
+            if (artworkData.productUrl !== undefined) updateData.productUrl = artworkData.productUrl;
+            if (artworkData.price !== undefined) updateData.price = artworkData.price;
+            if (artworkData.currency !== undefined) updateData.currency = artworkData.currency;
 
             const eventData = {
                 verb: 'update',
@@ -4985,10 +5070,17 @@
             
             console.log('Height - inches:', heightInches, 'meters:', heightMeters, 'feet:', heightFeet);
             
+            const productUrl = document.getElementById('product-url-input').value.trim();
+            const priceValue = parseFloat(document.getElementById('price-input').value);
+            const currency = document.getElementById('currency-input').value;
+
             const metadata = {
                 title: title,
                 artist: artist,
-                description: document.getElementById('description-input').value || ''
+                description: document.getElementById('description-input').value || '',
+                productUrl: productUrl || '',
+                price: !isNaN(priceValue) ? priceValue : undefined,
+                currency: currency || 'USD'
             };
             
             console.log('Metadata:', metadata);
@@ -5203,7 +5295,10 @@
                                 locationName: locationName,
                                 roomId: roomId,
                                 imageUrl: artData.imageUrl,
-                                originalFileName: fileName
+                                originalFileName: fileName,
+                                productUrl: metadata.productUrl,
+                                price: metadata.price,
+                                currency: metadata.currency
                             });
 
                             console.log('Returned artwork ID:', artworkId);
@@ -5909,6 +6004,9 @@
             document.getElementById('edit-title-input').value = artworkGroup.userData.metadata.title || '';
             document.getElementById('edit-artist-input').value = artworkGroup.userData.metadata.artist || '';
             document.getElementById('edit-description-input').value = artworkGroup.userData.metadata.description || '';
+            document.getElementById('edit-product-url-input').value = artworkGroup.userData.metadata.productUrl || '';
+            document.getElementById('edit-price-input').value = artworkGroup.userData.metadata.price || '';
+            document.getElementById('edit-currency-input').value = artworkGroup.userData.metadata.currency || 'USD';
 
             const heightMeters = artworkGroup.userData.width / (artworkGroup.userData.imageUrl ?
                 (artworkGroup.children[1].geometry.parameters.width / artworkGroup.children[1].geometry.parameters.height) : 1);
@@ -5945,12 +6043,19 @@
         async function saveArtworkEdit() {
             if (!currentEditingArtwork) return;
             
+            const productUrl = document.getElementById('edit-product-url-input').value.trim();
+            const priceValue = parseFloat(document.getElementById('edit-price-input').value);
+            const currency = document.getElementById('edit-currency-input').value;
+
             const newMetadata = {
                 title: document.getElementById('edit-title-input').value || '',
                 artist: document.getElementById('edit-artist-input').value || '',
-                description: document.getElementById('edit-description-input').value || ''
+                description: document.getElementById('edit-description-input').value || '',
+                productUrl: productUrl || '',
+                price: !isNaN(priceValue) ? priceValue : undefined,
+                currency: currency || 'USD'
             };
-            
+
             const heightInches = parseFloat(document.getElementById('edit-height-input').value);
             const heightFeet = heightInches / 12;
 
@@ -5966,7 +6071,10 @@
                     description: newMetadata.description,
                     heightFeet: heightFeet,
                     gatewayTo: gatewayTo,
-                    displayMode: displayMode
+                    displayMode: displayMode,
+                    productUrl: newMetadata.productUrl,
+                    price: newMetadata.price,
+                    currency: newMetadata.currency
                 });
             }
 
@@ -6021,6 +6129,28 @@
             document.getElementById('viewer-artist').textContent = artData.metadata.artist || '';
             document.getElementById('viewer-description').textContent = artData.metadata.description || '';
             image.alt = artData.metadata.title || 'Artwork';
+
+            // Set price and product link
+            const priceEl = document.getElementById('viewer-price');
+            const productLinkEl = document.getElementById('viewer-product-link');
+
+            if (artData.metadata.price && artData.metadata.price > 0) {
+                const formattedPrice = new Intl.NumberFormat('en-US', {
+                    style: 'currency',
+                    currency: artData.metadata.currency || 'USD'
+                }).format(artData.metadata.price);
+                priceEl.textContent = formattedPrice;
+                priceEl.style.display = 'block';
+            } else {
+                priceEl.style.display = 'none';
+            }
+
+            if (artData.metadata.productUrl) {
+                productLinkEl.innerHTML = `<a href="${artData.metadata.productUrl}" target="_blank" style="color: #667eea; text-decoration: none;">View Product Page →</a>`;
+                productLinkEl.style.display = 'block';
+            } else {
+                productLinkEl.style.display = 'none';
+            }
 
             // Show info panel by default
             info.classList.remove('hidden');
