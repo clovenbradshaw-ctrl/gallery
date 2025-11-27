@@ -532,7 +532,212 @@
             font-size: 0.8em;
             font-style: italic;
         }
-        
+
+        /* Gallery Map Overlay */
+        #gallery-map-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.92);
+            z-index: 600;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(15px);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        #gallery-map-overlay.active {
+            display: flex;
+            opacity: 1;
+        }
+
+        .gallery-map-container {
+            position: relative;
+            width: 90%;
+            max-width: 800px;
+            max-height: 85vh;
+            background: linear-gradient(145deg, rgba(40, 40, 50, 0.98), rgba(25, 25, 35, 0.98));
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 25px 80px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.1);
+            overflow-y: auto;
+        }
+
+        .gallery-map-container h2 {
+            margin: 0 0 5px 0;
+            font-size: 1.8em;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-align: center;
+        }
+
+        .gallery-map-subtitle {
+            color: rgba(255, 255, 255, 0.6);
+            text-align: center;
+            margin: 0 0 25px 0;
+            font-size: 0.95em;
+        }
+
+        .gallery-map-close {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            background: none;
+            border: none;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 2em;
+            cursor: pointer;
+            padding: 5px 10px;
+            line-height: 1;
+            transition: color 0.2s, transform 0.2s;
+        }
+
+        .gallery-map-close:hover {
+            color: white;
+            transform: scale(1.1);
+        }
+
+        #gallery-map-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .gallery-map-item {
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid rgba(255, 255, 255, 0.15);
+            border-radius: 12px;
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .gallery-map-item::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+            opacity: 0;
+            transition: opacity 0.25s;
+        }
+
+        .gallery-map-item:hover {
+            border-color: rgba(102, 126, 234, 0.6);
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.2);
+        }
+
+        .gallery-map-item:hover::before {
+            opacity: 1;
+        }
+
+        .gallery-map-item.current {
+            border-color: #4ade80;
+            background: rgba(74, 222, 128, 0.1);
+        }
+
+        .gallery-map-item.current::after {
+            content: '✓ Current';
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #4ade80;
+            color: #000;
+            font-size: 0.7em;
+            font-weight: bold;
+            padding: 3px 8px;
+            border-radius: 20px;
+        }
+
+        .gallery-map-item-name {
+            font-size: 1.15em;
+            font-weight: 600;
+            color: white;
+            margin-bottom: 8px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .gallery-map-item-info {
+            font-size: 0.85em;
+            color: rgba(255, 255, 255, 0.6);
+            position: relative;
+            z-index: 1;
+        }
+
+        .gallery-map-item-room {
+            display: inline-block;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 2px 8px;
+            border-radius: 4px;
+            margin-top: 8px;
+            font-size: 0.8em;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .gallery-map-legend {
+            display: flex;
+            justify-content: center;
+            gap: 25px;
+            padding-top: 15px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 0.85em;
+        }
+
+        .legend-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.3);
+            border: 2px solid rgba(255, 255, 255, 0.5);
+        }
+
+        .legend-dot.current {
+            background: rgba(74, 222, 128, 0.3);
+            border-color: #4ade80;
+        }
+
+        @media (max-width: 600px) {
+            .gallery-map-container {
+                width: 95%;
+                padding: 20px;
+                border-radius: 15px;
+            }
+
+            .gallery-map-container h2 {
+                font-size: 1.4em;
+            }
+
+            #gallery-map-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .gallery-map-legend {
+                flex-direction: column;
+                gap: 10px;
+                align-items: center;
+            }
+        }
+
         #art-viewer {
             position: fixed;
             top: 0;
@@ -1585,6 +1790,7 @@
         <h2>VR Art Museum</h2>
         <p>Explore a virtual gallery with beautiful artwork</p>
         <button id="start-experience-btn">Enter Gallery</button>
+        <button id="start-screen-map-btn" onclick="openGalleryMap()" style="margin-top: 10px; background: linear-gradient(135deg, #4ade80 0%, #22c55e 100%);">Browse Galleries</button>
         <div class="mobile-instructions">
             <h4>Controls</h4>
             <ul>
@@ -1649,6 +1855,10 @@
                     <select id="gallery-room-select"></select>
                     <button class="small-button" onclick="generateNewGallery()">New Gallery</button>
                 </div>
+                <div class="input-row">
+                    <button class="small-button" onclick="openGalleryMap()" style="flex: 1;">Gallery Map</button>
+                    <button class="small-button secondary" onclick="deleteActiveGallery()" style="background: #dc3545;">Delete</button>
+                </div>
                 <div class="muted-label">Shareable links: ?gallery=&lt;id&gt; or ?gallery=&lt;id&gt;&amp;room=&lt;room-id&gt;</div>
             </div>
 
@@ -1706,6 +1916,9 @@
                 Click on any artwork to view details and zoom in.<br><br>
                 Admins can upload artwork or enter image URLs from the menu.
             </div>
+            <button onclick="openGalleryMap()" style="width: 100%; padding: 12px; margin-top: 15px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 500; font-size: 1em;">
+                Gallery Map
+            </button>
         </div>
         
         <button id="vr-button" disabled>Enter VR Mode</button>
@@ -1716,6 +1929,7 @@
             WASD or Arrow Keys to move<br>
             Mouse to look around<br>
             Click artwork to view details<br>
+            M to open gallery map<br>
             R to remove artwork (admin)<br>
             Tab to toggle spot view (admin only)<br>
             <br>
@@ -1840,7 +2054,21 @@
             <button class="cancel" onclick="cancelEdit()">Cancel</button>
         </div>
     </div>
-    
+
+    <!-- Gallery Map Overlay -->
+    <div id="gallery-map-overlay">
+        <div class="gallery-map-container">
+            <button class="gallery-map-close" onclick="closeGalleryMap()">&times;</button>
+            <h2>Gallery Map</h2>
+            <p class="gallery-map-subtitle">Select a gallery to visit</p>
+            <div id="gallery-map-grid"></div>
+            <div class="gallery-map-legend">
+                <span class="legend-item"><span class="legend-dot current"></span> Current Gallery</span>
+                <span class="legend-item"><span class="legend-dot"></span> Other Galleries</span>
+            </div>
+        </div>
+    </div>
+
     <div id="art-viewer">
         <button id="viewer-close" aria-label="Close viewer">×</button>
 
@@ -3153,6 +3381,37 @@
             renderGalleryControls();
         }
 
+        function deleteActiveGallery() {
+            const gallery = getActiveGallery();
+            if (!gallery) return;
+
+            // Prevent deleting if only one gallery remains
+            if (galleries.length <= 1) {
+                alert('Cannot delete the last gallery. At least one gallery must exist.');
+                return;
+            }
+
+            const confirmDelete = confirm(`Are you sure you want to delete "${gallery.name}"?\n\nThis will remove the gallery but artwork in the catalogue will be preserved.`);
+            if (!confirmDelete) return;
+
+            // Remove the gallery from the list
+            const index = galleries.findIndex(g => g.id === gallery.id);
+            if (index > -1) {
+                galleries.splice(index, 1);
+            }
+
+            // Switch to another gallery
+            const newActiveGallery = galleries[0];
+            activeGalleryId = newActiveGallery?.id || null;
+
+            saveGalleryState();
+            renderGalleryControls();
+
+            if (newActiveGallery) {
+                setActiveGallery(newActiveGallery.id);
+            }
+        }
+
         function updateActiveGalleryRoom(roomId) {
             const gallery = getActiveGallery();
             if (!gallery || !roomId || !ROOMS[roomId]) return;
@@ -3171,6 +3430,67 @@
             gallery.colorTemperature = clampColorTemperature(temp);
             saveGalleryState();
             applyColorTemperature(gallery.colorTemperature);
+        }
+
+        function openGalleryMap() {
+            const overlay = document.getElementById('gallery-map-overlay');
+            const grid = document.getElementById('gallery-map-grid');
+            if (!overlay || !grid) return;
+
+            // Populate the gallery grid
+            grid.innerHTML = '';
+            const activeGallery = getActiveGallery();
+
+            galleries.forEach(gallery => {
+                const item = document.createElement('div');
+                item.className = 'gallery-map-item';
+                if (gallery.id === activeGallery?.id) {
+                    item.classList.add('current');
+                }
+
+                const roomName = ROOMS[gallery.homeRoom]?.name || gallery.homeRoom;
+
+                item.innerHTML = `
+                    <div class="gallery-map-item-name">${escapeHtml(gallery.name)}</div>
+                    <div class="gallery-map-item-info">ID: ${escapeHtml(gallery.id)}</div>
+                    <div class="gallery-map-item-room">${escapeHtml(roomName)}</div>
+                `;
+
+                item.onclick = () => {
+                    navigateToGallery(gallery.id);
+                };
+
+                grid.appendChild(item);
+            });
+
+            overlay.classList.add('active');
+
+            // Close on escape key
+            const handleEscape = (e) => {
+                if (e.key === 'Escape') {
+                    closeGalleryMap();
+                    document.removeEventListener('keydown', handleEscape);
+                }
+            };
+            document.addEventListener('keydown', handleEscape);
+        }
+
+        function closeGalleryMap() {
+            const overlay = document.getElementById('gallery-map-overlay');
+            if (overlay) {
+                overlay.classList.remove('active');
+            }
+        }
+
+        function navigateToGallery(galleryId) {
+            closeGalleryMap();
+            setActiveGallery(galleryId);
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
         }
 
         function transitionGalleryLighting(targetFactor, duration = 800) {
@@ -5587,6 +5907,9 @@
                     break;
                 case 'KeyE':
                     interactKeyPressed = true;
+                    break;
+                case 'KeyM':
+                    openGalleryMap();
                     break;
             }
         }
