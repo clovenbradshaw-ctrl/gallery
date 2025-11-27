@@ -2213,45 +2213,8 @@
         let artCatalogue = [];
         let selectedCatalogueItem = null;
 
-        // Default catalogue with Morning Coffee Artist products
-        const DEFAULT_CATALOGUE = [
-            { id: "cat_1", title: "Diamond in the Rough card", product_url: "https://morningcoffeeartist.myshopify.com/products/diamond-in-the-rough-card", price: 2.0, currency: "USD", image_url: "https://morningcoffeeartist.myshopify.com/cdn/shop/files/rn-image_picker_lib_temp_c2179723-9d37-4aa8-ba9e-f722688f807b.jpg?v=1752939675", artist: "Morning Coffee Artist" },
-            { id: "cat_2", title: "Our Lives Are As An Unwritten Song", product_url: "https://morningcoffeeartist.myshopify.com/products/our-lives-are-as-an-unwritten-song-1", price: 40.0, currency: "USD", image_url: "https://morningcoffeeartist.myshopify.com/cdn/shop/files/rn-image_picker_lib_temp_7d0ab824-694c-405e-ae6b-0e92fe32bbfa.jpg?v=1753160311", artist: "Morning Coffee Artist" },
-            { id: "cat_3", title: "Bishop Budd & Reverend Martin Luther King JR", product_url: "https://morningcoffeeartist.myshopify.com/products/bishop-budd-reverend-martin-luther-king-jr", price: 2.0, currency: "USD", image_url: "https://morningcoffeeartist.myshopify.com/cdn/shop/files/rn-image_picker_lib_temp_08c3035b-f822-4fe0-8eb7-f04af51c667a.jpg?v=1753160661", artist: "Morning Coffee Artist" },
-            { id: "cat_4", title: "What Would You Do", product_url: "https://morningcoffeeartist.myshopify.com/products/what-would-you-do", price: 250.0, currency: "USD", image_url: "https://morningcoffeeartist.myshopify.com/cdn/shop/files/rn-image_picker_lib_temp_7a1f890d-e225-431c-ba54-3729b1cbe9d5.jpg?v=1750442756", artist: "Morning Coffee Artist" },
-            { id: "cat_5", title: "The Well", product_url: "https://morningcoffeeartist.myshopify.com/products/the-well", price: 75.0, currency: "USD", image_url: "https://morningcoffeeartist.myshopify.com/cdn/shop/files/rn-image_picker_lib_temp_923c8c72-7552-4fd8-8224-fe62e18909ba.jpg?v=1750443254", artist: "Morning Coffee Artist" },
-            { id: "cat_6", title: "Summer Sunset", product_url: "https://morningcoffeeartist.myshopify.com/products/summer-sunset", price: 65.0, currency: "USD", image_url: "https://morningcoffeeartist.myshopify.com/cdn/shop/files/rn-image_picker_lib_temp_2a4b3c19-0fd6-4cbf-8744-f334c06dcfa1.jpg?v=1750635332", artist: "Morning Coffee Artist" },
-            { id: "cat_7", title: "Strength and Beauty", product_url: "https://morningcoffeeartist.myshopify.com/products/strength", price: 250.0, currency: "USD", image_url: "https://morningcoffeeartist.myshopify.com/cdn/shop/files/rn-image_picker_lib_temp_7bbb1a29-b094-455d-a278-bac86c4d6300.jpg?v=1750443254", artist: "Morning Coffee Artist" },
-            { id: "cat_8", title: "Rojo Wave", product_url: "https://morningcoffeeartist.myshopify.com/products/rojo-wave", price: 500.0, currency: "USD", image_url: "https://morningcoffeeartist.myshopify.com/cdn/shop/files/rn-image_picker_lib_temp_00342091-46ff-4b1f-9841-6e743b3e03d3.jpg?v=1750442756", artist: "Morning Coffee Artist" },
-            { id: "cat_9", title: "Rise and Fall", product_url: "https://morningcoffeeartist.myshopify.com/products/rise-and-fall", price: 500.0, currency: "USD", image_url: "https://morningcoffeeartist.myshopify.com/cdn/shop/files/rn-image_picker_lib_temp_73164819-29cc-4924-ba87-f1016f8d66cd.jpg?v=1750442756", artist: "Morning Coffee Artist" },
-            { id: "cat_10", title: "Revolt", product_url: "https://morningcoffeeartist.myshopify.com/products/revolt", price: 500.0, currency: "USD", image_url: "https://morningcoffeeartist.myshopify.com/cdn/shop/files/rn-image_picker_lib_temp_44871858-5596-4404-82e2-f314081f133e.jpg?v=1750443254", artist: "Morning Coffee Artist" },
-            { id: "cat_11", title: "Retrospect", product_url: "https://morningcoffeeartist.myshopify.com/products/retrospect", price: 500.0, currency: "USD", image_url: "https://morningcoffeeartist.myshopify.com/cdn/shop/files/rn-image_picker_lib_temp_bf2fc151-a2ed-4b40-b558-e944b9a36c51.jpg?v=1750442756", artist: "Morning Coffee Artist" },
-            { id: "cat_12", title: "painting", product_url: "https://morningcoffeeartist.myshopify.com/products/untitled-jun13_19-54", price: 50.0, currency: "USD", image_url: "https://morningcoffeeartist.myshopify.com/cdn/shop/files/rn-image_picker_lib_temp_ea0f693a-0066-4458-94bc-093272f13b75.jpg?v=1750442756", artist: "Morning Coffee Artist" },
-            { id: "cat_13", title: "No Place Like Art", product_url: "https://morningcoffeeartist.myshopify.com/products/no-place-like-art", price: 500.0, currency: "USD", image_url: "https://morningcoffeeartist.myshopify.com/cdn/shop/files/rn-image_picker_lib_temp_df52e93c-3242-44a5-8542-ba305f252db5.jpg?v=1750443254", artist: "Morning Coffee Artist" },
-            { id: "cat_14", title: "Next Time", product_url: "https://morningcoffeeartist.myshopify.com/products/next-time", price: 500.0, currency: "USD", image_url: "https://morningcoffeeartist.myshopify.com/cdn/shop/files/rn-image_picker_lib_temp_8c04eba0-380b-4adb-bed3-87d5be6c207b.jpg?v=1750443254", artist: "Morning Coffee Artist" },
-            { id: "cat_15", title: "Morning Coffee Artist", product_url: "https://morningcoffeeartist.myshopify.com/products/morning-coffee-artist", price: 0.0, currency: "USD", image_url: "https://morningcoffeeartist.myshopify.com/cdn/shop/files/rn-image_picker_lib_temp_80370a57-1b60-4970-abdb-5c6196caaf5e.jpg?v=1750441412", artist: "Morning Coffee Artist" },
-            { id: "cat_16", title: "Monday Money", product_url: "https://morningcoffeeartist.myshopify.com/products/monday-money", price: 500.0, currency: "USD", image_url: "https://morningcoffeeartist.myshopify.com/cdn/shop/files/rn-image_picker_lib_temp_d2f10cc2-6957-4846-b536-5e62d5688351.jpg?v=1750442756", artist: "Morning Coffee Artist" },
-            { id: "cat_17", title: "Mississippi River Sunset", product_url: "https://morningcoffeeartist.myshopify.com/products/mississippi-river-sunset2", price: 0.0, currency: "USD", image_url: "https://morningcoffeeartist.myshopify.com/cdn/shop/files/rn-image_picker_lib_temp_2cebb52e-a282-4818-a9af-abbc06e96e08.jpg?v=1750442223", artist: "Morning Coffee Artist" },
-            { id: "cat_18", title: "LRG", product_url: "https://morningcoffeeartist.myshopify.com/products/lrg", price: 500.0, currency: "USD", image_url: "https://morningcoffeeartist.myshopify.com/cdn/shop/files/rn-image_picker_lib_temp_dd02f130-d5d3-4255-a75d-1602acc56304.jpg?v=1750443254", artist: "Morning Coffee Artist" },
-            { id: "cat_19", title: "Lemonade", product_url: "https://morningcoffeeartist.myshopify.com/products/lemonade", price: 100.0, currency: "USD", image_url: "https://morningcoffeeartist.myshopify.com/cdn/shop/files/rn-image_picker_lib_temp_cb1b7b1c-16ed-489f-bc86-8a1c0e3ee71d.jpg?v=1750442756", artist: "Morning Coffee Artist" },
-            { id: "cat_20", title: "Laser Tuned", product_url: "https://morningcoffeeartist.myshopify.com/products/laser-tuned", price: 500.0, currency: "USD", image_url: "https://morningcoffeeartist.myshopify.com/cdn/shop/files/rn-image_picker_lib_temp_06c461d1-8a24-40a9-bcf9-0e3501c5aa17.jpg?v=1750442756", artist: "Morning Coffee Artist" },
-            { id: "cat_21", title: "Jun20_13:44", product_url: "https://morningcoffeeartist.myshopify.com/products/untitled-jun20_13-44", price: 150.0, currency: "USD", image_url: "https://morningcoffeeartist.myshopify.com/cdn/shop/files/rn-image_picker_lib_temp_51b596e2-26f5-408e-9e50-76c22912d50b.jpg?v=1750442224", artist: "Morning Coffee Artist" },
-            { id: "cat_22", title: "Forcast", product_url: "https://morningcoffeeartist.myshopify.com/products/forcast", price: 500.0, currency: "USD", image_url: "https://morningcoffeeartist.myshopify.com/cdn/shop/files/rn-image_picker_lib_temp_c24b25b1-efc9-424e-a0fe-c3a498e3d72f.jpg?v=1750443254", artist: "Morning Coffee Artist" },
-            { id: "cat_23", title: "FLYING SOUTH AT SUNSET", product_url: "https://morningcoffeeartist.myshopify.com/products/untitled-jun22_18-36", price: 125.0, currency: "USD", image_url: "https://morningcoffeeartist.myshopify.com/cdn/shop/files/rn-image_picker_lib_temp_a6e2b205-1eec-47b3-94d7-8622d31528bb.jpg?v=1750442224", artist: "Morning Coffee Artist" },
-            { id: "cat_24", title: "Flying Dragon", product_url: "https://morningcoffeeartist.myshopify.com/products/new-product", price: 125.0, currency: "USD", image_url: "https://morningcoffeeartist.myshopify.com/cdn/shop/files/rn-image_picker_lib_temp_a1fc714b-f372-413b-8f70-fe5ee4577dca.jpg?v=1750442756", artist: "Morning Coffee Artist" },
-            { id: "cat_25", title: "Fahrenheit", product_url: "https://morningcoffeeartist.myshopify.com/products/fahrenheit", price: 60.0, currency: "USD", image_url: "https://morningcoffeeartist.myshopify.com/cdn/shop/files/rn-image_picker_lib_temp_7d1282e6-cc81-416c-9f35-fee1d5a2ce3c.jpg?v=1750442756", artist: "Morning Coffee Artist" },
-            { id: "cat_26", title: "Engineering", product_url: "https://morningcoffeeartist.myshopify.com/products/engineering", price: 500.0, currency: "USD", image_url: "https://morningcoffeeartist.myshopify.com/cdn/shop/files/rn-image_picker_lib_temp_99553705-b203-4b6e-b79a-713b3e359054.jpg?v=1750442756", artist: "Morning Coffee Artist" },
-            { id: "cat_27", title: "Diamond In The Rough", product_url: "https://morningcoffeeartist.myshopify.com/products/diamond", price: 500.0, currency: "USD", image_url: "https://morningcoffeeartist.myshopify.com/cdn/shop/files/rn-image_picker_lib_temp_b8a43ab8-31fd-4c94-a749-63b1636dab52.jpg?v=1750443254", artist: "Morning Coffee Artist" },
-            { id: "cat_28", title: "Deception", product_url: "https://morningcoffeeartist.myshopify.com/products/deception", price: 150.0, currency: "USD", image_url: "https://morningcoffeeartist.myshopify.com/cdn/shop/files/rn-image_picker_lib_temp_ed345e03-410d-46b7-a82b-cb956c59ed7e.jpg?v=1750442756", artist: "Morning Coffee Artist" },
-            { id: "cat_29", title: "Data Green", product_url: "https://morningcoffeeartist.myshopify.com/products/data-green", price: 500.0, currency: "USD", image_url: "https://morningcoffeeartist.myshopify.com/cdn/shop/files/rn-image_picker_lib_temp_e8352e19-a77b-4f0a-bcc5-3e29fb276b14.jpg?v=1750443254", artist: "Morning Coffee Artist" },
-            { id: "cat_30", title: "CYNTHIA ERIVO", product_url: "https://morningcoffeeartist.myshopify.com/products/cynthia-erivo", price: 500.0, currency: "USD", image_url: "https://morningcoffeeartist.myshopify.com/cdn/shop/files/rn-image_picker_lib_temp_c789e7b7-1cce-4bf3-b172-1d0fccf8ba77.jpg?v=1750443254", artist: "Morning Coffee Artist" },
-            { id: "cat_31", title: "By Product", product_url: "https://morningcoffeeartist.myshopify.com/products/by-product", price: 250.0, currency: "USD", image_url: "https://morningcoffeeartist.myshopify.com/cdn/shop/files/rn-image_picker_lib_temp_d24cb0b4-d692-4056-8abc-e85a5847fd01.jpg?v=1750443254", artist: "Morning Coffee Artist" },
-            { id: "cat_32", title: "Butter Fly Tree", product_url: "https://morningcoffeeartist.myshopify.com/products/butter-fly-tree", price: 500.0, currency: "USD", image_url: "https://morningcoffeeartist.myshopify.com/cdn/shop/files/rn-image_picker_lib_temp_38772f71-cb91-46a5-addf-535ea8d6c207.jpg?v=1750443254", artist: "Morning Coffee Artist" },
-            { id: "cat_33", title: "Business Card", product_url: "https://morningcoffeeartist.myshopify.com/products/business", price: 50.0, currency: "USD", image_url: "https://morningcoffeeartist.myshopify.com/cdn/shop/files/rn-image_picker_lib_temp_9b376652-a97a-417a-9f8b-4902385cdba6.jpg?v=1752306224", artist: "Morning Coffee Artist" },
-            { id: "cat_34", title: "A Splash in Time", product_url: "https://morningcoffeeartist.myshopify.com/products/a-splash-in-time", price: 0.0, currency: "USD", image_url: "https://morningcoffeeartist.myshopify.com/cdn/shop/files/rn-image_picker_lib_temp_6f50cf47-1df7-4bb8-aeec-cbe450d4d8df.jpg?v=1750442756", artist: "Morning Coffee Artist" },
-            { id: "cat_35", title: "40,000 FT ABOVE BRAZIL", product_url: "https://morningcoffeeartist.myshopify.com/products/untitled-jun21_14-54", price: 0.0, currency: "USD", image_url: "https://morningcoffeeartist.myshopify.com/cdn/shop/files/rn-image_picker_lib_temp_e5de26a4-c68f-4337-8026-069a030df2de.jpg?v=1750442224", artist: "Morning Coffee Artist" },
-            { id: "cat_36", title: "3rd Shift", product_url: "https://morningcoffeeartist.myshopify.com/products/3rd-shift", price: 0.0, currency: "USD", image_url: "https://morningcoffeeartist.myshopify.com/cdn/shop/files/rn-image_picker_lib_temp_03618faf-0cad-4262-82f9-1fd51931e2b3.jpg?v=1750442756", artist: "Morning Coffee Artist" }
-        ];
+        // Note: The default catalogue has been migrated to the database.
+        // Catalogue items are now managed through the database and localStorage.
 
         // Load catalogue from localStorage or use defaults
         function loadCatalogue() {
@@ -2261,10 +2224,10 @@
                     artCatalogue = JSON.parse(stored);
                 } catch (e) {
                     console.error('Failed to parse catalogue:', e);
-                    artCatalogue = [...DEFAULT_CATALOGUE];
+                    artCatalogue = [];
                 }
             } else {
-                artCatalogue = [...DEFAULT_CATALOGUE];
+                artCatalogue = [];
                 saveCatalogue();
             }
             updateCatalogueCount();
@@ -2557,57 +2520,9 @@
             saveCatalogue();
         }
 
-        // Migrate catalogue to database
-        async function migrateCatalogueToDatabase() {
-            const MIGRATION_KEY = 'vr-gallery:catalogue-migrated';
-
-            // Check if migration has already been done
-            if (localStorage.getItem(MIGRATION_KEY) === 'true') {
-                console.log('Catalogue already migrated to database');
-                return;
-            }
-
-            console.log('Starting catalogue migration to database...');
-
-            try {
-                // Create events for each catalogue item
-                for (const item of DEFAULT_CATALOGUE) {
-                    const eventData = {
-                        verb: 'create',
-                        op: 'catalogue_item',
-                        object_type: 'catalogue_item',
-                        object_id: item.id,
-                        frame: '',
-                        scale: '',
-                        data: {
-                            title: item.title,
-                            artist: item.artist,
-                            imageUrl: item.image_url,
-                            productUrl: item.product_url,
-                            price: item.price,
-                            currency: item.currency,
-                            description: item.description || ''
-                        }
-                    };
-
-                    await eventStore.postEvent(eventData);
-                    console.log(`Migrated catalogue item: ${item.title}`);
-                }
-
-                // Mark migration as complete
-                localStorage.setItem(MIGRATION_KEY, 'true');
-                console.log('Catalogue migration completed successfully!');
-            } catch (error) {
-                console.error('Failed to migrate catalogue:', error);
-                alert('Failed to migrate catalogue to database. Please check the console for details.');
-            }
-        }
-
         // Initialize catalogue on load
         document.addEventListener('DOMContentLoaded', () => {
             loadCatalogue();
-            // Migrate catalogue to database on first load
-            migrateCatalogueToDatabase();
         });
 
         // ============================================
