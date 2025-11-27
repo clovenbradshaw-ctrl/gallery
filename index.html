@@ -3717,7 +3717,18 @@
                         entryPos.add(offset);
 
                         camera.position.copy(entryPos);
-                        camera.rotation.y = (entryDoorConfig.rotation || 0) + Math.PI;
+
+                        // Face the center of the room for a clear view of contents
+                        const roomCenter = new THREE.Vector3(
+                            targetRoom.position.x,
+                            1.6,
+                            targetRoom.position.z
+                        );
+                        const directionToCenter = new THREE.Vector2(
+                            roomCenter.x - entryPos.x,
+                            roomCenter.z - entryPos.z
+                        );
+                        camera.rotation.y = Math.atan2(-directionToCenter.x, -directionToCenter.y);
                     }
                 });
             }
