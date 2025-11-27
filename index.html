@@ -4393,12 +4393,9 @@
         }
         
         function setupControls() {
-            // Only use pointer lock on desktop
-            renderer.domElement.addEventListener('click', () => {
-                if (!isMobile && !mobileControlsActive) {
-                    renderer.domElement.requestPointerLock();
-                }
-            });
+            // Pointer lock is now toggled by double-click (not single click)
+            // This allows keyboard movement to always work while still enabling
+            // mouse look when the user wants it
 
             document.addEventListener('pointerlockchange', () => {
                 if (document.pointerLockElement === renderer.domElement) {
@@ -4726,7 +4723,8 @@
             document.addEventListener('keyup', onKeyUp);
 
             renderer.domElement.addEventListener('click', onCanvasClick);
-            
+            renderer.domElement.addEventListener('dblclick', onCanvasDblClick);
+
             window.addEventListener('resize', onWindowResize);
             
             document.getElementById('toggle-ui').addEventListener('click', () => {
@@ -5785,7 +5783,36 @@
                 }
             }
         }
-        
+
+        function onCanvasDblClick(event) {
+            // Check if double-click is on a painting
+            const pointer = new THREE.Vector2();
+
+            if (document.pointerLockElement) {
+                // If pointer is locked, use center of screen
+                pointer.set(0, 0);
+            } else {
+                // Otherwise use click position
+                const rect = renderer.domElement.getBoundingClientRect();
+                pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+                pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+            }
+
+            raycaster.setFromCamera(pointer, camera);
+            const artIntersects = raycaster.intersectObjects(artworks, true);
+
+            // Only toggle cursor if NOT clicking on a painting
+            if (artIntersects.length === 0) {
+                if (document.pointerLockElement) {
+                    // Currently locked, so unlock (show cursor)
+                    document.exitPointerLock();
+                } else {
+                    // Currently unlocked, so lock (hide cursor)
+                    renderer.domElement.requestPointerLock();
+                }
+            }
+        }
+
         // Create a grid layout of multiple artworks in one spot
         function createGridLayout(spot, imagesData, metadata, artworkId, artworkData) {
             if (!imagesData || imagesData.length === 0) return;
@@ -6495,11 +6522,10 @@
         }
         
         function updateMovement(delta) {
-            // Allow movement on mobile, desktop (with pointer lock), or VR
-            if (!document.pointerLockElement && !vrSession && !mobileControlsActive) {
-                interactKeyPressed = false;
-                hideDoorPrompt();
-                return;
+            // Allow movement on mobile, desktop, or VR - keyboard always works
+            if (!vrSession && !mobileControlsActive && !document.pointerLockElement) {
+                // Still process keyboard movement even without pointer lock
+                // Only skip VR/mobile-specific logic
             }
 
             velocity.x -= velocity.x * 10.0 * delta;
