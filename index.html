@@ -2045,6 +2045,186 @@
                 grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
             }
         }
+
+        /* 2D Fallback Gallery Styles */
+        #fallback-gallery {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            overflow-y: auto;
+            z-index: 1;
+        }
+
+        #fallback-gallery.active {
+            display: block;
+        }
+
+        .fallback-header {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 20px;
+            text-align: center;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            backdrop-filter: blur(10px);
+        }
+
+        .fallback-header h1 {
+            color: #fff;
+            margin: 0 0 5px 0;
+            font-size: 24px;
+        }
+
+        .fallback-header p {
+            color: rgba(255, 255, 255, 0.7);
+            margin: 0;
+            font-size: 14px;
+        }
+
+        .fallback-notice {
+            background: rgba(102, 126, 234, 0.2);
+            border: 1px solid rgba(102, 126, 234, 0.4);
+            border-radius: 8px;
+            padding: 12px 20px;
+            margin: 10px auto 0;
+            max-width: 600px;
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 13px;
+        }
+
+        .fallback-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px;
+            padding: 20px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .fallback-artwork {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .fallback-artwork:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+        }
+
+        .fallback-artwork-image {
+            width: 100%;
+            aspect-ratio: 4/3;
+            object-fit: cover;
+            background: rgba(0, 0, 0, 0.2);
+        }
+
+        .fallback-artwork-info {
+            padding: 15px;
+        }
+
+        .fallback-artwork-title {
+            color: #fff;
+            font-size: 16px;
+            font-weight: 600;
+            margin: 0 0 5px 0;
+        }
+
+        .fallback-artwork-artist {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 14px;
+            margin: 0;
+        }
+
+        .fallback-loading {
+            text-align: center;
+            padding: 60px 20px;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .fallback-empty {
+            text-align: center;
+            padding: 60px 20px;
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        /* Fallback Lightbox */
+        #fallback-lightbox {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            z-index: 10000;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+
+        #fallback-lightbox.active {
+            display: flex;
+        }
+
+        .lightbox-close {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            color: #fff;
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .lightbox-close:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .lightbox-image {
+            max-width: 90vw;
+            max-height: 80vh;
+            object-fit: contain;
+            border-radius: 4px;
+        }
+
+        .lightbox-info {
+            text-align: center;
+            padding: 20px;
+            max-width: 600px;
+        }
+
+        .lightbox-title {
+            color: #fff;
+            font-size: 22px;
+            margin: 0 0 8px 0;
+        }
+
+        .lightbox-artist {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 16px;
+            margin: 0 0 12px 0;
+        }
+
+        .lightbox-description {
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 14px;
+            margin: 0;
+            line-height: 1.5;
+        }
     </style>
 </head>
 <body>
@@ -2061,6 +2241,32 @@
     
     <div id="loading">Loading museum...</div>
     <div id="canvas-container"></div>
+
+    <!-- 2D Fallback Gallery (shown when WebGL is unavailable) -->
+    <div id="fallback-gallery">
+        <div class="fallback-header">
+            <h1>VR Art Museum</h1>
+            <p>2D Gallery View</p>
+            <div class="fallback-notice">
+                WebGL is not available in your browser. Showing artwork in 2D mode.
+                For the full 3D experience, try enabling hardware acceleration or using a different browser.
+            </div>
+        </div>
+        <div id="fallback-grid" class="fallback-grid">
+            <div class="fallback-loading">Loading artworks...</div>
+        </div>
+    </div>
+
+    <!-- Fallback Lightbox -->
+    <div id="fallback-lightbox">
+        <button class="lightbox-close" onclick="closeFallbackLightbox()">&times;</button>
+        <img id="lightbox-image" class="lightbox-image" src="" alt="">
+        <div class="lightbox-info">
+            <h2 id="lightbox-title" class="lightbox-title"></h2>
+            <p id="lightbox-artist" class="lightbox-artist"></p>
+            <p id="lightbox-description" class="lightbox-description"></p>
+        </div>
+    </div>
 
     <!-- Mobile Start Screen -->
     <div id="mobile-start-screen">
@@ -5306,6 +5512,18 @@
                 animate();
             } catch (error) {
                 console.error('Museum initialization failed:', error);
+
+                // Check if this is a WebGL-related error - launch 2D fallback instead of showing error
+                const isWebGLError = error.message.includes('WebGL') ||
+                                     error.message.includes('renderer') ||
+                                     error.message.includes('GPU');
+
+                if (isWebGLError) {
+                    console.log('WebGL unavailable, launching 2D fallback gallery');
+                    initFallbackGallery();
+                    return;
+                }
+
                 const loading = document.getElementById('loading');
                 if (loading) {
                     // Format error message with proper line breaks for display
@@ -5318,7 +5536,84 @@
                 }
             }
         }
-        
+
+        // 2D Fallback Gallery Functions
+        async function initFallbackGallery() {
+            console.log('Initializing 2D fallback gallery');
+
+            // Hide loading, show fallback gallery
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('fallback-gallery').classList.add('active');
+
+            // Load artworks from events API
+            try {
+                await eventStore.fetchEvents();
+                const artworks = eventStore.getPlacedArtworks();
+                renderFallbackArtworks(artworks);
+            } catch (error) {
+                console.error('Failed to load artworks for fallback gallery:', error);
+                document.getElementById('fallback-grid').innerHTML = `
+                    <div class="fallback-empty">
+                        <p>Unable to load artworks.</p>
+                        <p style="font-size: 12px; margin-top: 10px;">Please check your network connection and refresh the page.</p>
+                    </div>
+                `;
+            }
+        }
+
+        function renderFallbackArtworks(artworks) {
+            const grid = document.getElementById('fallback-grid');
+
+            if (!artworks || artworks.length === 0) {
+                grid.innerHTML = `
+                    <div class="fallback-empty">
+                        <p>No artworks found in the gallery.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            grid.innerHTML = artworks.map(artwork => `
+                <div class="fallback-artwork" onclick="openFallbackLightbox('${encodeURIComponent(artwork.imageUrl || '')}', '${encodeURIComponent(artwork.title || 'Untitled')}', '${encodeURIComponent(artwork.artist || '')}', '${encodeURIComponent(artwork.description || '')}')">
+                    <img class="fallback-artwork-image" src="${artwork.imageUrl || ''}" alt="${artwork.title || 'Artwork'}" loading="lazy" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect fill=%22%23333%22 width=%22100%22 height=%22100%22/><text x=%2250%22 y=%2255%22 text-anchor=%22middle%22 fill=%22%23666%22 font-size=%2212%22>Image unavailable</text></svg>'">
+                    <div class="fallback-artwork-info">
+                        <h3 class="fallback-artwork-title">${artwork.title || 'Untitled'}</h3>
+                        ${artwork.artist ? `<p class="fallback-artwork-artist">${artwork.artist}</p>` : ''}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function openFallbackLightbox(imageUrl, title, artist, description) {
+            const lightbox = document.getElementById('fallback-lightbox');
+            document.getElementById('lightbox-image').src = decodeURIComponent(imageUrl);
+            document.getElementById('lightbox-title').textContent = decodeURIComponent(title);
+            document.getElementById('lightbox-artist').textContent = decodeURIComponent(artist);
+            document.getElementById('lightbox-description').textContent = decodeURIComponent(description);
+            lightbox.classList.add('active');
+
+            // Close on escape key
+            document.addEventListener('keydown', handleLightboxEscape);
+        }
+
+        function closeFallbackLightbox() {
+            document.getElementById('fallback-lightbox').classList.remove('active');
+            document.removeEventListener('keydown', handleLightboxEscape);
+        }
+
+        function handleLightboxEscape(e) {
+            if (e.key === 'Escape') {
+                closeFallbackLightbox();
+            }
+        }
+
+        // Close lightbox when clicking outside the image
+        document.getElementById('fallback-lightbox')?.addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeFallbackLightbox();
+            }
+        });
+
         function createPedestal(position, type, parent = scene) {
             const pedestalGeometry = type === 'large' ?
                 new THREE.CylinderGeometry(1, 1, 0.8, 32) :
