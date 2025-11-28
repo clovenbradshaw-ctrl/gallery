@@ -4893,7 +4893,7 @@
             renderGalleryControls();
 
             if (roomManager && !options.skipRoomLoad && gallery.homeRoom && ROOMS[gallery.homeRoom]) {
-                roomManager.loadRoom(gallery.homeRoom);
+                roomManager.loadRoom(gallery.homeRoom, { centerCamera: true });
             }
 
             if (!options.skipArtReload) {
@@ -5485,7 +5485,7 @@
                 registerGalleryLight(this.directionalLight, 'directional');
             }
 
-            loadRoom(roomId) {
+            loadRoom(roomId, options = {}) {
                 console.log('[loadRoom] Loading room:', roomId);
                 const roomConfig = ROOMS[roomId];
                 if (!roomConfig) {
@@ -5520,8 +5520,38 @@
                 this.updateCameraBoundaries(roomConfig);
                 this.applyRoomTheme(roomConfig);
 
+                // Orient camera to look at room center if requested
+                if (options.centerCamera) {
+                    this.centerCameraInRoom(roomConfig);
+                }
+
                 this.loadQueuedArtworks(roomId);
                 updateSpotCounters();
+            }
+
+            centerCameraInRoom(roomConfig) {
+                // Position camera near the front of the room
+                const startZ = roomConfig.position.z + roomConfig.dimensions.depth / 2 - 2;
+                camera.position.set(
+                    roomConfig.position.x,
+                    DEFAULT_EYE_LEVEL_METERS,
+                    startZ
+                );
+
+                // Calculate direction to room center
+                const roomCenter = new THREE.Vector3(
+                    roomConfig.position.x,
+                    DEFAULT_EYE_LEVEL_METERS,
+                    roomConfig.position.z
+                );
+                const directionToCenter = new THREE.Vector2(
+                    roomCenter.x - camera.position.x,
+                    roomCenter.z - camera.position.z
+                );
+
+                // Set camera rotation to face the room center
+                camera.rotation.set(0, 0, 0);
+                camera.rotation.y = Math.atan2(-directionToCenter.x, -directionToCenter.y);
             }
 
             createRoomGroup(roomConfig) {
@@ -6557,7 +6587,7 @@
                 const initialRoom = (roomFromURL && ROOMS[roomFromURL]) ? roomFromURL : (initialGallery?.homeRoom || 'main-gallery');
 
                 setActiveGallery(initialGallery?.id, { skipArtReload: true, skipRoomLoad: true, fromURL: true });
-                roomManager.loadRoom(initialRoom);
+                roomManager.loadRoom(initialRoom, { centerCamera: true });
 
                 setupControls();
                 setupEventListeners();
@@ -8075,6 +8105,25 @@
                     showEditDialog(closestArtwork);
                 } else if (closestArtwork.userData.imageUrl) {
                     showArtViewer(closestArtwork.userData);
+                }
+                return;
+            }
+
+            // Check for wall spot clicks (admin only, spots mode)
+            if (isAdmin && viewMode === 'spots') {
+                const visibleSpots = [...wallSpots, ...floorSpots].filter(s => s.visible);
+                const spotIntersects = raycaster.intersectObjects(visibleSpots, false);
+
+                if (spotIntersects.length > 0) {
+                    const clickedSpot = spotIntersects[0].object;
+                    if (clickedSpot.userData && !clickedSpot.userData.occupied) {
+                        const spotData = clickedSpot.userData;
+                        const roomConfig = ROOMS[spotData.roomId];
+                        const roomName = roomConfig ? roomConfig.name : spotData.roomId;
+                        const locationName = spotData.displayName || spotData.baseId || spotData.id;
+
+                        openPlaceAssignDialog(spotData.id, spotData.roomId, locationName, roomName);
+                    }
                 }
             }
         }
