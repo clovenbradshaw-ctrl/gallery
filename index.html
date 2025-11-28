@@ -2746,7 +2746,8 @@
             getPlacedArtworks(galleryId = null) {
                 return Object.values(this.state.artworks).filter(artwork => {
                     if (!artwork.placed) return false;
-                    if (galleryId && artwork.galleryId && artwork.galleryId !== galleryId) return false;
+                    // Allow artworks with 'default' galleryId to show in any gallery
+                    if (galleryId && artwork.galleryId && artwork.galleryId !== galleryId && artwork.galleryId !== 'default') return false;
                     return true;
                 });
             }
