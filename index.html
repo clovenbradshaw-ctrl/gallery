@@ -2552,8 +2552,33 @@
                 }
             }
 
+            // Check if an event already exists (for deduplication)
+            eventExists(objectId, op, objectType) {
+                return this.events.some(e =>
+                    e.object_id === objectId &&
+                    e.op === op &&
+                    e.object_type === objectType &&
+                    e.verb === 'create'
+                );
+            }
+
             // Post a new event to Xano
-            async postEvent(eventData) {
+            async postEvent(eventData, options = {}) {
+                const { skipDuplicateCheck = false } = options;
+
+                // Check for duplicates on create events (unless explicitly skipped)
+                if (!skipDuplicateCheck && eventData.verb === 'create') {
+                    const exists = this.eventExists(
+                        eventData.object_id,
+                        eventData.op,
+                        eventData.object_type
+                    );
+                    if (exists) {
+                        console.log(`Skipping duplicate event: ${eventData.op} for ${eventData.object_id}`);
+                        return { skipped: true, reason: 'duplicate' };
+                    }
+                }
+
                 const event = {
                     event_uid: generateEventUID(),
                     verb: eventData.verb,
@@ -3253,19 +3278,37 @@
 
         // Migrate catalogue to database
         async function migrateCatalogueToDatabase() {
-            const MIGRATION_KEY = 'vr-gallery:catalogue-migrated';
-
-            // Check if migration has already been done
-            if (localStorage.getItem(MIGRATION_KEY) === 'true') {
-                console.log('Catalogue already migrated to database');
+            // Wait for event store to be initialized and events fetched
+            if (!eventStore || !eventStore.events || eventStore.events.length === 0) {
+                // Events not loaded yet, wait a bit and retry
+                console.log('Waiting for event store to initialize...');
+                setTimeout(migrateCatalogueToDatabase, 1000);
                 return;
             }
 
-            console.log('Starting catalogue migration to database...');
+            // Check database for existing catalogue items (server-side check)
+            const existingCatalogueIds = new Set(
+                eventStore.events
+                    .filter(e => e.object_type === 'catalogue_item' && e.verb === 'create')
+                    .map(e => e.object_id)
+            );
 
+            if (existingCatalogueIds.size >= DEFAULT_CATALOGUE.length) {
+                console.log('Catalogue already exists in database, skipping migration');
+                return;
+            }
+
+            console.log(`Found ${existingCatalogueIds.size} existing catalogue items, checking for missing...`);
+
+            let migratedCount = 0;
             try {
-                // Create events for each catalogue item
+                // Only create events for items that don't exist in the database
                 for (const item of DEFAULT_CATALOGUE) {
+                    if (existingCatalogueIds.has(item.id)) {
+                        console.log(`Skipping existing catalogue item: ${item.title}`);
+                        continue;
+                    }
+
                     const eventData = {
                         verb: 'create',
                         op: 'catalogue_item',
@@ -3286,14 +3329,16 @@
 
                     await eventStore.postEvent(eventData);
                     console.log(`Migrated catalogue item: ${item.title}`);
+                    migratedCount++;
                 }
 
-                // Mark migration as complete
-                localStorage.setItem(MIGRATION_KEY, 'true');
-                console.log('Catalogue migration completed successfully!');
+                if (migratedCount > 0) {
+                    console.log(`Catalogue migration completed! Added ${migratedCount} new items.`);
+                } else {
+                    console.log('No new catalogue items to migrate.');
+                }
             } catch (error) {
                 console.error('Failed to migrate catalogue:', error);
-                alert('Failed to migrate catalogue to database. Please check the console for details.');
             }
         }
 
@@ -6867,9 +6912,19 @@
             document.exitPointerLock();
         }
         
+        // Track save state to prevent duplicate submissions
+        let isSavingArtwork = false;
+        let lastArtworkEditHash = '';
+
         async function saveArtworkEdit() {
             if (!currentEditingArtwork) return;
-            
+
+            // Prevent duplicate saves while one is in progress
+            if (isSavingArtwork) {
+                console.log('Save already in progress, skipping...');
+                return;
+            }
+
             const productUrl = document.getElementById('edit-product-url-input').value.trim();
             const priceValue = parseFloat(document.getElementById('edit-price-input').value);
             const currency = document.getElementById('edit-currency-input').value;
@@ -6890,19 +6945,43 @@
             const gatewayTo = document.getElementById('edit-gateway-select').value;
             const displayMode = document.getElementById('edit-display-mode').value;
 
+            // Create a hash of the edit data to detect duplicate submissions
+            const editHash = JSON.stringify({
+                id: currentEditingArtwork.userData.artworkId,
+                ...newMetadata,
+                heightFeet,
+                gatewayTo,
+                displayMode
+            });
+
+            // Skip if this is the exact same edit as the last one
+            if (editHash === lastArtworkEditHash) {
+                console.log('Duplicate edit detected, skipping...');
+                cancelEdit();
+                return;
+            }
+
             if (currentEditingArtwork.userData.artworkId) {
-                await updateArtworkEvent({
-                    id: currentEditingArtwork.userData.artworkId,
-                    title: newMetadata.title,
-                    artist: newMetadata.artist,
-                    description: newMetadata.description,
-                    heightFeet: heightFeet,
-                    gatewayTo: gatewayTo,
-                    displayMode: displayMode,
-                    productUrl: newMetadata.productUrl,
-                    price: newMetadata.price,
-                    currency: newMetadata.currency
-                });
+                isSavingArtwork = true;
+                try {
+                    await updateArtworkEvent({
+                        id: currentEditingArtwork.userData.artworkId,
+                        title: newMetadata.title,
+                        artist: newMetadata.artist,
+                        description: newMetadata.description,
+                        heightFeet: heightFeet,
+                        gatewayTo: gatewayTo,
+                        displayMode: displayMode,
+                        productUrl: newMetadata.productUrl,
+                        price: newMetadata.price,
+                        currency: newMetadata.currency
+                    });
+                    lastArtworkEditHash = editHash;
+                } catch (error) {
+                    console.error('Failed to save artwork edit:', error);
+                } finally {
+                    isSavingArtwork = false;
+                }
             }
 
             // Update local artwork data
