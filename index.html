@@ -2499,7 +2499,7 @@
         const MIN_COLOR_TEMPERATURE = 2700;
         const MAX_COLOR_TEMPERATURE = 5000;
 
-        const wallSpotPosition = (x, z) => new THREE.Vector3(x, DEFAULT_EYE_LEVEL_METERS, z);
+        const wallSpotPosition = (x, z) => ({ x, y: DEFAULT_EYE_LEVEL_METERS, z });
         
         // Xano Activity Stream API
         const XANO_API_URL = 'https://xvkq-pq7i-idtl.n7d.xano.io/api:gx-QnxD1/events';
@@ -3442,42 +3442,42 @@
                         id: 'main-gallery:floor-1',
                         baseId: 'floor-1',
                         displayName: 'Front Left',
-                        position: new THREE.Vector3(-4, 0, -3),
+                        position: { x: -4, y: 0, z: -3 },
                         type: 'pedestal'
                     },
                     {
                         id: 'main-gallery:floor-2',
                         baseId: 'floor-2',
                         displayName: 'Front Center',
-                        position: new THREE.Vector3(0, 0, -3),
+                        position: { x: 0, y: 0, z: -3 },
                         type: 'pedestal'
                     },
                     {
                         id: 'main-gallery:floor-3',
                         baseId: 'floor-3',
                         displayName: 'Front Right',
-                        position: new THREE.Vector3(4, 0, -3),
+                        position: { x: 4, y: 0, z: -3 },
                         type: 'pedestal'
                     },
                     {
                         id: 'main-gallery:floor-4',
                         baseId: 'floor-4',
                         displayName: 'Rear Left',
-                        position: new THREE.Vector3(-4, 0, 3),
+                        position: { x: -4, y: 0, z: 3 },
                         type: 'pedestal'
                     },
                     {
                         id: 'main-gallery:floor-5',
                         baseId: 'floor-5',
                         displayName: 'Rear Right',
-                        position: new THREE.Vector3(4, 0, 3),
+                        position: { x: 4, y: 0, z: 3 },
                         type: 'pedestal'
                     },
                     {
                         id: 'main-gallery:floor-center',
                         baseId: 'floor-center',
                         displayName: 'Center Stage',
-                        position: new THREE.Vector3(0, 0, 0),
+                        position: { x: 0, y: 0, z: 0 },
                         type: 'large'
                     }
                 ],
@@ -3579,35 +3579,35 @@
                         id: 'contemporary-wing:floor-1',
                         baseId: 'floor-1',
                         displayName: 'Atrium Plinth',
-                        position: new THREE.Vector3(-5, 0, -2),
+                        position: { x: -5, y: 0, z: -2 },
                         type: 'pedestal'
                     },
                     {
                         id: 'contemporary-wing:floor-2',
                         baseId: 'floor-2',
                         displayName: 'Reflective Stage',
-                        position: new THREE.Vector3(0, 0, -2),
+                        position: { x: 0, y: 0, z: -2 },
                         type: 'large'
                     },
                     {
                         id: 'contemporary-wing:floor-3',
                         baseId: 'floor-3',
                         displayName: 'Aurora Base',
-                        position: new THREE.Vector3(5, 0, -2),
+                        position: { x: 5, y: 0, z: -2 },
                         type: 'pedestal'
                     },
                     {
                         id: 'contemporary-wing:floor-4',
                         baseId: 'floor-4',
                         displayName: 'Sculpture Garden',
-                        position: new THREE.Vector3(-5, 0, 3),
+                        position: { x: -5, y: 0, z: 3 },
                         type: 'pedestal'
                     },
                     {
                         id: 'contemporary-wing:floor-5',
                         baseId: 'floor-5',
                         displayName: 'Light Pool',
-                        position: new THREE.Vector3(5, 0, 3),
+                        position: { x: 5, y: 0, z: 3 },
                         type: 'pedestal'
                     }
                 ],
@@ -3647,14 +3647,14 @@
         let artworks = [];
         let raycaster, mouse;
         let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false;
-        let velocity = new THREE.Vector3();
+        let velocity = null;
 
         // Mobile controls
         let isMobile = false;
         let mobileControlsActive = false;
         let joystickData = { active: false, x: 0, y: 0 };
         let touchLookData = { active: false, startX: 0, startY: 0, identifier: null };
-        let direction = new THREE.Vector3();
+        let direction = null;
         let vrSession = null;
         let artQueue = [];
         let wallSpots = [];
@@ -5070,66 +5070,83 @@
         }
         
         function init() {
-            scene = new THREE.Scene();
-            scene.background = new THREE.Color(0xf0f0f0);
-            scene.fog = new THREE.Fog(0xf0f0f0, 10, 25);
+            try {
+                if (typeof THREE === 'undefined') {
+                    throw new Error('THREE.js library failed to load. Check your network connection.');
+                }
+                scene = new THREE.Scene();
+                scene.background = new THREE.Color(0xf0f0f0);
+                scene.fog = new THREE.Fog(0xf0f0f0, 10, 25);
 
-            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-            camera.position.set(0, DEFAULT_EYE_LEVEL_METERS, 7);
+                camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+                camera.position.set(0, DEFAULT_EYE_LEVEL_METERS, 7);
 
-            renderer = new THREE.WebGLRenderer({ antialias: true });
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            renderer.shadowMap.enabled = true;
-            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-            renderer.xr.enabled = true;
-            document.getElementById('canvas-container').appendChild(renderer.domElement);
+                renderer = new THREE.WebGLRenderer({ antialias: true });
+                renderer.setSize(window.innerWidth, window.innerHeight);
+                renderer.shadowMap.enabled = true;
+                renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+                renderer.xr.enabled = true;
+                document.getElementById('canvas-container').appendChild(renderer.domElement);
 
-            raycaster = new THREE.Raycaster();
-            mouse = new THREE.Vector2();
+                raycaster = new THREE.Raycaster();
+                mouse = new THREE.Vector2();
+                velocity = new THREE.Vector3();
+                direction = new THREE.Vector3();
 
-            roomManager = new RoomManager(scene);
-            loadGalleryState();
-            renderGalleryControls();
+                roomManager = new RoomManager(scene);
+                loadGalleryState();
+                renderGalleryControls();
 
-            const params = new URLSearchParams(window.location.search);
-            const galleryFromURL = params.get('gallery');
-            const roomFromURL = params.get('room');
+                const params = new URLSearchParams(window.location.search);
+                const galleryFromURL = params.get('gallery');
+                const roomFromURL = params.get('room');
 
-            if (galleryFromURL) {
-                const existing = galleries.find(g => g.id === galleryFromURL);
-                if (existing) {
-                    activeGalleryId = galleryFromURL;
-                } else {
-                    galleries.push({
-                        id: galleryFromURL,
-                        name: `Gallery ${galleryFromURL}`,
-                        homeRoom: 'main-gallery',
-                        colorTemperature: DEFAULT_COLOR_TEMPERATURE
-                    });
-                    activeGalleryId = galleryFromURL;
-                    saveGalleryState();
+                if (galleryFromURL) {
+                    const existing = galleries.find(g => g.id === galleryFromURL);
+                    if (existing) {
+                        activeGalleryId = galleryFromURL;
+                    } else {
+                        galleries.push({
+                            id: galleryFromURL,
+                            name: `Gallery ${galleryFromURL}`,
+                            homeRoom: 'main-gallery',
+                            colorTemperature: DEFAULT_COLOR_TEMPERATURE
+                        });
+                        activeGalleryId = galleryFromURL;
+                        saveGalleryState();
+                    }
+                }
+
+                const initialGallery = getActiveGallery();
+                const initialRoom = (roomFromURL && ROOMS[roomFromURL]) ? roomFromURL : (initialGallery?.homeRoom || 'main-gallery');
+
+                setActiveGallery(initialGallery?.id, { skipArtReload: true, skipRoomLoad: true, fromURL: true });
+                roomManager.loadRoom(initialRoom);
+
+                setupControls();
+                setupEventListeners();
+                initMobileControls();
+                checkVRSupport();
+                updateSpotCounters();
+
+                document.getElementById('loading').style.display = 'none';
+
+                navigationMapCanvas = createNavigationMap();
+
+                loadArtworksFromAirtable();
+
+                animate();
+            } catch (error) {
+                console.error('Museum initialization failed:', error);
+                const loading = document.getElementById('loading');
+                if (loading) {
+                    loading.innerHTML = `<div style="color: #ff4444; text-align: center; padding: 20px;">
+                        <div style="font-size: 18px; margin-bottom: 10px;">Failed to load museum</div>
+                        <div style="font-size: 14px; color: #999;">${error.message}</div>
+                        <div style="font-size: 12px; color: #666; margin-top: 10px;">Check browser console for details</div>
+                    </div>`;
                 }
             }
-
-            const initialGallery = getActiveGallery();
-            const initialRoom = (roomFromURL && ROOMS[roomFromURL]) ? roomFromURL : (initialGallery?.homeRoom || 'main-gallery');
-
-            setActiveGallery(initialGallery?.id, { skipArtReload: true, skipRoomLoad: true, fromURL: true });
-            roomManager.loadRoom(initialRoom);
-
-            setupControls();
-            setupEventListeners();
-            initMobileControls();
-            checkVRSupport();
-            updateSpotCounters();
-
-            document.getElementById('loading').style.display = 'none';
-
-            navigationMapCanvas = createNavigationMap();
-
-            loadArtworksFromAirtable();
-
-            animate();
         }
         
         function createPedestal(position, type, parent = scene) {
@@ -7508,7 +7525,27 @@
             }
         });
         
-        window.addEventListener('load', init);
+        let initCalled = false;
+
+        window.addEventListener('load', () => {
+            initCalled = true;
+            init();
+        });
+
+        // Fallback: If init hasn't been called after 10 seconds, show error
+        setTimeout(() => {
+            if (!initCalled) {
+                const loading = document.getElementById('loading');
+                if (loading && loading.style.display !== 'none') {
+                    console.error('Museum init timeout - window load event may not have fired');
+                    loading.innerHTML = `<div style="color: #ff4444; text-align: center; padding: 20px;">
+                        <div style="font-size: 18px; margin-bottom: 10px;">Loading timeout</div>
+                        <div style="font-size: 14px; color: #999;">External resources may be blocked or slow to load.</div>
+                        <div style="font-size: 12px; color: #666; margin-top: 10px;">Try refreshing the page or check your network connection.</div>
+                    </div>`;
+                }
+            }
+        }, 10000);
     </script>
 </body>
 </html>
