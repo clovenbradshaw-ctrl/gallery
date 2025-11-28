@@ -5397,10 +5397,10 @@
                 if (!gl) {
                     return { supported: false, reason: 'WebGL is not supported by your browser or is disabled.' };
                 }
-                // Check if context was lost immediately (can happen with GPU issues)
-                if (gl.isContextLost && gl.isContextLost()) {
-                    return { supported: false, reason: 'WebGL context was lost. Your GPU may be unavailable.' };
-                }
+                // Note: We intentionally do NOT check isContextLost() here because:
+                // 1. A freshly created context should never be lost
+                // 2. Some browsers (like Brave) may report false positives due to privacy features
+                // 3. Actual context loss is better handled via the webglcontextlost event
                 return { supported: true, gl };
             } catch (e) {
                 return { supported: false, reason: 'Error checking WebGL support: ' + e.message };
@@ -5461,6 +5461,20 @@
                 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
                 renderer.xr.enabled = true;
                 document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+                // Handle actual WebGL context loss events gracefully
+                renderer.domElement.addEventListener('webglcontextlost', function(event) {
+                    event.preventDefault();
+                    console.warn('WebGL context lost. Attempting to restore...');
+                }, false);
+
+                renderer.domElement.addEventListener('webglcontextrestored', function(event) {
+                    console.log('WebGL context restored.');
+                    // Re-initialize textures and shaders if needed
+                    if (renderer) {
+                        renderer.setSize(window.innerWidth, window.innerHeight);
+                    }
+                }, false);
 
                 raycaster = new THREE.Raycaster();
                 mouse = new THREE.Vector2();
