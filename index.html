@@ -2045,6 +2045,238 @@
                 grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
             }
         }
+
+        /* Event History Panel */
+        #event-history-dialog {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            z-index: 400;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        #event-history-dialog.active {
+            display: flex;
+        }
+
+        .event-history-container {
+            background: rgba(30, 30, 30, 0.98);
+            border-radius: 16px;
+            max-width: 900px;
+            width: 100%;
+            max-height: 90vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .event-history-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 24px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .event-history-header h3 {
+            margin: 0;
+            color: #667eea;
+            font-size: 1.3em;
+        }
+
+        .event-history-close {
+            background: none;
+            border: none;
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 28px;
+            cursor: pointer;
+            padding: 0;
+            line-height: 1;
+        }
+
+        .event-history-close:hover {
+            color: white;
+        }
+
+        .event-history-controls {
+            display: flex;
+            gap: 12px;
+            padding: 16px 24px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .event-history-filter {
+            padding: 10px 14px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.05);
+            color: white;
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        .event-history-stats {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 13px;
+            margin-left: auto;
+        }
+
+        .event-history-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px 24px;
+        }
+
+        .event-history-item {
+            display: grid;
+            grid-template-columns: 60px 1fr auto;
+            gap: 16px;
+            padding: 16px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 10px;
+            margin-bottom: 12px;
+            transition: background 0.2s;
+            align-items: center;
+        }
+
+        .event-history-item:hover {
+            background: rgba(255, 255, 255, 0.06);
+        }
+
+        .event-history-thumbnail {
+            width: 60px;
+            height: 60px;
+            border-radius: 8px;
+            object-fit: cover;
+            background: rgba(0, 0, 0, 0.3);
+        }
+
+        .event-history-thumbnail.model-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            font-size: 24px;
+        }
+
+        .event-history-info {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .event-history-title {
+            font-weight: 600;
+            color: white;
+            font-size: 15px;
+        }
+
+        .event-history-artist {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 13px;
+        }
+
+        .event-history-location {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 4px;
+        }
+
+        .event-history-location-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 10px;
+            background: rgba(102, 126, 234, 0.2);
+            color: #667eea;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .event-history-location-badge svg {
+            width: 14px;
+            height: 14px;
+        }
+
+        .event-history-room-badge {
+            display: inline-flex;
+            padding: 4px 10px;
+            background: rgba(74, 222, 128, 0.2);
+            color: #4ade80;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .event-history-meta {
+            text-align: right;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            align-items: flex-end;
+        }
+
+        .event-history-date {
+            color: rgba(255, 255, 255, 0.4);
+            font-size: 12px;
+        }
+
+        .event-history-type {
+            display: inline-flex;
+            padding: 4px 8px;
+            background: rgba(255, 255, 255, 0.1);
+            color: rgba(255, 255, 255, 0.7);
+            border-radius: 4px;
+            font-size: 11px;
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+
+        .event-history-empty {
+            text-align: center;
+            padding: 60px 20px;
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .event-history-empty svg {
+            width: 64px;
+            height: 64px;
+            margin-bottom: 16px;
+            opacity: 0.3;
+        }
+
+        @media (max-width: 640px) {
+            .event-history-item {
+                grid-template-columns: 50px 1fr;
+                gap: 12px;
+            }
+
+            .event-history-thumbnail {
+                width: 50px;
+                height: 50px;
+            }
+
+            .event-history-meta {
+                grid-column: 1 / -1;
+                flex-direction: row;
+                justify-content: space-between;
+                align-items: center;
+                padding-top: 8px;
+                border-top: 1px solid rgba(255, 255, 255, 0.05);
+            }
+        }
     </style>
 </head>
 <body>
@@ -2182,6 +2414,14 @@
                     Open Catalogue (<span id="catalogue-count">0</span> items)
                 </button>
                 <div class="supported-formats">Browse and place artwork from your catalogue</div>
+            </div>
+
+            <div class="control-group">
+                <label>Placement History</label>
+                <button onclick="openEventHistory()" style="width: 100%; padding: 12px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 500; font-size: 1em;">
+                    View Save Locations
+                </button>
+                <div class="supported-formats">See where all artworks have been placed</div>
             </div>
 
             <div id="art-queue"></div>
@@ -2477,6 +2717,30 @@
             <div class="catalogue-detail-actions">
                 <button class="cancel-btn" onclick="closeCatalogueDetail()">Cancel</button>
                 <button class="place-btn" onclick="placeCatalogueItem()">Place in Gallery</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Event History Dialog -->
+    <div id="event-history-dialog">
+        <div class="event-history-container">
+            <div class="event-history-header">
+                <h3>Placement History</h3>
+                <button class="event-history-close" onclick="closeEventHistory()">&times;</button>
+            </div>
+            <div class="event-history-controls">
+                <select class="event-history-filter" id="event-history-room-filter" onchange="filterEventHistory()">
+                    <option value="all">All Rooms</option>
+                </select>
+                <select class="event-history-filter" id="event-history-type-filter" onchange="filterEventHistory()">
+                    <option value="all">All Types</option>
+                    <option value="Image">Images</option>
+                    <option value="3DModel">3D Models</option>
+                </select>
+                <span class="event-history-stats" id="event-history-stats">0 placements</span>
+            </div>
+            <div class="event-history-list" id="event-history-list">
+                <!-- Populated dynamically -->
             </div>
         </div>
     </div>
@@ -3356,6 +3620,175 @@
             document.getElementById('catalogue-detail').classList.remove('active');
             selectedCatalogueItem = null;
         }
+
+        // ==========================================
+        // Event History Functions
+        // ==========================================
+
+        // Open event history dialog
+        function openEventHistory() {
+            const dialog = document.getElementById('event-history-dialog');
+            dialog.classList.add('active');
+            populateEventHistory();
+        }
+
+        // Close event history dialog
+        function closeEventHistory() {
+            document.getElementById('event-history-dialog').classList.remove('active');
+        }
+
+        // Populate room filter options
+        function populateEventHistoryFilters() {
+            const roomFilter = document.getElementById('event-history-room-filter');
+            roomFilter.innerHTML = '<option value="all">All Rooms</option>';
+
+            Object.values(ROOMS).forEach(room => {
+                const option = document.createElement('option');
+                option.value = room.id;
+                option.textContent = room.name;
+                roomFilter.appendChild(option);
+            });
+        }
+
+        // Populate event history list
+        function populateEventHistory() {
+            populateEventHistoryFilters();
+            filterEventHistory();
+        }
+
+        // Filter and display event history
+        function filterEventHistory() {
+            const roomFilter = document.getElementById('event-history-room-filter').value;
+            const typeFilter = document.getElementById('event-history-type-filter').value;
+            const listEl = document.getElementById('event-history-list');
+            const statsEl = document.getElementById('event-history-stats');
+
+            // Get all artworks from the event store state
+            const artworks = eventStore.state.artworks || {};
+
+            // Convert to array and filter for placed items
+            let placements = Object.entries(artworks)
+                .map(([id, artwork]) => ({
+                    id,
+                    ...artwork
+                }))
+                .filter(artwork => artwork.locationId && artwork.locationId.trim() !== '');
+
+            // Apply room filter
+            if (roomFilter !== 'all') {
+                placements = placements.filter(p => p.roomId === roomFilter);
+            }
+
+            // Apply type filter
+            if (typeFilter !== 'all') {
+                placements = placements.filter(p => {
+                    const artworkType = p.type || 'Image';
+                    if (typeFilter === 'Image') {
+                        return artworkType === 'Image' || artworkType === 'image';
+                    } else if (typeFilter === '3DModel') {
+                        return artworkType === '3DModel' || artworkType === '3D Model' || artworkType === 'Model';
+                    }
+                    return true;
+                });
+            }
+
+            // Sort by most recent first (using event data)
+            placements.sort((a, b) => {
+                const dateA = new Date(a.created_at || a.published || 0);
+                const dateB = new Date(b.created_at || b.published || 0);
+                return dateB - dateA;
+            });
+
+            // Update stats
+            statsEl.textContent = `${placements.length} placement${placements.length !== 1 ? 's' : ''}`;
+
+            // Render list
+            if (placements.length === 0) {
+                listEl.innerHTML = `
+                    <div class="event-history-empty">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
+                        </svg>
+                        <p>No placements found</p>
+                        <p style="font-size: 13px; opacity: 0.7;">Artworks will appear here once placed in the gallery</p>
+                    </div>
+                `;
+                return;
+            }
+
+            listEl.innerHTML = placements.map(placement => {
+                const roomName = ROOM_ID_TO_NAME_MAP[placement.roomId] || placement.roomId || 'Unknown Room';
+                const locationName = placement.locationName || LOCATION_ID_TO_NAME_MAP[placement.locationId] || placement.locationId || 'Unknown Location';
+                const artworkType = placement.type || 'Image';
+                const isModel = artworkType === '3DModel' || artworkType === '3D Model' || artworkType === 'Model';
+
+                // Format date
+                let dateStr = '';
+                if (placement.created_at || placement.published) {
+                    const date = new Date(placement.created_at || placement.published);
+                    dateStr = date.toLocaleDateString('en-US', {
+                        month: 'short',
+                        day: 'numeric',
+                        year: 'numeric'
+                    });
+                }
+
+                // Thumbnail
+                const thumbnailHtml = isModel
+                    ? `<div class="event-history-thumbnail model-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="24" height="24">
+                            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                            <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+                            <line x1="12" y1="22.08" x2="12" y2="12"></line>
+                        </svg>
+                       </div>`
+                    : `<img class="event-history-thumbnail" src="${placement.imageUrl || ''}" alt="${placement.title || 'Artwork'}" onerror="this.style.display='none'">`;
+
+                return `
+                    <div class="event-history-item">
+                        ${thumbnailHtml}
+                        <div class="event-history-info">
+                            <div class="event-history-title">${escapeHtml(placement.title || 'Untitled')}</div>
+                            <div class="event-history-artist">${escapeHtml(placement.artist || 'Unknown Artist')}</div>
+                            <div class="event-history-location">
+                                <span class="event-history-location-badge">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                                        <circle cx="12" cy="10" r="3"></circle>
+                                    </svg>
+                                    ${escapeHtml(locationName)}
+                                </span>
+                                <span class="event-history-room-badge">${escapeHtml(roomName)}</span>
+                            </div>
+                        </div>
+                        <div class="event-history-meta">
+                            ${dateStr ? `<span class="event-history-date">${dateStr}</span>` : ''}
+                            <span class="event-history-type">${isModel ? '3D Model' : 'Image'}</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Helper function to escape HTML
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Close event history on backdrop click
+        document.addEventListener('click', function(e) {
+            const dialog = document.getElementById('event-history-dialog');
+            if (e.target === dialog) {
+                closeEventHistory();
+            }
+        });
+
+        // ==========================================
+        // End Event History Functions
+        // ==========================================
 
         // Place catalogue item in gallery
         async function placeCatalogueItem() {
