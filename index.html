@@ -2542,8 +2542,26 @@
                     if (!response.ok) {
                         throw new Error(`Failed to fetch events: ${response.status}`);
                     }
-                    this.events = await response.json();
+                    const jsonData = await response.json();
+
+                    // Handle both array response and wrapped response (e.g., { items: [...] } or { data: [...] })
+                    if (Array.isArray(jsonData)) {
+                        this.events = jsonData;
+                    } else if (jsonData && typeof jsonData === 'object') {
+                        // Try common wrapper properties
+                        this.events = jsonData.items || jsonData.data || jsonData.events || jsonData.records || [];
+                        if (!Array.isArray(this.events)) {
+                            console.warn('Unexpected API response structure:', Object.keys(jsonData));
+                            this.events = [];
+                        }
+                    } else {
+                        this.events = [];
+                    }
+
                     console.log('Fetched events from Xano:', this.events.length);
+                    if (this.events.length > 0) {
+                        console.log('Sample event structure:', JSON.stringify(this.events[0], null, 2));
+                    }
                     this.reconstructState();
                     return this.events;
                 } catch (error) {
@@ -2648,7 +2666,25 @@
 
             // Apply a single event to state
             applyEvent(event) {
-                const { verb, object_type, object_id, data } = event;
+                const { verb, object_type, object_id } = event;
+
+                // Handle both nested data structure and flat structure from API
+                // If event.data exists, use it; otherwise extract data from top-level properties
+                let data = event.data;
+                if (!data || (typeof data === 'object' && Object.keys(data).length === 0)) {
+                    // Extract data from top-level event properties (excluding event metadata)
+                    const eventMetaKeys = ['id', 'event_uid', 'verb', 'op', 'object_type', 'object_id',
+                                          'published', 'created_at', 'updated_at', 'actor_id', 'data', 'frame', 'scale'];
+                    data = {};
+                    for (const key of Object.keys(event)) {
+                        if (!eventMetaKeys.includes(key)) {
+                            data[key] = event[key];
+                        }
+                    }
+                    if (Object.keys(data).length > 0) {
+                        console.log('Extracted flat data from event:', object_id, data);
+                    }
+                }
 
                 switch (object_type) {
                     case 'artwork':
