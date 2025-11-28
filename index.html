@@ -2531,7 +2531,8 @@
                 this.state = {
                     artworks: {},      // object_id -> current state
                     rooms: {},         // room configurations
-                    galleries: {}      // gallery configurations
+                    galleries: {},     // gallery configurations
+                    catalogue: {}      // catalogue items
                 };
             }
 
@@ -2560,7 +2561,10 @@
 
                     console.log('Fetched events from Xano:', this.events.length);
                     if (this.events.length > 0) {
-                        console.log('Sample event structure:', JSON.stringify(this.events[0], null, 2));
+                        const sample = this.events[0];
+                        console.log('Sample event structure:', JSON.stringify(sample, null, 2));
+                        console.log('Event data type:', typeof sample.data,
+                            sample.data ? `(${typeof sample.data === 'string' ? 'JSON string, length=' + sample.data.length : 'object with keys: ' + Object.keys(sample.data).join(', ')})` : '(empty)');
                     }
                     this.reconstructState();
                     return this.events;
@@ -2646,13 +2650,20 @@
                 this.state = {
                     artworks: {},
                     rooms: {},
-                    galleries: {}
+                    galleries: {},
+                    catalogue: {}
                 };
 
                 // Sort events by created_at/published timestamp
+                // Handle both numeric timestamps and ISO date strings
+                const getTimestamp = (val) => {
+                    if (typeof val === 'number') return val;
+                    if (typeof val === 'string') return new Date(val).getTime();
+                    return 0;
+                };
                 const sortedEvents = [...this.events].sort((a, b) => {
-                    const timeA = new Date(a.created_at || a.published).getTime();
-                    const timeB = new Date(b.created_at || b.published).getTime();
+                    const timeA = getTimestamp(a.created_at) || getTimestamp(a.published);
+                    const timeB = getTimestamp(b.created_at) || getTimestamp(b.published);
                     return timeA - timeB;
                 });
 
@@ -2661,7 +2672,13 @@
                     this.applyEvent(event);
                 }
 
-                console.log('State reconstructed:', this.state);
+                console.log('State reconstructed:', {
+                    artworks: Object.keys(this.state.artworks).length,
+                    rooms: Object.keys(this.state.rooms).length,
+                    galleries: Object.keys(this.state.galleries).length,
+                    catalogue: Object.keys(this.state.catalogue).length
+                });
+                console.log('Full state:', this.state);
             }
 
             // Apply a single event to state
@@ -2671,6 +2688,18 @@
                 // Handle both nested data structure and flat structure from API
                 // If event.data exists, use it; otherwise extract data from top-level properties
                 let data = event.data;
+
+                // Parse data if it's a JSON string (API may return stringified JSON in data field)
+                if (typeof data === 'string') {
+                    try {
+                        data = JSON.parse(data);
+                        console.log('Parsed JSON data for event:', object_id, 'keys:', Object.keys(data).join(', '));
+                    } catch (e) {
+                        console.warn('Failed to parse event.data as JSON:', object_id, e.message);
+                        data = {};
+                    }
+                }
+
                 if (!data || (typeof data === 'object' && Object.keys(data).length === 0)) {
                     // Extract data from top-level event properties (excluding event metadata)
                     const eventMetaKeys = ['id', 'event_uid', 'verb', 'op', 'object_type', 'object_id',
@@ -2695,6 +2724,9 @@
                         break;
                     case 'gallery':
                         this.applyGalleryEvent(verb, object_id, data, event);
+                        break;
+                    case 'catalogue_item':
+                        this.applyCatalogueEvent(verb, object_id, data, event);
                         break;
                     default:
                         console.warn('Unknown object_type:', object_type);
@@ -2776,6 +2808,33 @@
                         delete this.state.galleries[object_id];
                         break;
                 }
+            }
+
+            applyCatalogueEvent(verb, object_id, data, event) {
+                switch (verb) {
+                    case 'create':
+                    case 'update':
+                        this.state.catalogue[object_id] = {
+                            id: object_id,
+                            ...this.state.catalogue[object_id],
+                            ...data,
+                            created_at: event.created_at || event.published
+                        };
+                        break;
+                    case 'delete':
+                        delete this.state.catalogue[object_id];
+                        break;
+                }
+            }
+
+            // Get all catalogue items
+            getCatalogueItems() {
+                return Object.values(this.state.catalogue);
+            }
+
+            // Get catalogue item by ID
+            getCatalogueItem(objectId) {
+                return this.state.catalogue[objectId] || null;
             }
 
             // Get all placed artworks
