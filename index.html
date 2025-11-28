@@ -2755,6 +2755,121 @@
             getArtwork(objectId) {
                 return this.state.artworks[objectId] || null;
             }
+
+            // Delete an event record from Xano database
+            // This permanently removes the event from the database (useful for cleaning up duplicates)
+            async deleteEventRecord(eventId) {
+                if (!eventId) {
+                    console.error('deleteEventRecord: eventId is required');
+                    return { success: false, error: 'eventId is required' };
+                }
+
+                console.log('Deleting event record from Xano:', eventId);
+
+                try {
+                    const response = await fetch(`${XANO_API_URL}/${eventId}`, {
+                        method: 'DELETE',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }
+                    });
+
+                    if (!response.ok) {
+                        const errorText = await response.text();
+                        throw new Error(`Failed to delete event: ${response.status} - ${errorText}`);
+                    }
+
+                    // Remove from local events array
+                    const eventIndex = this.events.findIndex(e => e.id === eventId);
+                    if (eventIndex !== -1) {
+                        this.events.splice(eventIndex, 1);
+                        console.log('Event removed from local cache');
+                    }
+
+                    // Reconstruct state after deletion
+                    this.reconstructState();
+
+                    console.log('Event record deleted successfully:', eventId);
+                    return { success: true, deletedId: eventId };
+                } catch (error) {
+                    console.error('Failed to delete event record:', error);
+                    return { success: false, error: error.message };
+                }
+            }
+
+            // Delete multiple event records (for batch cleanup)
+            async deleteEventRecords(eventIds) {
+                if (!eventIds || !Array.isArray(eventIds) || eventIds.length === 0) {
+                    console.error('deleteEventRecords: eventIds array is required');
+                    return { success: false, error: 'eventIds array is required' };
+                }
+
+                console.log('Deleting multiple event records:', eventIds.length);
+
+                const results = [];
+                for (const eventId of eventIds) {
+                    const result = await this.deleteEventRecord(eventId);
+                    results.push({ eventId, ...result });
+                }
+
+                const successCount = results.filter(r => r.success).length;
+                const failCount = results.filter(r => !r.success).length;
+
+                console.log(`Batch delete complete: ${successCount} succeeded, ${failCount} failed`);
+                return {
+                    success: failCount === 0,
+                    results,
+                    successCount,
+                    failCount
+                };
+            }
+
+            // Find duplicate events (same object_id, op, object_type, verb='create')
+            findDuplicateEvents() {
+                const seen = new Map();
+                const duplicates = [];
+
+                // Sort by created_at to keep the oldest
+                const sortedEvents = [...this.events].sort((a, b) => {
+                    const timeA = new Date(a.created_at || a.published).getTime();
+                    const timeB = new Date(b.created_at || b.published).getTime();
+                    return timeA - timeB;
+                });
+
+                for (const event of sortedEvents) {
+                    if (event.verb === 'create') {
+                        const key = `${event.object_id}|${event.op}|${event.object_type}`;
+                        if (seen.has(key)) {
+                            // This is a duplicate - mark for potential deletion
+                            duplicates.push(event);
+                        } else {
+                            seen.set(key, event);
+                        }
+                    }
+                }
+
+                console.log('Found duplicate events:', duplicates.length);
+                return duplicates;
+            }
+
+            // Clean up duplicate events (keeps the oldest, deletes newer duplicates)
+            async cleanupDuplicates() {
+                const duplicates = this.findDuplicateEvents();
+                if (duplicates.length === 0) {
+                    console.log('No duplicate events found');
+                    return { success: true, deletedCount: 0 };
+                }
+
+                console.log(`Found ${duplicates.length} duplicate events to clean up`);
+                const duplicateIds = duplicates.map(e => e.id).filter(id => id);
+
+                if (duplicateIds.length === 0) {
+                    console.log('No deletable duplicate events (missing IDs)');
+                    return { success: true, deletedCount: 0 };
+                }
+
+                return await this.deleteEventRecords(duplicateIds);
+            }
         }
 
         // Global event store instance
