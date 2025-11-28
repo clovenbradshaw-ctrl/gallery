@@ -4800,6 +4800,7 @@
             }
 
             loadRoom(roomId) {
+                console.log('[loadRoom] Loading room:', roomId);
                 const roomConfig = ROOMS[roomId];
                 if (!roomConfig) {
                     console.warn('Room not found:', roomId);
@@ -4824,9 +4825,11 @@
                 const spots = this.roomSpots.get(roomId) || { wallSpots: [], floorSpots: [] };
                 wallSpots = spots.wallSpots;
                 floorSpots = spots.floorSpots;
+                console.log('[loadRoom] Wall spots loaded:', wallSpots.length, 'spots:', wallSpots.map(s => s.userData.id));
 
                 this.activeDoors = this.doorMeshes.get(roomId) || [];
                 this.currentRoom = roomId;
+                console.log('[loadRoom] Room loaded, currentRoom set to:', this.currentRoom);
 
                 this.updateCameraBoundaries(roomConfig);
                 this.applyRoomTheme(roomConfig);
@@ -5134,25 +5137,43 @@
             }
 
             async addArtwork(entry) {
-                if (!entry || !entry.roomId) return;
-                const artworkId = entry.eventId || entry.airtableId;
-                if (this.loadedArtworkIds.has(artworkId)) {
+                if (!entry || !entry.roomId) {
+                    console.warn('[addArtwork] Invalid entry - missing roomId:', entry);
                     return;
                 }
+                const artworkId = entry.eventId || entry.airtableId;
+                if (this.loadedArtworkIds.has(artworkId)) {
+                    console.log('[addArtwork] Artwork already loaded:', artworkId);
+                    return;
+                }
+
+                console.log('[addArtwork] Processing artwork:', {
+                    artworkId,
+                    roomId: entry.roomId,
+                    currentRoom: this.currentRoom,
+                    locationId: entry.locationId,
+                    url: entry.url?.substring(0, 50) + '...'
+                });
 
                 if (entry.roomId === this.currentRoom) {
                     const wallSpot = wallSpots.find(s => s.userData.id === entry.locationId);
                     if (wallSpot) {
+                        console.log('[addArtwork] Found wall spot, loading immediately:', entry.locationId);
                         await loadImageFromURL(entry.url, entry.locationId, entry.heightMeters, entry.metadata, artworkId, entry);
                         this.loadedArtworkIds.add(artworkId);
                         return;
+                    } else {
+                        console.warn('[addArtwork] Wall spot not found for locationId:', entry.locationId, 'Available:', wallSpots.map(s => s.userData.id));
                     }
+                } else {
+                    console.log('[addArtwork] Artwork is for different room:', entry.roomId, 'current:', this.currentRoom);
                 }
 
                 if (!this.pendingArtworks[entry.roomId]) {
                     this.pendingArtworks[entry.roomId] = [];
                 }
                 this.pendingArtworks[entry.roomId].push(entry);
+                console.log('[addArtwork] Added to pending queue for room:', entry.roomId);
             }
 
             checkDoorProximity(cameraPosition) {
@@ -5387,6 +5408,16 @@
                 let eligibleCount = 0;
 
                 for (const artwork of placedArtworks) {
+                    console.log('[loadArtworksFromEvents] Processing artwork:', {
+                        id: artwork.id,
+                        title: artwork.title,
+                        imageUrl: artwork.imageUrl?.substring(0, 50),
+                        location: artwork.location,
+                        locationId: artwork.locationId,
+                        locationName: artwork.locationName,
+                        roomId: artwork.roomId
+                    });
+
                     // Skip if no image URL
                     if (!artwork.imageUrl) {
                         console.warn(`No image URL for ${artwork.title}`);
@@ -5466,7 +5497,14 @@
         
         async function loadImageFromURL(url, locationId, height, metadata, artworkId, artworkData = null) {
             const wallSpot = wallSpots.find(s => s.userData.id === locationId);
-            if (!wallSpot || wallSpot.userData.occupied) return;
+            if (!wallSpot) {
+                console.warn(`[loadImageFromURL] Wall spot not found for locationId: "${locationId}". Available spots:`, wallSpots.map(s => s.userData.id));
+                return;
+            }
+            if (wallSpot.userData.occupied) {
+                console.warn(`[loadImageFromURL] Wall spot "${locationId}" is already occupied`);
+                return;
+            }
 
             // Check if this is a grid layout with multiple images
             if (artworkData?.displayMode === 'grid' && artworkData?.images && artworkData.images.length > 1) {
