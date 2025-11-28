@@ -2257,6 +2257,316 @@
             opacity: 0.3;
         }
 
+        .event-history-item.admin-clickable {
+            cursor: pointer;
+        }
+
+        .event-history-actions {
+            margin-top: 8px;
+        }
+
+        .event-history-action-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .event-history-action-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        /* Place Assign Dialog */
+        #place-assign-dialog {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 700;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(10px);
+        }
+
+        #place-assign-dialog.active {
+            display: flex;
+        }
+
+        .place-assign-container {
+            background: linear-gradient(145deg, rgba(40, 40, 50, 0.98), rgba(25, 25, 35, 0.98));
+            border-radius: 16px;
+            padding: 30px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 25px 80px rgba(0, 0, 0, 0.6);
+        }
+
+        .place-assign-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .place-assign-header h3 {
+            margin: 0;
+            color: white;
+            font-size: 1.4em;
+        }
+
+        .place-assign-close {
+            background: none;
+            border: none;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 1.8em;
+            cursor: pointer;
+            padding: 0;
+            line-height: 1;
+        }
+
+        .place-assign-close:hover {
+            color: white;
+        }
+
+        .place-assign-location {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .place-assign-location-name {
+            font-weight: 600;
+            color: #667eea;
+            font-size: 1.1em;
+        }
+
+        .place-assign-location-room {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 0.9em;
+            margin-top: 4px;
+        }
+
+        .place-assign-options {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .place-assign-option {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 16px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .place-assign-option:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(102, 126, 234, 0.5);
+        }
+
+        .place-assign-option-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .place-assign-option-icon.catalogue {
+            background: linear-gradient(135deg, #4ade80 0%, #22c55e 100%);
+        }
+
+        .place-assign-option-icon.upload {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .place-assign-option-icon svg {
+            width: 24px;
+            height: 24px;
+            color: white;
+        }
+
+        .place-assign-option-text {
+            flex: 1;
+        }
+
+        .place-assign-option-title {
+            font-weight: 600;
+            color: white;
+            font-size: 1em;
+        }
+
+        .place-assign-option-desc {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 0.85em;
+            margin-top: 2px;
+        }
+
+        /* Room Management Styles */
+        .gallery-map-admin-section {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .gallery-map-admin-title {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 0.9em;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .add-room-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #4ade80 0%, #22c55e 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 1em;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .add-room-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(74, 222, 128, 0.4);
+        }
+
+        /* Add Room Dialog */
+        #add-room-dialog {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 700;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(10px);
+        }
+
+        #add-room-dialog.active {
+            display: flex;
+        }
+
+        .add-room-container {
+            background: linear-gradient(145deg, rgba(40, 40, 50, 0.98), rgba(25, 25, 35, 0.98));
+            border-radius: 16px;
+            padding: 30px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 25px 80px rgba(0, 0, 0, 0.6);
+        }
+
+        .add-room-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .add-room-header h3 {
+            margin: 0;
+            color: white;
+            font-size: 1.4em;
+        }
+
+        .add-room-close {
+            background: none;
+            border: none;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 1.8em;
+            cursor: pointer;
+            padding: 0;
+            line-height: 1;
+        }
+
+        .add-room-form {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .add-room-form label {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 0.9em;
+            margin-bottom: 4px;
+        }
+
+        .add-room-form input, .add-room-form select {
+            width: 100%;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            color: white;
+            font-size: 1em;
+        }
+
+        .add-room-form input::placeholder {
+            color: rgba(255, 255, 255, 0.4);
+        }
+
+        .add-room-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 10px;
+        }
+
+        .add-room-actions button {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .add-room-actions .primary-btn {
+            background: linear-gradient(135deg, #4ade80 0%, #22c55e 100%);
+            color: white;
+        }
+
+        .add-room-actions .cancel-btn {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+        }
+
         @media (max-width: 640px) {
             .event-history-item {
                 grid-template-columns: 50px 1fr;
@@ -2379,14 +2689,13 @@
             </div>
 
             <div class="control-group">
-                <label>Upload Images or 3D Models</label>
+                <label>Upload Images</label>
                 <input type="file" id="file-input" multiple
-                       accept="image/*,.obj,.gltf,.glb,.fbx,.stl">
+                       accept="image/*">
                 <label for="file-input" class="file-label">Choose Files</label>
                 <div id="drop-zone">Drop files here or click to browse</div>
                 <div class="supported-formats">
-                    Images: JPG, PNG, GIF and more.<br>
-                    3D Models: OBJ, GLTF/GLB, FBX, STL.
+                    Supported formats: JPG, PNG, GIF and more.
                 </div>
             </div>
 
@@ -2583,6 +2892,100 @@
                 <span class="legend-item"><span class="legend-dot current"></span> Current Gallery</span>
                 <span class="legend-item"><span class="legend-dot"></span> Other Galleries</span>
             </div>
+            <div id="gallery-map-admin-section" class="gallery-map-admin-section" style="display: none;">
+                <div class="gallery-map-admin-title">Room Management</div>
+                <button class="add-room-btn" onclick="openAddRoomDialog()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+                        <path d="M12 5v14M5 12h14"/>
+                    </svg>
+                    Add New Room
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Place Assign Dialog -->
+    <div id="place-assign-dialog">
+        <div class="place-assign-container">
+            <div class="place-assign-header">
+                <h3>Assign Artwork</h3>
+                <button class="place-assign-close" onclick="closePlaceAssignDialog()">&times;</button>
+            </div>
+            <div class="place-assign-location">
+                <div class="place-assign-location-name" id="assign-location-name">Location Name</div>
+                <div class="place-assign-location-room" id="assign-location-room">Room Name</div>
+            </div>
+            <div class="place-assign-options">
+                <div class="place-assign-option" onclick="assignFromCatalogue()">
+                    <div class="place-assign-option-icon catalogue">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+                            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+                        </svg>
+                    </div>
+                    <div class="place-assign-option-text">
+                        <div class="place-assign-option-title">From Catalogue</div>
+                        <div class="place-assign-option-desc">Choose from your saved artworks</div>
+                    </div>
+                </div>
+                <div class="place-assign-option" onclick="assignFromUpload()">
+                    <div class="place-assign-option-icon upload">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                            <polyline points="17 8 12 3 7 8"/>
+                            <line x1="12" y1="3" x2="12" y2="15"/>
+                        </svg>
+                    </div>
+                    <div class="place-assign-option-text">
+                        <div class="place-assign-option-title">Upload New</div>
+                        <div class="place-assign-option-desc">Upload a new image file</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Room Dialog -->
+    <div id="add-room-dialog">
+        <div class="add-room-container">
+            <div class="add-room-header">
+                <h3>Add New Room</h3>
+                <button class="add-room-close" onclick="closeAddRoomDialog()">&times;</button>
+            </div>
+            <div class="add-room-form">
+                <div>
+                    <label>Room Name</label>
+                    <input type="text" id="new-room-name" placeholder="e.g., Modern Art Wing">
+                </div>
+                <div>
+                    <label>Room Size</label>
+                    <select id="new-room-size">
+                        <option value="small">Small (12x12 ft)</option>
+                        <option value="medium" selected>Medium (16x20 ft)</option>
+                        <option value="large">Large (20x24 ft)</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Wall Spots</label>
+                    <select id="new-room-wall-spots">
+                        <option value="4">4 Wall Spots</option>
+                        <option value="6" selected>6 Wall Spots</option>
+                        <option value="8">8 Wall Spots</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Color Theme</label>
+                    <select id="new-room-theme">
+                        <option value="warm">Warm (Classic Gallery)</option>
+                        <option value="cool">Cool (Modern)</option>
+                        <option value="neutral" selected>Neutral (Contemporary)</option>
+                    </select>
+                </div>
+                <div class="add-room-actions">
+                    <button class="cancel-btn" onclick="closeAddRoomDialog()">Cancel</button>
+                    <button class="primary-btn" onclick="createNewRoom()">Create Room</button>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -2732,10 +3135,9 @@
                 <select class="event-history-filter" id="event-history-room-filter" onchange="filterEventHistory()">
                     <option value="all">All Rooms</option>
                 </select>
-                <select class="event-history-filter" id="event-history-type-filter" onchange="filterEventHistory()">
+                <select class="event-history-filter" id="event-history-type-filter" onchange="filterEventHistory()" style="display: none;">
                     <option value="all">All Types</option>
                     <option value="Image">Images</option>
-                    <option value="3DModel">3D Models</option>
                 </select>
                 <span class="event-history-stats" id="event-history-stats">0 placements</span>
             </div>
@@ -3685,8 +4087,6 @@
                     const artworkType = p.type || 'Image';
                     if (typeFilter === 'Image') {
                         return artworkType === 'Image' || artworkType === 'image';
-                    } else if (typeFilter === '3DModel') {
-                        return artworkType === '3DModel' || artworkType === '3D Model' || artworkType === 'Model';
                     }
                     return true;
                 });
@@ -3719,8 +4119,6 @@
             listEl.innerHTML = placements.map(placement => {
                 const roomName = ROOM_ID_TO_NAME_MAP[placement.roomId] || placement.roomId || 'Unknown Room';
                 const locationName = placement.locationName || LOCATION_ID_TO_NAME_MAP[placement.locationId] || placement.locationId || 'Unknown Location';
-                const artworkType = placement.type || 'Image';
-                const isModel = artworkType === '3DModel' || artworkType === '3D Model' || artworkType === 'Model';
 
                 // Format date
                 let dateStr = '';
@@ -3734,18 +4132,22 @@
                 }
 
                 // Thumbnail
-                const thumbnailHtml = isModel
-                    ? `<div class="event-history-thumbnail model-icon">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="24" height="24">
-                            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
-                            <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
-                            <line x1="12" y1="22.08" x2="12" y2="12"></line>
-                        </svg>
-                       </div>`
-                    : `<img class="event-history-thumbnail" src="${placement.imageUrl || ''}" alt="${placement.title || 'Artwork'}" onerror="this.style.display='none'">`;
+                const thumbnailHtml = `<img class="event-history-thumbnail" src="${placement.imageUrl || ''}" alt="${placement.title || 'Artwork'}" onerror="this.style.display='none'">`;
+
+                // Admin clickable actions
+                const adminActions = isAdmin ? `
+                    <div class="event-history-actions">
+                        <button class="event-history-action-btn" onclick="openPlaceAssignDialog('${escapeHtml(placement.locationId)}', '${escapeHtml(placement.roomId)}', '${escapeHtml(locationName)}', '${escapeHtml(roomName)}')" title="Assign artwork to this location">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                                <path d="M12 5v14M5 12h14"/>
+                            </svg>
+                            Assign
+                        </button>
+                    </div>
+                ` : '';
 
                 return `
-                    <div class="event-history-item">
+                    <div class="event-history-item ${isAdmin ? 'admin-clickable' : ''}">
                         ${thumbnailHtml}
                         <div class="event-history-info">
                             <div class="event-history-title">${escapeHtml(placement.title || 'Untitled')}</div>
@@ -3763,7 +4165,8 @@
                         </div>
                         <div class="event-history-meta">
                             ${dateStr ? `<span class="event-history-date">${dateStr}</span>` : ''}
-                            <span class="event-history-type">${isModel ? '3D Model' : 'Image'}</span>
+                            <span class="event-history-type">Image</span>
+                            ${adminActions}
                         </div>
                     </div>
                 `;
@@ -4620,6 +5023,12 @@
 
             overlay.classList.add('active');
 
+            // Show admin section if in admin mode
+            const adminSection = document.getElementById('gallery-map-admin-section');
+            if (adminSection) {
+                adminSection.style.display = isAdmin ? 'block' : 'none';
+            }
+
             // Close on escape key
             const handleEscape = (e) => {
                 if (e.key === 'Escape') {
@@ -4641,6 +5050,283 @@
             closeGalleryMap();
             setActiveGallery(galleryId);
         }
+
+        // ==========================================
+        // Place Assign Dialog Functions
+        // ==========================================
+        let pendingAssignLocation = null;
+
+        function openPlaceAssignDialog(locationId, roomId, locationName, roomName) {
+            if (!isAdmin) return;
+
+            pendingAssignLocation = { locationId, roomId, locationName, roomName };
+
+            document.getElementById('assign-location-name').textContent = locationName;
+            document.getElementById('assign-location-room').textContent = roomName;
+
+            document.getElementById('place-assign-dialog').classList.add('active');
+
+            // Close event history dialog
+            closeEventHistory();
+        }
+
+        function closePlaceAssignDialog() {
+            document.getElementById('place-assign-dialog').classList.remove('active');
+            pendingAssignLocation = null;
+        }
+
+        function assignFromCatalogue() {
+            if (!pendingAssignLocation) return;
+
+            closePlaceAssignDialog();
+
+            // Open catalogue with pre-selected location
+            openCatalogue();
+
+            // After a brief delay, set the location in the catalogue
+            setTimeout(() => {
+                const locationSelect = document.getElementById('catalogue-location');
+                if (locationSelect && pendingAssignLocation.locationId) {
+                    // Find and select the matching option
+                    for (let option of locationSelect.options) {
+                        if (option.value === pendingAssignLocation.locationId) {
+                            locationSelect.value = pendingAssignLocation.locationId;
+                            break;
+                        }
+                    }
+                }
+            }, 100);
+        }
+
+        function assignFromUpload() {
+            if (!pendingAssignLocation) return;
+
+            const locationInfo = pendingAssignLocation;
+            closePlaceAssignDialog();
+
+            // Trigger file input and pre-select the location
+            const fileInput = document.getElementById('file-input');
+
+            // Store the pending location for use after file selection
+            window.pendingUploadLocation = locationInfo;
+
+            fileInput.click();
+        }
+
+        // ==========================================
+        // Add Room Dialog Functions
+        // ==========================================
+        function openAddRoomDialog() {
+            if (!isAdmin) return;
+
+            closeGalleryMap();
+            document.getElementById('add-room-dialog').classList.add('active');
+            document.getElementById('new-room-name').value = '';
+            document.getElementById('new-room-name').focus();
+        }
+
+        function closeAddRoomDialog() {
+            document.getElementById('add-room-dialog').classList.remove('active');
+        }
+
+        function createNewRoom() {
+            const nameInput = document.getElementById('new-room-name');
+            const sizeSelect = document.getElementById('new-room-size');
+            const wallSpotsSelect = document.getElementById('new-room-wall-spots');
+            const themeSelect = document.getElementById('new-room-theme');
+
+            const name = nameInput.value.trim();
+            if (!name) {
+                alert('Please enter a room name');
+                nameInput.focus();
+                return;
+            }
+
+            const size = sizeSelect.value;
+            const wallSpotCount = parseInt(wallSpotsSelect.value);
+            const theme = themeSelect.value;
+
+            // Generate room ID from name
+            const roomId = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') + '-' + Date.now().toString(36).slice(-4);
+
+            // Determine dimensions based on size
+            let dimensions;
+            switch (size) {
+                case 'small':
+                    dimensions = { width: 12, depth: 12, height: 5 };
+                    break;
+                case 'large':
+                    dimensions = { width: 20, depth: 24, height: 5 };
+                    break;
+                default: // medium
+                    dimensions = { width: 16, depth: 20, height: 5 };
+            }
+
+            // Determine theme colors
+            let themeConfig;
+            switch (theme) {
+                case 'warm':
+                    themeConfig = {
+                        wallColor: 0xfaf8f5,
+                        floorColor: 0xf5f0e8,
+                        lighting: 'warm',
+                        colorTemperature: 3200
+                    };
+                    break;
+                case 'cool':
+                    themeConfig = {
+                        wallColor: 0xf0f4ff,
+                        floorColor: 0xffffff,
+                        lighting: 'cool',
+                        colorTemperature: 4500
+                    };
+                    break;
+                default: // neutral
+                    themeConfig = {
+                        wallColor: 0xf5f5f5,
+                        floorColor: 0xfafafa,
+                        lighting: 'neutral',
+                        colorTemperature: DEFAULT_COLOR_TEMPERATURE
+                    };
+            }
+
+            // Generate wall spots
+            const walls = generateWallSpots(roomId, wallSpotCount, dimensions);
+
+            // Create the new room configuration
+            const newRoom = {
+                id: roomId,
+                name: name,
+                dimensions: dimensions,
+                position: { x: 0, y: 0, z: 0 },
+                theme: themeConfig,
+                walls: walls,
+                floors: [],
+                doors: []
+            };
+
+            // Add to ROOMS
+            ROOMS[roomId] = newRoom;
+
+            // Update location maps
+            ROOM_ID_TO_NAME_MAP[roomId] = name;
+            walls.forEach(wall => {
+                LOCATION_ID_TO_NAME_MAP[wall.id] = wall.displayName;
+                LOCATION_NAME_TO_ID_MAP[wall.displayName] = wall.id;
+            });
+
+            // Save custom rooms to localStorage
+            saveCustomRooms();
+
+            closeAddRoomDialog();
+
+            // Show success message
+            alert(`Room "${name}" has been created with ${wallSpotCount} wall spots!`);
+
+            // Reopen gallery map to show the new room
+            openGalleryMap();
+        }
+
+        function generateWallSpots(roomId, count, dimensions) {
+            const walls = [];
+            const halfWidth = (dimensions.width * 0.3048) / 2;
+            const halfDepth = (dimensions.depth * 0.3048) / 2;
+
+            // Distribute spots across walls
+            const spotsPerWall = Math.ceil(count / 4);
+            let spotIndex = 0;
+
+            // Back wall spots
+            for (let i = 0; i < Math.min(spotsPerWall, count - spotIndex); i++) {
+                const xOffset = (i - (spotsPerWall - 1) / 2) * 3;
+                walls.push({
+                    id: `${roomId}:back-${i + 1}`,
+                    baseId: `back-${i + 1}`,
+                    displayName: `Back Wall ${i + 1}`,
+                    position: wallSpotPosition(xOffset, -halfDepth + 0.1),
+                    wall: 'back',
+                    rotation: 0,
+                    maxWidth: 5,
+                    wallLength: dimensions.width * 0.3048
+                });
+                spotIndex++;
+            }
+
+            // Left wall spots
+            for (let i = 0; i < Math.min(spotsPerWall, count - spotIndex); i++) {
+                const zOffset = (i - (spotsPerWall - 1) / 2) * 3;
+                walls.push({
+                    id: `${roomId}:left-${i + 1}`,
+                    baseId: `left-${i + 1}`,
+                    displayName: `Left Wall ${i + 1}`,
+                    position: wallSpotPosition(-halfWidth + 0.1, zOffset),
+                    wall: 'left',
+                    rotation: Math.PI / 2,
+                    maxWidth: 5,
+                    wallLength: dimensions.depth * 0.3048
+                });
+                spotIndex++;
+            }
+
+            // Right wall spots
+            for (let i = 0; i < Math.min(spotsPerWall, count - spotIndex); i++) {
+                const zOffset = (i - (spotsPerWall - 1) / 2) * 3;
+                walls.push({
+                    id: `${roomId}:right-${i + 1}`,
+                    baseId: `right-${i + 1}`,
+                    displayName: `Right Wall ${i + 1}`,
+                    position: wallSpotPosition(halfWidth - 0.1, zOffset),
+                    wall: 'right',
+                    rotation: -Math.PI / 2,
+                    maxWidth: 5,
+                    wallLength: dimensions.depth * 0.3048
+                });
+                spotIndex++;
+            }
+
+            return walls;
+        }
+
+        function saveCustomRooms() {
+            const customRooms = {};
+            Object.keys(ROOMS).forEach(roomId => {
+                if (roomId !== 'main-gallery' && roomId !== 'contemporary-wing') {
+                    customRooms[roomId] = ROOMS[roomId];
+                }
+            });
+            localStorage.setItem('vr-gallery:custom-rooms', JSON.stringify(customRooms));
+        }
+
+        function loadCustomRooms() {
+            try {
+                const saved = localStorage.getItem('vr-gallery:custom-rooms');
+                if (saved) {
+                    const customRooms = JSON.parse(saved);
+                    Object.keys(customRooms).forEach(roomId => {
+                        ROOMS[roomId] = customRooms[roomId];
+                        ROOM_ID_TO_NAME_MAP[roomId] = customRooms[roomId].name;
+                        if (customRooms[roomId].walls) {
+                            customRooms[roomId].walls.forEach(wall => {
+                                LOCATION_ID_TO_NAME_MAP[wall.id] = wall.displayName;
+                                LOCATION_NAME_TO_ID_MAP[wall.displayName] = wall.id;
+                            });
+                        }
+                    });
+                }
+            } catch (e) {
+                console.error('Error loading custom rooms:', e);
+            }
+        }
+
+        // Close dialogs on backdrop click
+        document.addEventListener('click', function(e) {
+            if (e.target.id === 'place-assign-dialog') {
+                closePlaceAssignDialog();
+            }
+            if (e.target.id === 'add-room-dialog') {
+                closeAddRoomDialog();
+            }
+        });
 
         function escapeHtml(text) {
             const div = document.createElement('div');
@@ -5842,6 +6528,7 @@
                 velocity = new THREE.Vector3();
                 direction = new THREE.Vector3();
 
+                loadCustomRooms();
                 roomManager = new RoomManager(scene);
                 loadGalleryState();
                 renderGalleryControls();
@@ -6479,8 +7166,6 @@
             if (!isAdmin) return;
 
             for (let file of files) {
-                const extension = file.name.split('.').pop().toLowerCase();
-
                 if (file.type.startsWith('image/')) {
                     const reader = new FileReader();
                     reader.onload = (e) => {
@@ -6491,8 +7176,6 @@
                         img.src = e.target.result;
                     };
                     reader.readAsDataURL(file);
-                } else if (['obj', 'gltf', 'glb', 'fbx', 'stl'].includes(extension)) {
-                    showPlacementDialog(file, '3d');
                 }
             }
         }
@@ -6509,9 +7192,7 @@
             warning.textContent = '';
             sizePreview.textContent = '';
 
-            const spots = type === '3d' ? floorSpots : wallSpots;
-
-            const getSpotById = (id) => spots.find(s => s.userData.id === id);
+            const spots = wallSpots;
 
             spots.forEach(spotMesh => {
                 const pos = spotMesh.userData;
@@ -6526,15 +7207,10 @@
 
                 const roomName = ROOM_ID_TO_NAME_MAP[pos.roomId] || pos.roomId;
                 const friendlyName = LOCATION_ID_TO_NAME_MAP[pos.id] || pos.displayName || pos.id;
-                let noteHtml = '';
-                if (type === '3d' && pos.type) {
-                    noteHtml = `<div class="location-note">${pos.type === 'large' ? 'Large platform' : 'Pedestal display'}</div>`;
-                }
 
                 locationOption.innerHTML = `
                     <div class="location-name">${roomName} - ${friendlyName}</div>
                     <div class="location-status">${isOccupied ? 'Occupied' : 'Available'}</div>
-                    ${noteHtml}
                 `;
 
                 if (!isOccupied) {
@@ -6562,7 +7238,7 @@
                 return true;
             }
 
-            warning.textContent = 'All spots of this type are currently occupied.';
+            warning.textContent = 'All wall spots are currently occupied.';
             warning.style.display = 'block';
             return false;
         }
@@ -6583,11 +7259,10 @@
                 imagePreview.style.display = 'none';
             }
 
-            document.getElementById('dimension-label').textContent =
-                type === '3d' ? 'Max Height (inches):' : 'Height (inches):';
+            document.getElementById('dimension-label').textContent = 'Height (inches):';
 
             const heightInput = document.getElementById('height-input');
-            heightInput.value = type === '3d' ? 48 : 36;
+            heightInput.value = 36;
 
             document.getElementById('title-input').value = '';
             document.getElementById('artist-input').value = '';
@@ -6595,9 +7270,21 @@
 
             setupLocationGrid(type);
 
+            // Pre-select location if coming from place assign dialog
+            if (window.pendingUploadLocation) {
+                const locationId = window.pendingUploadLocation.locationId;
+                setTimeout(() => {
+                    const locationOption = document.querySelector(`.location-option[data-id="${locationId}"]`);
+                    if (locationOption && !locationOption.classList.contains('occupied')) {
+                        locationOption.click();
+                    }
+                }, 50);
+                window.pendingUploadLocation = null;
+            }
+
             dialog.classList.add('active');
         }
-        
+
         function updateSizePreview() {
             if (!currentPendingArt || !selectedLocation) return;
 
@@ -6631,30 +7318,6 @@
                         warning.textContent = `Artwork may exceed wall length (wall is ${wallLengthFeet.toFixed(1)}' ${spot.wall === 'back' ? 'wide' : 'long'})`;
                         warning.style.display = 'block';
                     }
-                }
-            } else if (currentPendingArt.type === '3d') {
-                const spotMesh = floorSpots.find(s => s.userData.id === selectedLocation);
-                const spot = spotMesh ? spotMesh.userData : null;
-                const friendlyName = LOCATION_ID_TO_NAME_MAP[selectedLocation] || (spot ? spot.displayName : selectedLocation);
-
-                const details = [];
-                details.push(`Maximum display height: ${heightFeet.toFixed(1)}' (${Math.round(heightInches)}")`);
-
-                if (friendlyName) {
-                    let typeDescription = '';
-                    if (spot && spot.type === 'large') {
-                        typeDescription = ' (large platform)';
-                    } else if (spot && spot.type === 'pedestal') {
-                        typeDescription = ' (pedestal)';
-                    }
-                    details.push(`Location: ${friendlyName}${typeDescription}`);
-                }
-
-                sizePreview.innerHTML = details.join('<br>');
-
-                if (spot && spot.type === 'pedestal' && heightFeet > 6) {
-                    warning.textContent = 'Consider reducing the height for pedestal displays to maintain stability.';
-                    warning.style.display = 'block';
                 }
             }
         }
