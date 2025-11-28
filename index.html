@@ -1563,6 +1563,283 @@
                 max-width: 100%;
             }
         }
+
+        /* View Toggle Buttons */
+        .catalogue-view-toggle {
+            display: flex;
+            gap: 4px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            padding: 4px;
+        }
+
+        .view-toggle-btn {
+            background: transparent;
+            border: none;
+            color: rgba(255, 255, 255, 0.5);
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+
+        .view-toggle-btn:hover {
+            color: rgba(255, 255, 255, 0.8);
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .view-toggle-btn.active {
+            background: rgba(102, 126, 234, 0.3);
+            color: #667eea;
+        }
+
+        .view-toggle-btn svg {
+            width: 16px;
+            height: 16px;
+        }
+
+        /* 9x16 Card View (Portrait Cards) */
+        .catalogue-grid.card-view {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 20px;
+        }
+
+        .catalogue-grid.card-view .catalogue-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .catalogue-grid.card-view .catalogue-item-image {
+            aspect-ratio: 9 / 16;
+            object-fit: cover;
+        }
+
+        .catalogue-grid.card-view .catalogue-item-info {
+            padding: 12px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .catalogue-grid.card-view .catalogue-item-artist {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 12px;
+            margin-bottom: 4px;
+        }
+
+        .catalogue-grid.card-view .catalogue-item-room-tag {
+            margin-top: auto;
+            padding-top: 8px;
+        }
+
+        /* Table View */
+        .catalogue-grid.table-view {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .catalogue-table-header {
+            display: grid;
+            grid-template-columns: 80px 2fr 1.5fr 1fr 1fr 1fr 100px;
+            gap: 12px;
+            padding: 12px 16px;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 8px 8px 0 0;
+            font-size: 11px;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.6);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .catalogue-table-row {
+            display: grid;
+            grid-template-columns: 80px 2fr 1.5fr 1fr 1fr 1fr 100px;
+            gap: 12px;
+            padding: 12px 16px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 0;
+            cursor: pointer;
+            transition: background 0.2s;
+            align-items: center;
+        }
+
+        .catalogue-table-row:hover {
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .catalogue-table-row:last-child {
+            border-radius: 0 0 8px 8px;
+        }
+
+        .catalogue-table-row.placed {
+            opacity: 0.7;
+        }
+
+        .catalogue-table-row .row-thumbnail {
+            width: 80px;
+            height: 60px;
+            object-fit: cover;
+            border-radius: 4px;
+        }
+
+        .catalogue-table-row .row-title {
+            font-weight: 500;
+            color: white;
+            font-size: 14px;
+        }
+
+        .catalogue-table-row .row-artist {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 13px;
+        }
+
+        .catalogue-table-row .row-price {
+            color: #4ade80;
+            font-weight: 500;
+            font-size: 13px;
+        }
+
+        .catalogue-table-row .row-room-tag {
+            font-size: 12px;
+        }
+
+        .catalogue-table-row .row-status {
+            font-size: 12px;
+        }
+
+        .catalogue-table-row .row-actions {
+            display: flex;
+            gap: 6px;
+        }
+
+        /* Room Tag Badge */
+        .room-tag-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            background: rgba(102, 126, 234, 0.2);
+            color: #667eea;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 500;
+        }
+
+        .room-tag-badge.untagged {
+            background: rgba(255, 255, 255, 0.1);
+            color: rgba(255, 255, 255, 0.4);
+        }
+
+        .status-badge {
+            display: inline-flex;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .status-badge.placed {
+            background: rgba(74, 222, 128, 0.2);
+            color: #4ade80;
+        }
+
+        .status-badge.unplaced {
+            background: rgba(255, 255, 255, 0.1);
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        /* Inline Editing */
+        .inline-edit-field {
+            background: transparent;
+            border: 1px solid transparent;
+            color: inherit;
+            font-size: inherit;
+            font-family: inherit;
+            padding: 4px 6px;
+            margin: -4px -6px;
+            border-radius: 4px;
+            width: calc(100% + 12px);
+            transition: all 0.2s;
+        }
+
+        .inline-edit-field:hover {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .inline-edit-field:focus {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: #667eea;
+            outline: none;
+        }
+
+        .inline-edit-select {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: white;
+            font-size: 11px;
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            max-width: 100%;
+        }
+
+        .inline-edit-select:focus {
+            border-color: #667eea;
+            outline: none;
+        }
+
+        .inline-edit-select option {
+            background: #1e1e1e;
+            color: white;
+        }
+
+        /* Room Filter */
+        .catalogue-room-filter {
+            padding: 10px 14px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.05);
+            color: white;
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        /* Table view responsive */
+        @media (max-width: 900px) {
+            .catalogue-table-header,
+            .catalogue-table-row {
+                grid-template-columns: 60px 1.5fr 1fr 80px 80px;
+            }
+
+            .catalogue-table-header > *:nth-child(3),
+            .catalogue-table-row > *:nth-child(3),
+            .catalogue-table-header > *:nth-child(6),
+            .catalogue-table-row > *:nth-child(6) {
+                display: none;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .catalogue-view-toggle {
+                display: none;
+            }
+
+            .catalogue-grid.table-view {
+                display: grid;
+                grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            }
+        }
     </style>
 </head>
 <body>
@@ -1898,9 +2175,34 @@
                     <option value="unplaced">Not Placed</option>
                     <option value="placed">Placed</option>
                 </select>
+                <select class="catalogue-room-filter" id="catalogue-room-filter" onchange="filterCatalogue()">
+                    <option value="all">All Rooms</option>
+                </select>
+                <div class="catalogue-view-toggle">
+                    <button class="view-toggle-btn active" id="card-view-btn" onclick="setCatalogueView('card')" title="Card View">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="3" width="7" height="10" rx="1"/>
+                            <rect x="14" y="3" width="7" height="10" rx="1"/>
+                            <rect x="3" y="15" width="7" height="6" rx="1"/>
+                            <rect x="14" y="15" width="7" height="6" rx="1"/>
+                        </svg>
+                        Cards
+                    </button>
+                    <button class="view-toggle-btn" id="table-view-btn" onclick="setCatalogueView('table')" title="Table View">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="3" y1="6" x2="21" y2="6"/>
+                            <line x1="3" y1="12" x2="21" y2="12"/>
+                            <line x1="3" y1="18" x2="21" y2="18"/>
+                            <rect x="3" y="4" width="4" height="4" rx="0.5"/>
+                            <rect x="3" y="10" width="4" height="4" rx="0.5"/>
+                            <rect x="3" y="16" width="4" height="4" rx="0.5"/>
+                        </svg>
+                        Table
+                    </button>
+                </div>
                 <div class="catalogue-stats" id="catalogue-stats">0 items</div>
             </div>
-            <div class="catalogue-grid" id="catalogue-grid">
+            <div class="catalogue-grid card-view" id="catalogue-grid">
                 <!-- Catalogue items will be rendered here -->
             </div>
         </div>
@@ -2212,6 +2514,7 @@
         const CATALOGUE_STORAGE_KEY = 'vr-gallery:catalogue';
         let artCatalogue = [];
         let selectedCatalogueItem = null;
+        let currentCatalogueView = 'card'; // 'card' or 'table'
 
         // Default catalogue with Morning Coffee Artist products
         const DEFAULT_CATALOGUE = [
@@ -2294,7 +2597,46 @@
         function openCatalogue() {
             if (!isAdmin) return;
             document.getElementById('catalogue-dialog').classList.add('active');
+            populateRoomFilter();
             renderCatalogue();
+        }
+
+        // Populate room filter dropdown
+        function populateRoomFilter() {
+            const roomFilter = document.getElementById('catalogue-room-filter');
+            if (!roomFilter) return;
+
+            let options = '<option value="all">All Rooms</option>';
+            options += '<option value="untagged">Untagged</option>';
+
+            Object.values(ROOMS).forEach(room => {
+                options += `<option value="${room.id}">${room.name}</option>`;
+            });
+
+            roomFilter.innerHTML = options;
+        }
+
+        // Set catalogue view mode
+        function setCatalogueView(view) {
+            currentCatalogueView = view;
+
+            // Update button states
+            document.getElementById('card-view-btn').classList.toggle('active', view === 'card');
+            document.getElementById('table-view-btn').classList.toggle('active', view === 'table');
+
+            // Update grid class
+            const grid = document.getElementById('catalogue-grid');
+            grid.classList.remove('card-view', 'table-view');
+            grid.classList.add(view + '-view');
+
+            renderCatalogue();
+        }
+
+        // Get room name by ID
+        function getRoomNameById(roomId) {
+            if (!roomId) return null;
+            const room = ROOMS[roomId];
+            return room ? room.name : roomId;
         }
 
         // Close catalogue dialog
@@ -2312,6 +2654,7 @@
             const grid = document.getElementById('catalogue-grid');
             const searchTerm = document.getElementById('catalogue-search').value.toLowerCase();
             const filter = document.getElementById('catalogue-filter').value;
+            const roomFilter = document.getElementById('catalogue-room-filter')?.value || 'all';
 
             let filteredItems = artCatalogue.filter(item => {
                 const matchesSearch = item.title.toLowerCase().includes(searchTerm) ||
@@ -2323,6 +2666,10 @@
                 if (filter === 'placed' && !isPlaced) return false;
                 if (filter === 'unplaced' && isPlaced) return false;
 
+                // Room filter
+                if (roomFilter === 'untagged' && item.roomTag) return false;
+                if (roomFilter !== 'all' && roomFilter !== 'untagged' && item.roomTag !== roomFilter) return false;
+
                 return true;
             });
 
@@ -2331,17 +2678,32 @@
             const placedCount = artCatalogue.filter(item => isCatalogueItemPlaced(item.id)).length;
             stats.textContent = `${filteredItems.length} of ${artCatalogue.length} items (${placedCount} placed)`;
 
-            // Render items
-            grid.innerHTML = filteredItems.map(item => {
+            // Render based on current view
+            if (currentCatalogueView === 'table') {
+                renderTableView(grid, filteredItems);
+            } else {
+                renderCardView(grid, filteredItems);
+            }
+        }
+
+        // Render card view (9x16 portrait cards)
+        function renderCardView(grid, items) {
+            grid.innerHTML = items.map(item => {
                 const isPlaced = isCatalogueItemPlaced(item.id);
                 const priceDisplay = item.price > 0 ? `$${item.price.toFixed(2)}` : 'Price on request';
+                const roomName = getRoomNameById(item.roomTag);
+                const roomTagHtml = roomName
+                    ? `<span class="room-tag-badge">${roomName}</span>`
+                    : `<span class="room-tag-badge untagged">No room</span>`;
 
                 return `
                     <div class="catalogue-item ${isPlaced ? 'placed' : ''}" onclick="openCatalogueDetail('${item.id}')">
                         <img class="catalogue-item-image" src="${item.image_url}" alt="${item.title}" loading="lazy">
                         <div class="catalogue-item-info">
+                            <div class="catalogue-item-artist">${item.artist || 'Unknown Artist'}</div>
                             <div class="catalogue-item-title">${item.title}</div>
                             <div class="catalogue-item-price">${priceDisplay}</div>
+                            <div class="catalogue-item-room-tag">${roomTagHtml}</div>
                         </div>
                         <div class="catalogue-item-actions">
                             <button class="catalogue-btn primary" onclick="event.stopPropagation(); openCatalogueDetail('${item.id}')">
@@ -2351,6 +2713,92 @@
                     </div>
                 `;
             }).join('');
+        }
+
+        // Render table view with inline editing
+        function renderTableView(grid, items) {
+            // Build room options for dropdown
+            const roomOptions = Object.values(ROOMS).map(room =>
+                `<option value="${room.id}">${room.name}</option>`
+            ).join('');
+
+            const header = `
+                <div class="catalogue-table-header">
+                    <div>Image</div>
+                    <div>Title</div>
+                    <div>Artist</div>
+                    <div>Price</div>
+                    <div>Room Tag</div>
+                    <div>Status</div>
+                    <div>Actions</div>
+                </div>
+            `;
+
+            const rows = items.map(item => {
+                const isPlaced = isCatalogueItemPlaced(item.id);
+                const priceDisplay = item.price > 0 ? `$${item.price.toFixed(2)}` : 'N/A';
+                const roomName = getRoomNameById(item.roomTag);
+                const statusBadge = isPlaced
+                    ? '<span class="status-badge placed">Placed</span>'
+                    : '<span class="status-badge unplaced">Not placed</span>';
+
+                return `
+                    <div class="catalogue-table-row ${isPlaced ? 'placed' : ''}" data-id="${item.id}">
+                        <div>
+                            <img class="row-thumbnail" src="${item.image_url}" alt="${item.title}" loading="lazy">
+                        </div>
+                        <div class="row-title">
+                            <input type="text" class="inline-edit-field" value="${escapeHtml(item.title)}"
+                                   onchange="updateCatalogueItem('${item.id}', 'title', this.value)"
+                                   onclick="event.stopPropagation()">
+                        </div>
+                        <div class="row-artist">
+                            <input type="text" class="inline-edit-field" value="${escapeHtml(item.artist || '')}"
+                                   onchange="updateCatalogueItem('${item.id}', 'artist', this.value)"
+                                   onclick="event.stopPropagation()">
+                        </div>
+                        <div class="row-price">${priceDisplay}</div>
+                        <div class="row-room-tag">
+                            <select class="inline-edit-select" onchange="updateCatalogueItem('${item.id}', 'roomTag', this.value)" onclick="event.stopPropagation()">
+                                <option value="">No room</option>
+                                ${Object.values(ROOMS).map(room =>
+                                    `<option value="${room.id}" ${item.roomTag === room.id ? 'selected' : ''}>${room.name}</option>`
+                                ).join('')}
+                            </select>
+                        </div>
+                        <div class="row-status">${statusBadge}</div>
+                        <div class="row-actions">
+                            <button class="catalogue-btn primary" onclick="event.stopPropagation(); openCatalogueDetail('${item.id}')">
+                                ${isPlaced ? 'View' : 'Place'}
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            grid.innerHTML = header + rows;
+        }
+
+        // Update a catalogue item field (inline editing)
+        function updateCatalogueItem(itemId, field, value) {
+            const item = artCatalogue.find(i => i.id === itemId);
+            if (!item) return;
+
+            item[field] = value;
+            saveCatalogue();
+
+            // Re-render if it's a room tag change (might affect filtering)
+            if (field === 'roomTag') {
+                renderCatalogue();
+            }
+        }
+
+        // Escape HTML to prevent XSS
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
         }
 
         // Open catalogue detail for placement
@@ -2376,14 +2824,14 @@
                 `<option value="${g.id}" ${g.id === activeGalleryId ? 'selected' : ''}>${g.name}</option>`
             ).join('') || '<option value="">Default Gallery</option>';
 
-            // Populate location dropdown
-            populateCatalogueLocations();
+            // Populate location dropdown with room tag priority
+            populateCatalogueLocations(item.roomTag);
 
             document.getElementById('catalogue-detail').classList.add('active');
         }
 
-        // Populate location dropdown based on selected gallery
-        function populateCatalogueLocations() {
+        // Populate location dropdown based on selected gallery and room tag
+        function populateCatalogueLocations(preferredRoomId = null) {
             const locationSelect = document.getElementById('catalogue-location');
             const placedArtworks = eventStore.getPlacedArtworks();
             const occupiedLocations = new Set(placedArtworks.map(a => a.locationId));
@@ -2394,11 +2842,14 @@
             Object.values(ROOMS).forEach(room => {
                 room.walls.forEach(wall => {
                     const isOccupied = occupiedLocations.has(wall.id);
+                    const isPreferred = preferredRoomId && room.id === preferredRoomId;
                     options.push({
                         id: wall.id,
+                        roomId: room.id,
                         name: `${room.name} - ${wall.displayName}`,
                         type: 'wall',
-                        occupied: isOccupied
+                        occupied: isOccupied,
+                        preferred: isPreferred
                     });
                 });
             });
@@ -2407,18 +2858,33 @@
             Object.values(ROOMS).forEach(room => {
                 room.floors.forEach(floor => {
                     const isOccupied = occupiedLocations.has(floor.id);
+                    const isPreferred = preferredRoomId && room.id === preferredRoomId;
                     options.push({
                         id: floor.id,
+                        roomId: room.id,
                         name: `${room.name} - ${floor.displayName} (Floor)`,
                         type: 'floor',
-                        occupied: isOccupied
+                        occupied: isOccupied,
+                        preferred: isPreferred
                     });
                 });
             });
 
-            locationSelect.innerHTML = options.map(opt =>
-                `<option value="${opt.id}" ${opt.occupied ? 'disabled' : ''}>${opt.name}${opt.occupied ? ' (Occupied)' : ''}</option>`
-            ).join('');
+            // Sort: preferred room first, then by room name
+            options.sort((a, b) => {
+                if (a.preferred && !b.preferred) return -1;
+                if (!a.preferred && b.preferred) return 1;
+                return a.name.localeCompare(b.name);
+            });
+
+            // Find first available preferred location
+            const firstAvailable = options.find(opt => opt.preferred && !opt.occupied);
+
+            locationSelect.innerHTML = options.map(opt => {
+                const isSelected = firstAvailable && opt.id === firstAvailable.id;
+                const label = opt.preferred ? `★ ${opt.name}` : opt.name;
+                return `<option value="${opt.id}" ${opt.occupied ? 'disabled' : ''} ${isSelected ? 'selected' : ''}>${label}${opt.occupied ? ' (Occupied)' : ''}</option>`;
+            }).join('');
         }
 
         // Close catalogue detail dialog
