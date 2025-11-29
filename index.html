@@ -4294,21 +4294,43 @@
                 }
             });
 
+            // Validate that location was found
+            if (!roomId || !locationName) {
+                console.error('Location not found for ID:', locationId, 'Available rooms:', Object.keys(ROOMS));
+                alert('Could not find the selected location. Please select a different location and try again.');
+                return;
+            }
+
+            console.log('Placing artwork:', { locationId, locationName, roomId, imageUrl: selectedCatalogueItem.image_url });
+
+            // Load image to get dimensions
+            let aspectRatio = 1;
+            let heightMeters = heightInches * 0.0254;
+            let widthInches = heightInches;
+
             try {
-                // Load image to get dimensions
                 const img = new Image();
-                img.crossOrigin = 'anonymous';
+                // Don't set crossOrigin for dimension checking - it can cause CORS failures
+                // The image will still display correctly in the gallery
 
                 await new Promise((resolve, reject) => {
                     img.onload = resolve;
-                    img.onerror = reject;
+                    img.onerror = (e) => {
+                        console.warn('Image preload failed, using default aspect ratio:', e);
+                        resolve(); // Continue with default aspect ratio
+                    };
                     img.src = selectedCatalogueItem.image_url;
                 });
 
-                const aspectRatio = img.width / img.height;
-                const heightMeters = (heightInches * 0.0254);
-                const widthInches = heightInches * aspectRatio;
+                if (img.width && img.height) {
+                    aspectRatio = img.width / img.height;
+                    widthInches = heightInches * aspectRatio;
+                }
+            } catch (imgError) {
+                console.warn('Image dimension check failed, using default aspect ratio:', imgError);
+            }
 
+            try {
                 // Create artwork event
                 const objectId = generateObjectId('art');
                 const eventData = {
@@ -4338,6 +4360,7 @@
                     }
                 };
 
+                console.log('Posting artwork event:', eventData);
                 const result = await eventStore.postEvent(eventData);
                 console.log('Catalogue artwork placed:', result);
 
@@ -4366,7 +4389,11 @@
 
             } catch (error) {
                 console.error('Failed to place catalogue artwork:', error);
-                alert('Failed to place artwork. Please try again.');
+                if (error.message) {
+                    alert('Failed to place artwork: ' + error.message);
+                } else {
+                    alert('Failed to place artwork. Please check your connection and try again.');
+                }
             }
         }
 
