@@ -4814,10 +4814,10 @@
                         id: 'main-gallery:9',
                         baseId: '9',
                         displayName: '9',
-                        position: wallSpotPosition(4, 9.9),
+                        position: wallSpotPosition(2, 9.9),
                         wall: 'front',
                         rotation: Math.PI,
-                        maxWidth: 5,
+                        maxWidth: 3,
                         wallLength: 16 * 0.3048
                     },
                     // Left wall - spots 10, 11, 12
@@ -4875,53 +4875,53 @@
                     colorTemperature: DEFAULT_COLOR_TEMPERATURE
                 },
                 walls: [
-                    // Back wall - spots 1, 2, 3
+                    // Back wall - spots 1, 2, 3, 4 (avoiding door at center x=0)
                     {
                         id: 'contemporary-wing:1',
                         baseId: '1',
                         displayName: '1',
-                        position: wallSpotPosition(-5, -7.9),
+                        position: wallSpotPosition(-7, -7.9),
                         wall: 'back',
                         rotation: 0,
-                        maxWidth: 6,
+                        maxWidth: 4,
                         wallLength: 20 * 0.3048
                     },
                     {
                         id: 'contemporary-wing:2',
                         baseId: '2',
                         displayName: '2',
-                        position: wallSpotPosition(0, -7.9),
+                        position: wallSpotPosition(-3, -7.9),
                         wall: 'back',
                         rotation: 0,
-                        maxWidth: 6,
+                        maxWidth: 3,
                         wallLength: 20 * 0.3048
                     },
                     {
                         id: 'contemporary-wing:3',
                         baseId: '3',
                         displayName: '3',
-                        position: wallSpotPosition(5, -7.9),
+                        position: wallSpotPosition(3, -7.9),
                         wall: 'back',
                         rotation: 0,
-                        maxWidth: 6,
+                        maxWidth: 3,
                         wallLength: 20 * 0.3048
                     },
-                    // Right wall - spots 4, 5, 6
                     {
                         id: 'contemporary-wing:4',
                         baseId: '4',
                         displayName: '4',
-                        position: wallSpotPosition(9.9, -3),
-                        wall: 'right',
-                        rotation: -Math.PI / 2,
-                        maxWidth: 5,
-                        wallLength: 16 * 0.3048
+                        position: wallSpotPosition(7, -7.9),
+                        wall: 'back',
+                        rotation: 0,
+                        maxWidth: 4,
+                        wallLength: 20 * 0.3048
                     },
+                    // Right wall - spots 5, 6, 7
                     {
                         id: 'contemporary-wing:5',
                         baseId: '5',
                         displayName: '5',
-                        position: wallSpotPosition(9.9, 0),
+                        position: wallSpotPosition(9.9, -3),
                         wall: 'right',
                         rotation: -Math.PI / 2,
                         maxWidth: 5,
@@ -4931,28 +4931,28 @@
                         id: 'contemporary-wing:6',
                         baseId: '6',
                         displayName: '6',
+                        position: wallSpotPosition(9.9, 0),
+                        wall: 'right',
+                        rotation: -Math.PI / 2,
+                        maxWidth: 5,
+                        wallLength: 16 * 0.3048
+                    },
+                    {
+                        id: 'contemporary-wing:7',
+                        baseId: '7',
+                        displayName: '7',
                         position: wallSpotPosition(9.9, 3),
                         wall: 'right',
                         rotation: -Math.PI / 2,
                         maxWidth: 5,
                         wallLength: 16 * 0.3048
                     },
-                    // Front wall - spots 7, 8, 9
-                    {
-                        id: 'contemporary-wing:7',
-                        baseId: '7',
-                        displayName: '7',
-                        position: wallSpotPosition(-5, 7.9),
-                        wall: 'front',
-                        rotation: Math.PI,
-                        maxWidth: 6,
-                        wallLength: 20 * 0.3048
-                    },
+                    // Front wall - spots 8, 9, 10
                     {
                         id: 'contemporary-wing:8',
                         baseId: '8',
                         displayName: '8',
-                        position: wallSpotPosition(0, 7.9),
+                        position: wallSpotPosition(-5, 7.9),
                         wall: 'front',
                         rotation: Math.PI,
                         maxWidth: 6,
@@ -4962,28 +4962,28 @@
                         id: 'contemporary-wing:9',
                         baseId: '9',
                         displayName: '9',
+                        position: wallSpotPosition(0, 7.9),
+                        wall: 'front',
+                        rotation: Math.PI,
+                        maxWidth: 6,
+                        wallLength: 20 * 0.3048
+                    },
+                    {
+                        id: 'contemporary-wing:10',
+                        baseId: '10',
+                        displayName: '10',
                         position: wallSpotPosition(5, 7.9),
                         wall: 'front',
                         rotation: Math.PI,
                         maxWidth: 6,
                         wallLength: 20 * 0.3048
                     },
-                    // Left wall - spots 10, 11, 12
-                    {
-                        id: 'contemporary-wing:10',
-                        baseId: '10',
-                        displayName: '10',
-                        position: wallSpotPosition(-9.9, -3),
-                        wall: 'left',
-                        rotation: Math.PI / 2,
-                        maxWidth: 5,
-                        wallLength: 16 * 0.3048
-                    },
+                    // Left wall - spots 11, 12, 13
                     {
                         id: 'contemporary-wing:11',
                         baseId: '11',
                         displayName: '11',
-                        position: wallSpotPosition(-9.9, 0),
+                        position: wallSpotPosition(-9.9, -3),
                         wall: 'left',
                         rotation: Math.PI / 2,
                         maxWidth: 5,
@@ -4993,6 +4993,16 @@
                         id: 'contemporary-wing:12',
                         baseId: '12',
                         displayName: '12',
+                        position: wallSpotPosition(-9.9, 0),
+                        wall: 'left',
+                        rotation: Math.PI / 2,
+                        maxWidth: 5,
+                        wallLength: 16 * 0.3048
+                    },
+                    {
+                        id: 'contemporary-wing:13',
+                        baseId: '13',
+                        displayName: '13',
                         position: wallSpotPosition(-9.9, 3),
                         wall: 'left',
                         rotation: Math.PI / 2,
