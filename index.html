@@ -2587,6 +2587,174 @@
                 border-top: 1px solid rgba(255, 255, 255, 0.05);
             }
         }
+
+        /* Crop Dialog Styles */
+        #crop-dialog {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            z-index: 400;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(10px);
+        }
+
+        #crop-dialog.active {
+            display: flex;
+        }
+
+        .crop-container {
+            background: rgba(30, 30, 30, 0.98);
+            border-radius: 16px;
+            padding: 25px;
+            max-width: 90vw;
+            max-height: 90vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        }
+
+        .crop-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .crop-header h3 {
+            margin: 0;
+            color: #667eea;
+            font-size: 1.3em;
+        }
+
+        .crop-canvas-wrapper {
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #111;
+            border-radius: 8px;
+            overflow: hidden;
+            max-width: 800px;
+            max-height: 60vh;
+        }
+
+        #crop-canvas {
+            max-width: 100%;
+            max-height: 60vh;
+            display: block;
+        }
+
+        .crop-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        .crop-selection {
+            position: absolute;
+            border: 2px dashed #667eea;
+            background: transparent;
+            cursor: move;
+            pointer-events: auto;
+            box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.6);
+        }
+
+        .crop-handle {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            background: #667eea;
+            border: 2px solid white;
+            border-radius: 2px;
+            pointer-events: auto;
+        }
+
+        .crop-handle.nw { top: -6px; left: -6px; cursor: nw-resize; }
+        .crop-handle.ne { top: -6px; right: -6px; cursor: ne-resize; }
+        .crop-handle.sw { bottom: -6px; left: -6px; cursor: sw-resize; }
+        .crop-handle.se { bottom: -6px; right: -6px; cursor: se-resize; }
+        .crop-handle.n { top: -6px; left: 50%; transform: translateX(-50%); cursor: n-resize; }
+        .crop-handle.s { bottom: -6px; left: 50%; transform: translateX(-50%); cursor: s-resize; }
+        .crop-handle.e { right: -6px; top: 50%; transform: translateY(-50%); cursor: e-resize; }
+        .crop-handle.w { left: -6px; top: 50%; transform: translateY(-50%); cursor: w-resize; }
+
+        .crop-controls {
+            display: flex;
+            gap: 15px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .crop-controls label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 0.9em;
+        }
+
+        .crop-controls select {
+            padding: 6px 10px;
+            border-radius: 6px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+        }
+
+        .crop-dimensions {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 0.85em;
+            margin-left: auto;
+        }
+
+        .crop-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+            justify-content: flex-end;
+        }
+
+        .crop-actions button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: transform 0.2s;
+        }
+
+        .crop-actions button:hover {
+            transform: translateY(-2px);
+        }
+
+        .crop-actions .crop-apply {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .crop-actions .crop-reset {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+        }
+
+        .crop-actions .crop-skip {
+            background: rgba(74, 222, 128, 0.8);
+            color: white;
+        }
+
+        .crop-actions .crop-cancel {
+            background: rgba(248, 113, 113, 0.8);
+            color: white;
+        }
     </style>
 </head>
 <body>
@@ -2840,8 +3008,11 @@
         
         <div id="edit-image-preview" style="display:none; margin-bottom: 15px;">
             <img id="edit-preview-img" style="max-width: 100%; max-height: 150px; border-radius: 6px;">
+            <button onclick="openCropFromEdit()" style="margin-top: 10px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 8px 16px; border: none; border-radius: 6px; color: white; cursor: pointer; font-size: 0.9em;">
+                Crop Image
+            </button>
         </div>
-        
+
         <div class="section-divider">
             <label>Title:</label>
             <input type="text" id="edit-title-input" placeholder="Untitled">
@@ -2892,6 +3063,52 @@
         <div>
             <button onclick="saveArtworkEdit()">Save Changes</button>
             <button class="cancel" onclick="cancelEdit()">Cancel</button>
+        </div>
+    </div>
+
+    <!-- Crop Dialog -->
+    <div id="crop-dialog">
+        <div class="crop-container">
+            <div class="crop-header">
+                <h3>Crop Image</h3>
+            </div>
+            <div class="crop-canvas-wrapper">
+                <canvas id="crop-canvas"></canvas>
+                <div class="crop-overlay">
+                    <div class="crop-selection" id="crop-selection">
+                        <div class="crop-handle nw" data-handle="nw"></div>
+                        <div class="crop-handle n" data-handle="n"></div>
+                        <div class="crop-handle ne" data-handle="ne"></div>
+                        <div class="crop-handle e" data-handle="e"></div>
+                        <div class="crop-handle se" data-handle="se"></div>
+                        <div class="crop-handle s" data-handle="s"></div>
+                        <div class="crop-handle sw" data-handle="sw"></div>
+                        <div class="crop-handle w" data-handle="w"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="crop-controls">
+                <label>
+                    Aspect Ratio:
+                    <select id="crop-aspect-ratio">
+                        <option value="free">Free</option>
+                        <option value="1:1">1:1 (Square)</option>
+                        <option value="4:3">4:3</option>
+                        <option value="3:4">3:4</option>
+                        <option value="16:9">16:9</option>
+                        <option value="9:16">9:16</option>
+                        <option value="3:2">3:2</option>
+                        <option value="2:3">2:3</option>
+                    </select>
+                </label>
+                <span class="crop-dimensions" id="crop-dimensions">0 x 0 px</span>
+            </div>
+            <div class="crop-actions">
+                <button class="crop-cancel" onclick="cancelCrop()">Cancel</button>
+                <button class="crop-reset" onclick="resetCrop()">Reset</button>
+                <button class="crop-skip" onclick="skipCrop()">Skip Crop</button>
+                <button class="crop-apply" onclick="applyCrop()">Apply Crop</button>
+            </div>
         </div>
     </div>
 
@@ -6501,6 +6718,10 @@
             if (artworkData.price !== undefined) updateData.price = artworkData.price;
             if (artworkData.currency !== undefined) updateData.currency = artworkData.currency;
 
+            // Handle image updates (for cropping)
+            if (artworkData.imageUrl !== undefined) updateData.imageUrl = artworkData.imageUrl;
+            if (artworkData.aspectRatio !== undefined) updateData.aspectRatio = artworkData.aspectRatio;
+
             const eventData = {
                 verb: 'update',
                 op: 'artwork_edit',
@@ -7290,11 +7511,8 @@
                 if (file.type.startsWith('image/')) {
                     const reader = new FileReader();
                     reader.onload = (e) => {
-                        const img = new Image();
-                        img.onload = () => {
-                            showPlacementDialog(file, 'image', img.width / img.height, e.target.result);
-                        };
-                        img.src = e.target.result;
+                        // Show crop dialog before placement
+                        showCropDialog(file, e.target.result, false, null);
                     };
                     reader.readAsDataURL(file);
                 }
@@ -7460,7 +7678,404 @@
                 }
             }
         }
-        
+
+        // =========================================
+        // CROP FUNCTIONALITY
+        // =========================================
+        let cropState = {
+            image: null,
+            file: null,
+            canvas: null,
+            ctx: null,
+            selection: { x: 0, y: 0, width: 0, height: 0 },
+            imageScale: 1,
+            offsetX: 0,
+            offsetY: 0,
+            dragging: false,
+            resizing: null,
+            startX: 0,
+            startY: 0,
+            aspectRatio: null,
+            isFromEdit: false,
+            editArtworkMesh: null
+        };
+
+        function showCropDialog(file, imageDataUrl, fromEdit = false, artworkMesh = null) {
+            const dialog = document.getElementById('crop-dialog');
+            const canvas = document.getElementById('crop-canvas');
+            const ctx = canvas.getContext('2d');
+
+            cropState.file = file;
+            cropState.canvas = canvas;
+            cropState.ctx = ctx;
+            cropState.isFromEdit = fromEdit;
+            cropState.editArtworkMesh = artworkMesh;
+            cropState.aspectRatio = null;
+            document.getElementById('crop-aspect-ratio').value = 'free';
+
+            const img = new Image();
+            img.onload = () => {
+                cropState.image = img;
+
+                // Calculate canvas size to fit in viewport
+                const maxWidth = Math.min(800, window.innerWidth * 0.8);
+                const maxHeight = window.innerHeight * 0.55;
+
+                let displayWidth = img.width;
+                let displayHeight = img.height;
+
+                if (displayWidth > maxWidth) {
+                    const ratio = maxWidth / displayWidth;
+                    displayWidth = maxWidth;
+                    displayHeight *= ratio;
+                }
+
+                if (displayHeight > maxHeight) {
+                    const ratio = maxHeight / displayHeight;
+                    displayHeight *= ratio;
+                    displayWidth *= ratio;
+                }
+
+                cropState.imageScale = displayWidth / img.width;
+                canvas.width = displayWidth;
+                canvas.height = displayHeight;
+
+                // Draw initial image
+                ctx.drawImage(img, 0, 0, displayWidth, displayHeight);
+
+                // Initialize crop selection to full image
+                resetCrop();
+
+                dialog.classList.add('active');
+                initCropHandlers();
+            };
+            img.src = imageDataUrl;
+        }
+
+        function initCropHandlers() {
+            const selection = document.getElementById('crop-selection');
+            const wrapper = document.querySelector('.crop-canvas-wrapper');
+
+            // Remove old listeners by cloning
+            const newSelection = selection.cloneNode(true);
+            selection.parentNode.replaceChild(newSelection, selection);
+
+            let startSelX, startSelY, startSelW, startSelH;
+
+            // Handle selection drag
+            newSelection.addEventListener('mousedown', (e) => {
+                if (e.target.classList.contains('crop-handle')) return;
+
+                cropState.dragging = true;
+                cropState.startX = e.clientX;
+                cropState.startY = e.clientY;
+                startSelX = cropState.selection.x;
+                startSelY = cropState.selection.y;
+                e.preventDefault();
+            });
+
+            // Handle resize
+            newSelection.querySelectorAll('.crop-handle').forEach(handle => {
+                handle.addEventListener('mousedown', (e) => {
+                    cropState.resizing = handle.dataset.handle;
+                    cropState.startX = e.clientX;
+                    cropState.startY = e.clientY;
+                    startSelX = cropState.selection.x;
+                    startSelY = cropState.selection.y;
+                    startSelW = cropState.selection.width;
+                    startSelH = cropState.selection.height;
+                    e.stopPropagation();
+                    e.preventDefault();
+                });
+            });
+
+            document.addEventListener('mousemove', handleCropMouseMove);
+            document.addEventListener('mouseup', handleCropMouseUp);
+
+            function handleCropMouseMove(e) {
+                if (!cropState.dragging && !cropState.resizing) return;
+
+                const dx = e.clientX - cropState.startX;
+                const dy = e.clientY - cropState.startY;
+                const canvasW = cropState.canvas.width;
+                const canvasH = cropState.canvas.height;
+
+                if (cropState.dragging) {
+                    // Move selection
+                    let newX = startSelX + dx;
+                    let newY = startSelY + dy;
+
+                    // Constrain to canvas
+                    newX = Math.max(0, Math.min(newX, canvasW - cropState.selection.width));
+                    newY = Math.max(0, Math.min(newY, canvasH - cropState.selection.height));
+
+                    cropState.selection.x = newX;
+                    cropState.selection.y = newY;
+                } else if (cropState.resizing) {
+                    // Resize based on handle
+                    let newX = startSelX;
+                    let newY = startSelY;
+                    let newW = startSelW;
+                    let newH = startSelH;
+
+                    const handle = cropState.resizing;
+
+                    if (handle.includes('e')) {
+                        newW = Math.max(20, startSelW + dx);
+                    }
+                    if (handle.includes('w')) {
+                        const maxDx = startSelW - 20;
+                        const actualDx = Math.min(dx, maxDx);
+                        newX = startSelX + actualDx;
+                        newW = startSelW - actualDx;
+                    }
+                    if (handle.includes('s')) {
+                        newH = Math.max(20, startSelH + dy);
+                    }
+                    if (handle.includes('n')) {
+                        const maxDy = startSelH - 20;
+                        const actualDy = Math.min(dy, maxDy);
+                        newY = startSelY + actualDy;
+                        newH = startSelH - actualDy;
+                    }
+
+                    // Apply aspect ratio constraint if set
+                    if (cropState.aspectRatio) {
+                        const ratio = cropState.aspectRatio;
+                        if (handle.includes('e') || handle.includes('w')) {
+                            newH = newW / ratio;
+                        } else {
+                            newW = newH * ratio;
+                        }
+                    }
+
+                    // Constrain to canvas bounds
+                    newX = Math.max(0, newX);
+                    newY = Math.max(0, newY);
+                    newW = Math.min(newW, canvasW - newX);
+                    newH = Math.min(newH, canvasH - newY);
+
+                    cropState.selection.x = newX;
+                    cropState.selection.y = newY;
+                    cropState.selection.width = newW;
+                    cropState.selection.height = newH;
+                }
+
+                updateCropSelection();
+            }
+
+            function handleCropMouseUp() {
+                cropState.dragging = false;
+                cropState.resizing = null;
+            }
+
+            // Aspect ratio change
+            document.getElementById('crop-aspect-ratio').addEventListener('change', (e) => {
+                const value = e.target.value;
+                if (value === 'free') {
+                    cropState.aspectRatio = null;
+                } else {
+                    const [w, h] = value.split(':').map(Number);
+                    cropState.aspectRatio = w / h;
+
+                    // Adjust current selection to match ratio
+                    const currentCenterX = cropState.selection.x + cropState.selection.width / 2;
+                    const currentCenterY = cropState.selection.y + cropState.selection.height / 2;
+
+                    let newW = cropState.selection.width;
+                    let newH = newW / cropState.aspectRatio;
+
+                    if (newH > cropState.canvas.height) {
+                        newH = cropState.canvas.height * 0.9;
+                        newW = newH * cropState.aspectRatio;
+                    }
+
+                    cropState.selection.width = Math.min(newW, cropState.canvas.width);
+                    cropState.selection.height = Math.min(newH, cropState.canvas.height);
+                    cropState.selection.x = Math.max(0, Math.min(currentCenterX - cropState.selection.width / 2, cropState.canvas.width - cropState.selection.width));
+                    cropState.selection.y = Math.max(0, Math.min(currentCenterY - cropState.selection.height / 2, cropState.canvas.height - cropState.selection.height));
+
+                    updateCropSelection();
+                }
+            });
+        }
+
+        function updateCropSelection() {
+            const selection = document.getElementById('crop-selection');
+            const { x, y, width, height } = cropState.selection;
+
+            selection.style.left = x + 'px';
+            selection.style.top = y + 'px';
+            selection.style.width = width + 'px';
+            selection.style.height = height + 'px';
+
+            // Update dimensions display (in original image pixels)
+            const realW = Math.round(width / cropState.imageScale);
+            const realH = Math.round(height / cropState.imageScale);
+            document.getElementById('crop-dimensions').textContent = `${realW} x ${realH} px`;
+        }
+
+        function resetCrop() {
+            const canvasW = cropState.canvas.width;
+            const canvasH = cropState.canvas.height;
+
+            // Set selection to 90% of canvas
+            const margin = 0.05;
+            cropState.selection = {
+                x: canvasW * margin,
+                y: canvasH * margin,
+                width: canvasW * (1 - 2 * margin),
+                height: canvasH * (1 - 2 * margin)
+            };
+
+            cropState.aspectRatio = null;
+            document.getElementById('crop-aspect-ratio').value = 'free';
+
+            updateCropSelection();
+        }
+
+        function cancelCrop() {
+            document.getElementById('crop-dialog').classList.remove('active');
+            cropState = {
+                image: null,
+                file: null,
+                canvas: null,
+                ctx: null,
+                selection: { x: 0, y: 0, width: 0, height: 0 },
+                imageScale: 1,
+                offsetX: 0,
+                offsetY: 0,
+                dragging: false,
+                resizing: null,
+                startX: 0,
+                startY: 0,
+                aspectRatio: null,
+                isFromEdit: false,
+                editArtworkMesh: null
+            };
+        }
+
+        function skipCrop() {
+            const dialog = document.getElementById('crop-dialog');
+            dialog.classList.remove('active');
+
+            // Get the original image data URL
+            const canvas = document.createElement('canvas');
+            canvas.width = cropState.image.width;
+            canvas.height = cropState.image.height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(cropState.image, 0, 0);
+            const imageUrl = canvas.toDataURL('image/png');
+            const aspectRatio = cropState.image.width / cropState.image.height;
+
+            if (cropState.isFromEdit && cropState.editArtworkMesh) {
+                // Update existing artwork with new image
+                updateArtworkWithCroppedImage(cropState.editArtworkMesh, imageUrl, aspectRatio);
+            } else {
+                // Proceed to placement dialog
+                showPlacementDialog(cropState.file, 'image', aspectRatio, imageUrl);
+            }
+
+            cancelCrop();
+        }
+
+        function applyCrop() {
+            const dialog = document.getElementById('crop-dialog');
+            const { x, y, width, height } = cropState.selection;
+            const scale = cropState.imageScale;
+
+            // Calculate crop region in original image coordinates
+            const srcX = x / scale;
+            const srcY = y / scale;
+            const srcW = width / scale;
+            const srcH = height / scale;
+
+            // Create cropped image
+            const croppedCanvas = document.createElement('canvas');
+            croppedCanvas.width = srcW;
+            croppedCanvas.height = srcH;
+            const croppedCtx = croppedCanvas.getContext('2d');
+
+            croppedCtx.drawImage(
+                cropState.image,
+                srcX, srcY, srcW, srcH,
+                0, 0, srcW, srcH
+            );
+
+            const croppedUrl = croppedCanvas.toDataURL('image/png');
+            const aspectRatio = srcW / srcH;
+
+            dialog.classList.remove('active');
+
+            if (cropState.isFromEdit && cropState.editArtworkMesh) {
+                // Update existing artwork with cropped image
+                updateArtworkWithCroppedImage(cropState.editArtworkMesh, croppedUrl, aspectRatio);
+            } else {
+                // Proceed to placement dialog with cropped image
+                showPlacementDialog(cropState.file, 'image', aspectRatio, croppedUrl);
+            }
+
+            // Reset crop state
+            cancelCrop();
+        }
+
+        function updateArtworkWithCroppedImage(artworkMesh, imageUrl, aspectRatio) {
+            // Load new texture
+            const textureLoader = new THREE.TextureLoader();
+            textureLoader.load(imageUrl, (texture) => {
+                texture.colorSpace = THREE.SRGBColorSpace;
+
+                // Find the painted surface in the artwork mesh
+                artworkMesh.traverse((child) => {
+                    if (child.isMesh && child.material && child.material.map) {
+                        // Dispose old texture
+                        if (child.material.map) {
+                            child.material.map.dispose();
+                        }
+
+                        // Apply new texture
+                        child.material.map = texture;
+                        child.material.needsUpdate = true;
+
+                        // Update geometry for new aspect ratio
+                        const userData = artworkMesh.userData;
+                        const heightFeet = userData.heightFeet || 3;
+                        const heightMeters = heightFeet * 0.3048;
+                        const widthMeters = heightMeters * aspectRatio;
+
+                        // Update the plane geometry
+                        if (child.geometry) {
+                            child.geometry.dispose();
+                            child.geometry = new THREE.PlaneGeometry(widthMeters, heightMeters);
+                        }
+
+                        // Update stored aspect ratio
+                        artworkMesh.userData.aspectRatio = aspectRatio;
+                        artworkMesh.userData.imageUrl = imageUrl;
+                    }
+                });
+
+                // Update the event in storage if admin
+                if (isAdmin && (artworkMesh.userData.artworkId || artworkMesh.userData.eventId)) {
+                    const objectId = artworkMesh.userData.artworkId || artworkMesh.userData.eventId;
+                    // Update via event store
+                    updateArtworkEvent({
+                        id: objectId,
+                        imageUrl: imageUrl,
+                        aspectRatio: aspectRatio
+                    });
+                }
+
+                // Close edit dialog if open
+                document.getElementById('edit-dialog').classList.remove('active');
+
+                console.log('Artwork updated with cropped image');
+            });
+        }
+        // =========================================
+        // END CROP FUNCTIONALITY
+        // =========================================
+
         function cancelPlacement() {
             document.getElementById('placement-dialog').classList.remove('active');
             currentPendingArt = null;
@@ -8686,7 +9301,22 @@
             document.getElementById('edit-dialog').classList.remove('active');
             currentEditingArtwork = null;
         }
-        
+
+        function openCropFromEdit() {
+            if (!currentEditingArtwork || !currentEditingArtwork.userData.imageUrl) {
+                alert('No image available to crop');
+                return;
+            }
+
+            const imageUrl = currentEditingArtwork.userData.imageUrl;
+
+            // Close edit dialog temporarily
+            document.getElementById('edit-dialog').classList.remove('active');
+
+            // Open crop dialog with the current image
+            showCropDialog(null, imageUrl, true, currentEditingArtwork);
+        }
+
         function showArtViewer(artData) {
             const viewer = document.getElementById('art-viewer');
             const image = document.getElementById('viewer-image');
