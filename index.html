@@ -1563,7 +1563,7 @@
 
         .catalogue-item-image {
             width: 100%;
-            aspect-ratio: 1;
+            aspect-ratio: 3 / 4;
             object-fit: cover;
             background: rgba(0, 0, 0, 0.3);
         }
@@ -2717,18 +2717,18 @@
             </div>
 
             <div class="control-group">
-                <button id="show-spaces-btn" onclick="toggleShowSpaces()" style="width: 100%; padding: 12px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 500; font-size: 1em;">
-                    Show Spaces
-                </button>
-                <div class="supported-formats">Highlight available wall spots for art placement (Tab key)</div>
-            </div>
-
-            <div class="control-group">
                 <label>Art Catalogue</label>
                 <button onclick="openCatalogue()" style="width: 100%; padding: 12px; background: linear-gradient(135deg, #4ade80 0%, #22c55e 100%); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 500; font-size: 1em;">
                     Open Catalogue (<span id="catalogue-count">0</span> items)
                 </button>
-                <div class="supported-formats">Browse and place artwork from your catalogue</div>
+                <div class="supported-formats">Browse and place artwork from your catalogue - most intuitive way to add art</div>
+            </div>
+
+            <div class="control-group">
+                <button id="show-spaces-btn" onclick="toggleShowSpaces()" style="width: 100%; padding: 12px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 500; font-size: 1em;">
+                    Show Spaces
+                </button>
+                <div class="supported-formats">Highlight available wall spots for art placement (Tab key)</div>
             </div>
 
             <div class="control-group">
@@ -3746,9 +3746,19 @@
         // Open catalogue dialog
         function openCatalogue() {
             if (!isAdmin) return;
-            document.getElementById('catalogue-dialog').classList.add('active');
-            populateRoomFilter();
-            renderCatalogue();
+            try {
+                const catalogueDialog = document.getElementById('catalogue-dialog');
+                if (!catalogueDialog) {
+                    console.error('Catalogue dialog element not found');
+                    return;
+                }
+                catalogueDialog.classList.add('active');
+                populateRoomFilter();
+                renderCatalogue();
+            } catch (error) {
+                console.error('Error opening catalogue:', error);
+                alert('Failed to open catalogue. Please try again.');
+            }
         }
 
         // Populate room filter dropdown
@@ -3801,38 +3811,64 @@
 
         // Render catalogue grid
         function renderCatalogue() {
-            const grid = document.getElementById('catalogue-grid');
-            const searchTerm = document.getElementById('catalogue-search').value.toLowerCase();
-            const filter = document.getElementById('catalogue-filter').value;
-            const roomFilter = document.getElementById('catalogue-room-filter')?.value || 'all';
+            try {
+                const grid = document.getElementById('catalogue-grid');
+                if (!grid) {
+                    console.error('Catalogue grid element not found');
+                    return;
+                }
 
-            let filteredItems = artCatalogue.filter(item => {
-                const matchesSearch = item.title.toLowerCase().includes(searchTerm) ||
-                                     (item.artist && item.artist.toLowerCase().includes(searchTerm));
+                const searchInput = document.getElementById('catalogue-search');
+                const filterInput = document.getElementById('catalogue-filter');
+                const searchTerm = searchInput?.value?.toLowerCase() || '';
+                const filter = filterInput?.value || 'all';
+                const roomFilter = document.getElementById('catalogue-room-filter')?.value || 'all';
 
-                if (!matchesSearch) return false;
+                // Ensure artCatalogue is initialized
+                if (!Array.isArray(artCatalogue)) {
+                    console.error('Art catalogue is not properly initialized');
+                    artCatalogue = [];
+                }
 
-                const isPlaced = isCatalogueItemPlaced(item.id);
-                if (filter === 'placed' && !isPlaced) return false;
-                if (filter === 'unplaced' && isPlaced) return false;
+                let filteredItems = artCatalogue.filter(item => {
+                    // Skip items without required fields
+                    if (!item || !item.title) return false;
 
-                // Room filter
-                if (roomFilter === 'untagged' && item.roomTag) return false;
-                if (roomFilter !== 'all' && roomFilter !== 'untagged' && item.roomTag !== roomFilter) return false;
+                    const matchesSearch = item.title.toLowerCase().includes(searchTerm) ||
+                                         (item.artist && item.artist.toLowerCase().includes(searchTerm));
 
-                return true;
-            });
+                    if (!matchesSearch) return false;
 
-            // Update stats
-            const stats = document.getElementById('catalogue-stats');
-            const placedCount = artCatalogue.filter(item => isCatalogueItemPlaced(item.id)).length;
-            stats.textContent = `${filteredItems.length} of ${artCatalogue.length} items (${placedCount} placed)`;
+                    const isPlaced = isCatalogueItemPlaced(item.id);
+                    if (filter === 'placed' && !isPlaced) return false;
+                    if (filter === 'unplaced' && isPlaced) return false;
 
-            // Render based on current view
-            if (currentCatalogueView === 'table') {
-                renderTableView(grid, filteredItems);
-            } else {
-                renderCardView(grid, filteredItems);
+                    // Room filter
+                    if (roomFilter === 'untagged' && item.roomTag) return false;
+                    if (roomFilter !== 'all' && roomFilter !== 'untagged' && item.roomTag !== roomFilter) return false;
+
+                    return true;
+                });
+
+                // Update stats
+                const stats = document.getElementById('catalogue-stats');
+                const placedCount = artCatalogue.filter(item => isCatalogueItemPlaced(item.id)).length;
+                if (stats) {
+                    stats.textContent = `${filteredItems.length} of ${artCatalogue.length} items (${placedCount} placed)`;
+                }
+
+                // Render based on current view
+                if (currentCatalogueView === 'table') {
+                    renderTableView(grid, filteredItems);
+                } else {
+                    renderCardView(grid, filteredItems);
+                }
+            } catch (error) {
+                console.error('Error rendering catalogue:', error);
+                const grid = document.getElementById('catalogue-grid');
+                if (grid) {
+                    grid.innerHTML = '<div style="padding: 20px; color: #ff6b6b; text-align: center;">Error loading catalogue. Please try again.</div>';
+                }
             }
         }
 
@@ -3848,7 +3884,11 @@
 
                 return `
                     <div class="catalogue-item ${isPlaced ? 'placed' : ''}" onclick="openCatalogueDetail('${item.id}')">
-                        <img class="catalogue-item-image" src="${item.image_url}" alt="${item.title}" loading="lazy">
+                        <img class="catalogue-item-image"
+                             src="${item.image_url}"
+                             alt="${item.title}"
+                             loading="lazy"
+                             onerror="this.style.display='none'; this.nextElementSibling.style.paddingTop='20px';">
                         <div class="catalogue-item-info">
                             <div class="catalogue-item-artist">${item.artist || 'Unknown Artist'}</div>
                             <div class="catalogue-item-title">${item.title}</div>
