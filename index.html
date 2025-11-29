@@ -2714,14 +2714,13 @@
 
             <div class="spots-indicator">
                 <div>Available Wall Spots: <span id="wall-spots" class="spot-available">0/0</span></div>
-                <div>Available Sculpture Spots: <span id="floor-spots" class="spot-available">0/0</span></div>
             </div>
 
             <div class="control-group">
                 <button id="show-spaces-btn" onclick="toggleShowSpaces()" style="width: 100%; padding: 12px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 500; font-size: 1em;">
                     Show Spaces
                 </button>
-                <div class="supported-formats">Highlight available wall and floor spots for art placement (Tab key)</div>
+                <div class="supported-formats">Highlight available wall spots for art placement (Tab key)</div>
             </div>
 
             <div class="control-group">
@@ -2808,6 +2807,13 @@
         </div>
 
         <div class="section-divider">
+            <label>Room:</label>
+            <select id="placement-room-filter" onchange="filterPlacementLocations()">
+                <option value="">All Rooms</option>
+            </select>
+        </div>
+
+        <div class="section-divider">
             <label>Select Location:</label>
             <div id="location-grid" class="location-grid"></div>
         </div>
@@ -2820,10 +2826,11 @@
         </div>
         
         <div id="size-warning" class="warning" style="display:none;"></div>
-        
-        <div>
-            <button onclick="placeArtwork()">Place Artwork</button>
-            <button class="cancel" onclick="cancelPlacement()">Cancel</button>
+
+        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <button onclick="placeArtwork()" style="flex: 1; min-width: 120px;">Place in Gallery</button>
+            <button onclick="addToCatalogueOnly()" style="flex: 1; min-width: 120px; background: linear-gradient(135deg, #4ade80 0%, #22c55e 100%);">Save to Catalogue</button>
+            <button class="cancel" onclick="cancelPlacement()" style="min-width: 100px;">Cancel</button>
         </div>
     </div>
     
@@ -3113,6 +3120,12 @@
                     <div>
                         <label>Gallery</label>
                         <select id="catalogue-gallery"></select>
+                    </div>
+                    <div>
+                        <label>Room</label>
+                        <select id="catalogue-room-tag" onchange="onCatalogueRoomTagChange()">
+                            <option value="">No room</option>
+                        </select>
                     </div>
                     <div>
                         <label>Location</label>
@@ -3961,10 +3974,30 @@
                 `<option value="${g.id}" ${g.id === activeGalleryId ? 'selected' : ''}>${g.name}</option>`
             ).join('') || '<option value="">Default Gallery</option>';
 
+            // Populate room tag dropdown
+            const roomTagSelect = document.getElementById('catalogue-room-tag');
+            roomTagSelect.innerHTML = '<option value="">No room</option>' +
+                Object.values(ROOMS).map(room =>
+                    `<option value="${room.id}" ${item.roomTag === room.id ? 'selected' : ''}>${room.name}</option>`
+                ).join('');
+
             // Populate location dropdown with room tag priority
             populateCatalogueLocations(item.roomTag);
 
             document.getElementById('catalogue-detail').classList.add('active');
+        }
+
+        function onCatalogueRoomTagChange() {
+            const roomTag = document.getElementById('catalogue-room-tag').value;
+
+            // Update the catalogue item with the new room tag
+            if (selectedCatalogueItem) {
+                selectedCatalogueItem.roomTag = roomTag || undefined;
+                saveCatalogue();
+
+                // Refresh the location dropdown to show preferred spots
+                populateCatalogueLocations(roomTag);
+            }
         }
 
         // Populate location dropdown based on selected gallery and room tag
@@ -3985,22 +4018,6 @@
                         roomId: room.id,
                         name: `${room.name} - ${wall.displayName}`,
                         type: 'wall',
-                        occupied: isOccupied,
-                        preferred: isPreferred
-                    });
-                });
-            });
-
-            // Add floor spots from all rooms
-            Object.values(ROOMS).forEach(room => {
-                room.floors.forEach(floor => {
-                    const isOccupied = occupiedLocations.has(floor.id);
-                    const isPreferred = preferredRoomId && room.id === preferredRoomId;
-                    options.push({
-                        id: floor.id,
-                        roomId: room.id,
-                        name: `${room.name} - ${floor.displayName} (Floor)`,
-                        type: 'floor',
                         occupied: isOccupied,
                         preferred: isPreferred
                     });
@@ -4426,121 +4443,132 @@
                     colorTemperature: DEFAULT_COLOR_TEMPERATURE
                 },
                 walls: [
+                    // Back wall - spots 1, 2, 3
                     {
-                        id: 'main-gallery:back-1',
-                        baseId: 'back-1',
-                        displayName: 'Back Left Wall',
-                        position: wallSpotPosition(-3.5, -9.9),
+                        id: 'main-gallery:1',
+                        baseId: '1',
+                        displayName: '1',
+                        position: wallSpotPosition(-4, -9.9),
                         wall: 'back',
                         rotation: 0,
                         maxWidth: 5,
                         wallLength: 16 * 0.3048
                     },
                     {
-                        id: 'main-gallery:back-2',
-                        baseId: 'back-2',
-                        displayName: 'Back Center Wall',
+                        id: 'main-gallery:2',
+                        baseId: '2',
+                        displayName: '2',
                         position: wallSpotPosition(0, -9.9),
                         wall: 'back',
                         rotation: 0,
-                        maxWidth: 16 * 0.3048,
+                        maxWidth: 5,
                         wallLength: 16 * 0.3048
                     },
                     {
-                        id: 'main-gallery:back-3',
-                        baseId: 'back-3',
-                        displayName: 'Back Right Wall',
-                        position: wallSpotPosition(3.5, -9.9),
+                        id: 'main-gallery:3',
+                        baseId: '3',
+                        displayName: '3',
+                        position: wallSpotPosition(4, -9.9),
                         wall: 'back',
                         rotation: 0,
                         maxWidth: 5,
                         wallLength: 16 * 0.3048
                     },
+                    // Right wall - spots 4, 5, 6
                     {
-                        id: 'main-gallery:left-1',
-                        baseId: 'left-1',
-                        displayName: 'Left Front Wall',
-                        position: wallSpotPosition(-7.9, -3),
-                        wall: 'left',
-                        rotation: Math.PI / 2,
-                        maxWidth: 10 * 0.3048,
-                        wallLength: 20 * 0.3048
-                    },
-                    {
-                        id: 'main-gallery:left-2',
-                        baseId: 'left-2',
-                        displayName: 'Left Back Wall',
-                        position: wallSpotPosition(-7.9, 3),
-                        wall: 'left',
-                        rotation: Math.PI / 2,
-                        maxWidth: 10 * 0.3048,
-                        wallLength: 20 * 0.3048
-                    },
-                    {
-                        id: 'main-gallery:right-1',
-                        baseId: 'right-1',
-                        displayName: 'Right Front Wall',
-                        position: wallSpotPosition(7.9, -3),
+                        id: 'main-gallery:4',
+                        baseId: '4',
+                        displayName: '4',
+                        position: wallSpotPosition(7.9, -4),
                         wall: 'right',
                         rotation: -Math.PI / 2,
-                        maxWidth: 10 * 0.3048,
+                        maxWidth: 6,
                         wallLength: 20 * 0.3048
                     },
                     {
-                        id: 'main-gallery:right-2',
-                        baseId: 'right-2',
-                        displayName: 'Right Back Wall',
-                        position: wallSpotPosition(7.9, 3),
+                        id: 'main-gallery:5',
+                        baseId: '5',
+                        displayName: '5',
+                        position: wallSpotPosition(7.9, 0),
                         wall: 'right',
                         rotation: -Math.PI / 2,
-                        maxWidth: 10 * 0.3048,
+                        maxWidth: 6,
+                        wallLength: 20 * 0.3048
+                    },
+                    {
+                        id: 'main-gallery:6',
+                        baseId: '6',
+                        displayName: '6',
+                        position: wallSpotPosition(7.9, 4),
+                        wall: 'right',
+                        rotation: -Math.PI / 2,
+                        maxWidth: 6,
+                        wallLength: 20 * 0.3048
+                    },
+                    // Front wall - spots 7, 8, 9
+                    {
+                        id: 'main-gallery:7',
+                        baseId: '7',
+                        displayName: '7',
+                        position: wallSpotPosition(-4, 9.9),
+                        wall: 'front',
+                        rotation: Math.PI,
+                        maxWidth: 5,
+                        wallLength: 16 * 0.3048
+                    },
+                    {
+                        id: 'main-gallery:8',
+                        baseId: '8',
+                        displayName: '8',
+                        position: wallSpotPosition(0, 9.9),
+                        wall: 'front',
+                        rotation: Math.PI,
+                        maxWidth: 5,
+                        wallLength: 16 * 0.3048
+                    },
+                    {
+                        id: 'main-gallery:9',
+                        baseId: '9',
+                        displayName: '9',
+                        position: wallSpotPosition(4, 9.9),
+                        wall: 'front',
+                        rotation: Math.PI,
+                        maxWidth: 5,
+                        wallLength: 16 * 0.3048
+                    },
+                    // Left wall - spots 10, 11, 12
+                    {
+                        id: 'main-gallery:10',
+                        baseId: '10',
+                        displayName: '10',
+                        position: wallSpotPosition(-7.9, -4),
+                        wall: 'left',
+                        rotation: Math.PI / 2,
+                        maxWidth: 6,
+                        wallLength: 20 * 0.3048
+                    },
+                    {
+                        id: 'main-gallery:11',
+                        baseId: '11',
+                        displayName: '11',
+                        position: wallSpotPosition(-7.9, 0),
+                        wall: 'left',
+                        rotation: Math.PI / 2,
+                        maxWidth: 6,
+                        wallLength: 20 * 0.3048
+                    },
+                    {
+                        id: 'main-gallery:12',
+                        baseId: '12',
+                        displayName: '12',
+                        position: wallSpotPosition(-7.9, 4),
+                        wall: 'left',
+                        rotation: Math.PI / 2,
+                        maxWidth: 6,
                         wallLength: 20 * 0.3048
                     }
                 ],
-                floors: [
-                    {
-                        id: 'main-gallery:floor-1',
-                        baseId: 'floor-1',
-                        displayName: 'Front Left',
-                        position: { x: -4, y: 0, z: -3 },
-                        type: 'pedestal'
-                    },
-                    {
-                        id: 'main-gallery:floor-2',
-                        baseId: 'floor-2',
-                        displayName: 'Front Center',
-                        position: { x: 0, y: 0, z: -3 },
-                        type: 'pedestal'
-                    },
-                    {
-                        id: 'main-gallery:floor-3',
-                        baseId: 'floor-3',
-                        displayName: 'Front Right',
-                        position: { x: 4, y: 0, z: -3 },
-                        type: 'pedestal'
-                    },
-                    {
-                        id: 'main-gallery:floor-4',
-                        baseId: 'floor-4',
-                        displayName: 'Rear Left',
-                        position: { x: -4, y: 0, z: 3 },
-                        type: 'pedestal'
-                    },
-                    {
-                        id: 'main-gallery:floor-5',
-                        baseId: 'floor-5',
-                        displayName: 'Rear Right',
-                        position: { x: 4, y: 0, z: 3 },
-                        type: 'pedestal'
-                    },
-                    {
-                        id: 'main-gallery:floor-center',
-                        baseId: 'floor-center',
-                        displayName: 'Center Stage',
-                        position: { x: 0, y: 0, z: 0 },
-                        type: 'large'
-                    }
-                ],
+                floors: [],
                 doors: [
                     {
                         id: 'door-to-contemporary',
@@ -4563,114 +4591,132 @@
                     colorTemperature: DEFAULT_COLOR_TEMPERATURE
                 },
                 walls: [
+                    // Back wall - spots 1, 2, 3
                     {
-                        id: 'contemporary-wing:north-1',
-                        baseId: 'north-1',
-                        displayName: 'Skyline Panel',
-                        position: wallSpotPosition(-5.5, -7.9),
+                        id: 'contemporary-wing:1',
+                        baseId: '1',
+                        displayName: '1',
+                        position: wallSpotPosition(-5, -7.9),
                         wall: 'back',
                         rotation: 0,
                         maxWidth: 6,
                         wallLength: 20 * 0.3048
                     },
                     {
-                        id: 'contemporary-wing:north-2',
-                        baseId: 'north-2',
-                        displayName: 'Lightwell',
+                        id: 'contemporary-wing:2',
+                        baseId: '2',
+                        displayName: '2',
                         position: wallSpotPosition(0, -7.9),
                         wall: 'back',
                         rotation: 0,
-                        maxWidth: 20 * 0.3048,
+                        maxWidth: 6,
                         wallLength: 20 * 0.3048
                     },
                     {
-                        id: 'contemporary-wing:north-3',
-                        baseId: 'north-3',
-                        displayName: 'Glass Passage',
-                        position: wallSpotPosition(5.5, -7.9),
+                        id: 'contemporary-wing:3',
+                        baseId: '3',
+                        displayName: '3',
+                        position: wallSpotPosition(5, -7.9),
                         wall: 'back',
                         rotation: 0,
                         maxWidth: 6,
                         wallLength: 20 * 0.3048
                     },
+                    // Right wall - spots 4, 5, 6
                     {
-                        id: 'contemporary-wing:west-1',
-                        baseId: 'west-1',
-                        displayName: 'Chromatic Stack',
-                        position: wallSpotPosition(-9.9, -2.5),
-                        wall: 'left',
-                        rotation: Math.PI / 2,
-                        maxWidth: 8 * 0.3048,
-                        wallLength: 16 * 0.3048
-                    },
-                    {
-                        id: 'contemporary-wing:west-2',
-                        baseId: 'west-2',
-                        displayName: 'Cascade Wall',
-                        position: wallSpotPosition(-9.9, 2.5),
-                        wall: 'left',
-                        rotation: Math.PI / 2,
-                        maxWidth: 8 * 0.3048,
-                        wallLength: 16 * 0.3048
-                    },
-                    {
-                        id: 'contemporary-wing:east-1',
-                        baseId: 'east-1',
-                        displayName: 'Spectrum Drift',
-                        position: wallSpotPosition(9.9, -2.5),
+                        id: 'contemporary-wing:4',
+                        baseId: '4',
+                        displayName: '4',
+                        position: wallSpotPosition(9.9, -3),
                         wall: 'right',
                         rotation: -Math.PI / 2,
-                        maxWidth: 8 * 0.3048,
+                        maxWidth: 5,
                         wallLength: 16 * 0.3048
                     },
                     {
-                        id: 'contemporary-wing:east-2',
-                        baseId: 'east-2',
-                        displayName: 'Neon Strata',
-                        position: wallSpotPosition(9.9, 2.5),
+                        id: 'contemporary-wing:5',
+                        baseId: '5',
+                        displayName: '5',
+                        position: wallSpotPosition(9.9, 0),
                         wall: 'right',
                         rotation: -Math.PI / 2,
-                        maxWidth: 8 * 0.3048,
+                        maxWidth: 5,
+                        wallLength: 16 * 0.3048
+                    },
+                    {
+                        id: 'contemporary-wing:6',
+                        baseId: '6',
+                        displayName: '6',
+                        position: wallSpotPosition(9.9, 3),
+                        wall: 'right',
+                        rotation: -Math.PI / 2,
+                        maxWidth: 5,
+                        wallLength: 16 * 0.3048
+                    },
+                    // Front wall - spots 7, 8, 9
+                    {
+                        id: 'contemporary-wing:7',
+                        baseId: '7',
+                        displayName: '7',
+                        position: wallSpotPosition(-5, 7.9),
+                        wall: 'front',
+                        rotation: Math.PI,
+                        maxWidth: 6,
+                        wallLength: 20 * 0.3048
+                    },
+                    {
+                        id: 'contemporary-wing:8',
+                        baseId: '8',
+                        displayName: '8',
+                        position: wallSpotPosition(0, 7.9),
+                        wall: 'front',
+                        rotation: Math.PI,
+                        maxWidth: 6,
+                        wallLength: 20 * 0.3048
+                    },
+                    {
+                        id: 'contemporary-wing:9',
+                        baseId: '9',
+                        displayName: '9',
+                        position: wallSpotPosition(5, 7.9),
+                        wall: 'front',
+                        rotation: Math.PI,
+                        maxWidth: 6,
+                        wallLength: 20 * 0.3048
+                    },
+                    // Left wall - spots 10, 11, 12
+                    {
+                        id: 'contemporary-wing:10',
+                        baseId: '10',
+                        displayName: '10',
+                        position: wallSpotPosition(-9.9, -3),
+                        wall: 'left',
+                        rotation: Math.PI / 2,
+                        maxWidth: 5,
+                        wallLength: 16 * 0.3048
+                    },
+                    {
+                        id: 'contemporary-wing:11',
+                        baseId: '11',
+                        displayName: '11',
+                        position: wallSpotPosition(-9.9, 0),
+                        wall: 'left',
+                        rotation: Math.PI / 2,
+                        maxWidth: 5,
+                        wallLength: 16 * 0.3048
+                    },
+                    {
+                        id: 'contemporary-wing:12',
+                        baseId: '12',
+                        displayName: '12',
+                        position: wallSpotPosition(-9.9, 3),
+                        wall: 'left',
+                        rotation: Math.PI / 2,
+                        maxWidth: 5,
                         wallLength: 16 * 0.3048
                     }
                 ],
-                floors: [
-                    {
-                        id: 'contemporary-wing:floor-1',
-                        baseId: 'floor-1',
-                        displayName: 'Atrium Plinth',
-                        position: { x: -5, y: 0, z: -2 },
-                        type: 'pedestal'
-                    },
-                    {
-                        id: 'contemporary-wing:floor-2',
-                        baseId: 'floor-2',
-                        displayName: 'Reflective Stage',
-                        position: { x: 0, y: 0, z: -2 },
-                        type: 'large'
-                    },
-                    {
-                        id: 'contemporary-wing:floor-3',
-                        baseId: 'floor-3',
-                        displayName: 'Aurora Base',
-                        position: { x: 5, y: 0, z: -2 },
-                        type: 'pedestal'
-                    },
-                    {
-                        id: 'contemporary-wing:floor-4',
-                        baseId: 'floor-4',
-                        displayName: 'Sculpture Garden',
-                        position: { x: -5, y: 0, z: 3 },
-                        type: 'pedestal'
-                    },
-                    {
-                        id: 'contemporary-wing:floor-5',
-                        baseId: 'floor-5',
-                        displayName: 'Light Pool',
-                        position: { x: 5, y: 0, z: 3 },
-                        type: 'pedestal'
-                    }
-                ],
+                floors: [],
                 doors: [
                     {
                         id: 'door-to-main',
@@ -4691,16 +4737,16 @@
             ROOM_ID_TO_NAME_MAP[room.id] = room.name;
 
             const registerSpot = (spot) => {
+                const fullName = `${room.name} - ${spot.displayName}`;
+                LOCATION_NAME_TO_ID_MAP[fullName] = spot.id;
                 LOCATION_NAME_TO_ID_MAP[spot.displayName] = spot.id;
-                LOCATION_NAME_TO_ID_MAP[`${room.name} - ${spot.displayName}`] = spot.id;
                 if (spot.baseId) {
                     LOCATION_NAME_TO_ID_MAP[spot.baseId] = spot.id;
                 }
-                LOCATION_ID_TO_NAME_MAP[spot.id] = spot.displayName;
+                LOCATION_ID_TO_NAME_MAP[spot.id] = fullName;
             };
 
             room.walls.forEach(registerSpot);
-            room.floors.forEach(registerSpot);
         });
 
         let scene, camera, renderer;
@@ -5245,56 +5291,71 @@
             const halfWidth = (dimensions.width * 0.3048) / 2;
             const halfDepth = (dimensions.depth * 0.3048) / 2;
 
-            // Distribute spots across walls
-            const spotsPerWall = Math.ceil(count / 4);
-            let spotIndex = 0;
+            // Always generate exactly 12 spots (3 per wall)
+            let spotNumber = 1;
 
-            // Back wall spots
-            for (let i = 0; i < Math.min(spotsPerWall, count - spotIndex); i++) {
-                const xOffset = (i - (spotsPerWall - 1) / 2) * 3;
+            // Back wall - spots 1, 2, 3
+            for (let i = 0; i < 3; i++) {
+                const xOffset = (i - 1) * 3; // -3, 0, 3
                 walls.push({
-                    id: `${roomId}:back-${i + 1}`,
-                    baseId: `back-${i + 1}`,
-                    displayName: `Back Wall ${i + 1}`,
+                    id: `${roomId}:${spotNumber}`,
+                    baseId: `${spotNumber}`,
+                    displayName: `${spotNumber}`,
                     position: wallSpotPosition(xOffset, -halfDepth + 0.1),
                     wall: 'back',
                     rotation: 0,
                     maxWidth: 5,
                     wallLength: dimensions.width * 0.3048
                 });
-                spotIndex++;
+                spotNumber++;
             }
 
-            // Left wall spots
-            for (let i = 0; i < Math.min(spotsPerWall, count - spotIndex); i++) {
-                const zOffset = (i - (spotsPerWall - 1) / 2) * 3;
+            // Right wall - spots 4, 5, 6
+            for (let i = 0; i < 3; i++) {
+                const zOffset = (i - 1) * 3; // -3, 0, 3
                 walls.push({
-                    id: `${roomId}:left-${i + 1}`,
-                    baseId: `left-${i + 1}`,
-                    displayName: `Left Wall ${i + 1}`,
-                    position: wallSpotPosition(-halfWidth + 0.1, zOffset),
-                    wall: 'left',
-                    rotation: Math.PI / 2,
-                    maxWidth: 5,
-                    wallLength: dimensions.depth * 0.3048
-                });
-                spotIndex++;
-            }
-
-            // Right wall spots
-            for (let i = 0; i < Math.min(spotsPerWall, count - spotIndex); i++) {
-                const zOffset = (i - (spotsPerWall - 1) / 2) * 3;
-                walls.push({
-                    id: `${roomId}:right-${i + 1}`,
-                    baseId: `right-${i + 1}`,
-                    displayName: `Right Wall ${i + 1}`,
+                    id: `${roomId}:${spotNumber}`,
+                    baseId: `${spotNumber}`,
+                    displayName: `${spotNumber}`,
                     position: wallSpotPosition(halfWidth - 0.1, zOffset),
                     wall: 'right',
                     rotation: -Math.PI / 2,
                     maxWidth: 5,
                     wallLength: dimensions.depth * 0.3048
                 });
-                spotIndex++;
+                spotNumber++;
+            }
+
+            // Front wall - spots 7, 8, 9
+            for (let i = 0; i < 3; i++) {
+                const xOffset = (i - 1) * 3; // -3, 0, 3
+                walls.push({
+                    id: `${roomId}:${spotNumber}`,
+                    baseId: `${spotNumber}`,
+                    displayName: `${spotNumber}`,
+                    position: wallSpotPosition(xOffset, halfDepth - 0.1),
+                    wall: 'front',
+                    rotation: Math.PI,
+                    maxWidth: 5,
+                    wallLength: dimensions.width * 0.3048
+                });
+                spotNumber++;
+            }
+
+            // Left wall - spots 10, 11, 12
+            for (let i = 0; i < 3; i++) {
+                const zOffset = (i - 1) * 3; // -3, 0, 3
+                walls.push({
+                    id: `${roomId}:${spotNumber}`,
+                    baseId: `${spotNumber}`,
+                    displayName: `${spotNumber}`,
+                    position: wallSpotPosition(-halfWidth + 0.1, zOffset),
+                    wall: 'left',
+                    rotation: Math.PI / 2,
+                    maxWidth: 5,
+                    wallLength: dimensions.depth * 0.3048
+                });
+                spotNumber++;
             }
 
             return walls;
@@ -5655,7 +5716,6 @@
 
             createRoomSpots(roomGroup, roomConfig) {
                 const wallSpotsForRoom = [];
-                const floorSpotsForRoom = [];
 
                 roomConfig.walls.forEach(spot => {
                     const spotMesh = new THREE.Mesh(
@@ -5682,33 +5742,7 @@
                     roomGroup.add(spotMesh);
                 });
 
-                roomConfig.floors.forEach(spot => {
-                    const isLarge = spot.type === 'large';
-                    const spotMesh = new THREE.Mesh(
-                        new THREE.BoxGeometry(isLarge ? 2 : 1.2, 0.1, isLarge ? 2 : 1.2),
-                        new THREE.MeshStandardMaterial({
-                            color: 0x667eea,
-                            emissive: 0x667eea,
-                            emissiveIntensity: 0.3,
-                            transparent: true,
-                            opacity: 0.5
-                        })
-                    );
-                    spotMesh.position.copy(spot.position);
-                    spotMesh.position.y = 0.01;
-                    spotMesh.name = 'floor-spot';
-                    spotMesh.visible = false;
-                    spotMesh.userData = {
-                        ...spot,
-                        roomId: roomConfig.id,
-                        occupied: false,
-                        pedestal: null
-                    };
-                    floorSpotsForRoom.push(spotMesh);
-                    roomGroup.add(spotMesh);
-                });
-
-                return { wallSpots: wallSpotsForRoom, floorSpots: floorSpotsForRoom };
+                return { wallSpots: wallSpotsForRoom, floorSpots: [] };
             }
 
             createRoomLighting(roomGroup, roomConfig, spots) {
@@ -7223,7 +7257,12 @@
             }
         }
 
-        function setupLocationGrid(type) {
+        function filterPlacementLocations() {
+            const selectedRoomId = document.getElementById('placement-room-filter').value;
+            setupLocationGrid(currentPendingArt?.type || 'image', selectedRoomId);
+        }
+
+        function setupLocationGrid(type, filterRoomId = null) {
             const locationGrid = document.getElementById('location-grid');
             const warning = document.getElementById('size-warning');
             const sizePreview = document.getElementById('size-preview');
@@ -7239,6 +7278,12 @@
 
             spots.forEach(spotMesh => {
                 const pos = spotMesh.userData;
+
+                // Filter by room if specified
+                if (filterRoomId && pos.roomId !== filterRoomId) {
+                    return;
+                }
+
                 const locationOption = document.createElement('div');
                 locationOption.className = 'location-option';
                 locationOption.dataset.id = pos.id;
@@ -7252,7 +7297,7 @@
                 const friendlyName = LOCATION_ID_TO_NAME_MAP[pos.id] || pos.displayName || pos.id;
 
                 locationOption.innerHTML = `
-                    <div class="location-name">${roomName} - ${friendlyName}</div>
+                    <div class="location-name">${friendlyName}</div>
                     <div class="location-status">${isOccupied ? 'Occupied' : 'Available'}</div>
                 `;
 
@@ -7310,6 +7355,13 @@
             document.getElementById('title-input').value = '';
             document.getElementById('artist-input').value = '';
             document.getElementById('description-input').value = '';
+
+            // Populate room filter dropdown
+            const roomFilter = document.getElementById('placement-room-filter');
+            roomFilter.innerHTML = '<option value="">All Rooms</option>' +
+                Object.values(ROOMS).map(room =>
+                    `<option value="${room.id}">${room.name}</option>`
+                ).join('');
 
             setupLocationGrid(type);
 
@@ -7370,7 +7422,65 @@
             currentPendingArt = null;
             selectedLocation = null;
         }
-        
+
+        function addToCatalogueOnly() {
+            if (!currentPendingArt) {
+                return;
+            }
+
+            // Validate required fields
+            const title = document.getElementById('title-input').value.trim();
+            const artist = document.getElementById('artist-input').value.trim();
+
+            if (!title) {
+                alert('Please enter a title for the artwork');
+                document.getElementById('title-input').focus();
+                return;
+            }
+
+            if (!artist) {
+                alert('Please enter an artist name');
+                document.getElementById('artist-input').focus();
+                return;
+            }
+
+            const productUrl = document.getElementById('product-url-input').value.trim();
+            const priceValue = parseFloat(document.getElementById('price-input').value);
+            const currency = document.getElementById('currency-input').value;
+            const description = document.getElementById('description-input').value.trim();
+            const roomTag = document.getElementById('placement-room-filter').value;
+
+            // Create catalogue item
+            const catalogueItem = {
+                id: `cat_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                title: title,
+                artist: artist,
+                description: description || '',
+                image_url: currentPendingArt.imageUrl,
+                product_url: productUrl || '',
+                price: !isNaN(priceValue) ? priceValue : 0,
+                currency: currency || 'USD',
+                roomTag: roomTag || undefined
+            };
+
+            // Add to catalogue
+            artCatalogue.push(catalogueItem);
+            saveCatalogue();
+
+            // Show success message
+            alert(`"${title}" has been added to your catalogue!`);
+
+            // Close dialog and reset
+            document.getElementById('placement-dialog').classList.remove('active');
+            currentPendingArt = null;
+            selectedLocation = null;
+
+            // Refresh catalogue if it's open
+            if (document.getElementById('catalogue-browser').classList.contains('active')) {
+                renderCatalogueItems();
+            }
+        }
+
         function placeArtwork() {
             console.log('=== PLACE ARTWORK CALLED ===');
             console.log('Current pending art:', currentPendingArt);
@@ -7880,13 +7990,6 @@
                 wallElement.textContent = `${wallOccupied}/${wallSpots.length}`;
                 wallElement.className = wallOccupied >= wallSpots.length ? 'spot-occupied' : 'spot-available';
             }
-
-            const floorElement = document.getElementById('floor-spots');
-            if (floorElement) {
-                const floorOccupied = floorSpots.filter(s => s.userData.occupied).length;
-                floorElement.textContent = `${floorOccupied}/${floorSpots.length}`;
-                floorElement.className = floorOccupied >= floorSpots.length ? 'spot-occupied' : 'spot-available';
-            }
         }
         
         function onKeyDown(event) {
@@ -7955,7 +8058,6 @@
             if (!isAdmin) {
                 viewMode = 'normal';
                 wallSpots.forEach(spot => spot.visible = false);
-                floorSpots.forEach(spot => spot.visible = false);
                 updateShowSpacesButton();
                 return;
             }
@@ -7965,10 +8067,6 @@
             viewMode = modes[(currentIndex + 1) % modes.length];
 
             wallSpots.forEach(spot => {
-                spot.visible = viewMode === 'spots' && !spot.userData.occupied;
-            });
-
-            floorSpots.forEach(spot => {
                 spot.visible = viewMode === 'spots' && !spot.userData.occupied;
             });
 
