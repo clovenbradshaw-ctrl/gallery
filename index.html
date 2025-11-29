@@ -4246,10 +4246,10 @@
                 const wall = room.walls.find(w => w.id === locationId);
                 const floor = room.floors.find(f => f.id === locationId);
                 if (wall) {
-                    locationName = wall.displayName;
+                    locationName = LOCATION_ID_TO_NAME_MAP[locationId] || wall.displayName;
                     roomId = room.id;
                 } else if (floor) {
-                    locationName = floor.displayName;
+                    locationName = LOCATION_ID_TO_NAME_MAP[locationId] || floor.displayName;
                     roomId = room.id;
                 }
             });
@@ -5270,7 +5270,9 @@
             // Update location maps
             ROOM_ID_TO_NAME_MAP[roomId] = name;
             walls.forEach(wall => {
-                LOCATION_ID_TO_NAME_MAP[wall.id] = wall.displayName;
+                const fullName = `${name} - ${wall.displayName}`;
+                LOCATION_ID_TO_NAME_MAP[wall.id] = fullName;
+                LOCATION_NAME_TO_ID_MAP[fullName] = wall.id;
                 LOCATION_NAME_TO_ID_MAP[wall.displayName] = wall.id;
             });
 
@@ -5381,7 +5383,9 @@
                         ROOM_ID_TO_NAME_MAP[roomId] = customRooms[roomId].name;
                         if (customRooms[roomId].walls) {
                             customRooms[roomId].walls.forEach(wall => {
-                                LOCATION_ID_TO_NAME_MAP[wall.id] = wall.displayName;
+                                const fullName = `${customRooms[roomId].name} - ${wall.displayName}`;
+                                LOCATION_ID_TO_NAME_MAP[wall.id] = fullName;
+                                LOCATION_NAME_TO_ID_MAP[fullName] = wall.id;
                                 LOCATION_NAME_TO_ID_MAP[wall.displayName] = wall.id;
                             });
                         }
@@ -7693,12 +7697,10 @@
         
         function mapLocationIdToName(locationId) {
             if (!locationId) return null;
-            const displayName = LOCATION_ID_TO_NAME_MAP[locationId];
-            if (!displayName) return null;
-
-            const [roomId] = locationId.split(':');
-            const roomName = ROOM_ID_TO_NAME_MAP[roomId] || roomId;
-            return `${roomName} - ${displayName}`;
+            const fullName = LOCATION_ID_TO_NAME_MAP[locationId];
+            if (!fullName) return null;
+            // LOCATION_ID_TO_NAME_MAP already contains the full name like "Main Gallery - 1"
+            return fullName;
         }
         
         function loadImageArtwork(artData, locationId, height, metadata, heightFeet, fileName) {
