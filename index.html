@@ -2718,6 +2718,13 @@
             </div>
 
             <div class="control-group">
+                <button id="show-spaces-btn" onclick="toggleShowSpaces()" style="width: 100%; padding: 12px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 500; font-size: 1em;">
+                    Show Spaces
+                </button>
+                <div class="supported-formats">Highlight available wall and floor spots for art placement (Tab key)</div>
+            </div>
+
+            <div class="control-group">
                 <label>Art Catalogue</label>
                 <button onclick="openCatalogue()" style="width: 100%; padding: 12px; background: linear-gradient(135deg, #4ade80 0%, #22c55e 100%); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 500; font-size: 1em;">
                     Open Catalogue (<span id="catalogue-count">0</span> items)
@@ -7943,6 +7950,7 @@
                 viewMode = 'normal';
                 wallSpots.forEach(spot => spot.visible = false);
                 floorSpots.forEach(spot => spot.visible = false);
+                updateShowSpacesButton();
                 return;
             }
 
@@ -7957,6 +7965,25 @@
             floorSpots.forEach(spot => {
                 spot.visible = viewMode === 'spots' && !spot.userData.occupied;
             });
+
+            updateShowSpacesButton();
+        }
+
+        function toggleShowSpaces() {
+            toggleViewMode();
+        }
+
+        function updateShowSpacesButton() {
+            const btn = document.getElementById('show-spaces-btn');
+            if (btn) {
+                if (viewMode === 'spots') {
+                    btn.textContent = 'Hide Spaces';
+                    btn.style.background = 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)';
+                } else {
+                    btn.textContent = 'Show Spaces';
+                    btn.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+                }
+            }
         }
         
         function removeNearestArtwork() {
