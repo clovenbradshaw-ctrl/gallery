@@ -4289,14 +4289,20 @@
                 closeCatalogue();
 
                 // Refresh gallery if we're in the target room
-                if (typeof roomManager !== 'undefined' && roomManager.currentRoomId === roomId) {
-                    // Load the artwork into the scene
-                    const artworkData = {
-                        id: objectId,
-                        ...eventData.data,
-                        placed: true
-                    };
-                    roomManager.addArtwork(artworkData);
+                if (typeof roomManager !== 'undefined' && roomManager.currentRoom === roomId) {
+                    // Load the artwork into the scene with correct data structure
+                    roomManager.addArtwork({
+                        roomId: roomId,
+                        locationId: locationId,
+                        url: selectedCatalogueItem.image_url,
+                        heightMeters: heightMeters,
+                        eventId: objectId,
+                        metadata: {
+                            title: title,
+                            artist: artist,
+                            description: description
+                        }
+                    });
                 }
 
                 alert(`"${title}" has been placed in ${locationName}!`);
