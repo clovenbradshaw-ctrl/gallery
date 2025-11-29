@@ -2651,10 +2651,6 @@
 
         .crop-overlay {
             position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
             pointer-events: none;
         }
 
@@ -7766,6 +7762,14 @@
                 cropState.imageScale = displayWidth / img.width;
                 canvas.width = displayWidth;
                 canvas.height = displayHeight;
+
+                // Set overlay to match canvas size exactly
+                const overlay = document.querySelector('.crop-overlay');
+                overlay.style.width = displayWidth + 'px';
+                overlay.style.height = displayHeight + 'px';
+                overlay.style.left = '50%';
+                overlay.style.top = '50%';
+                overlay.style.transform = 'translate(-50%, -50%)';
 
                 // Draw initial image
                 ctx.drawImage(img, 0, 0, displayWidth, displayHeight);
