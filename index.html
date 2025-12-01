@@ -7747,6 +7747,7 @@
             document.getElementById('crop-aspect-ratio').value = 'free';
 
             const img = new Image();
+            img.crossOrigin = 'anonymous';
             img.onload = () => {
                 cropState.image = img;
 
