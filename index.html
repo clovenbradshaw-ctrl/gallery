@@ -2751,6 +2751,450 @@
             background: rgba(248, 113, 113, 0.8);
             color: white;
         }
+
+        /* ===== SIMPLIFIED MENU STYLES ===== */
+
+        .menu-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 15px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+        }
+
+        .menu-header h2 {
+            margin: 0;
+            padding: 0;
+            border: none;
+            font-size: 1.2em;
+        }
+
+        .menu-header-icons {
+            display: flex;
+            gap: 8px;
+        }
+
+        .icon-btn {
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
+            border: none;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+            font-size: 16px;
+        }
+
+        .icon-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .icon-btn.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        /* Primary actions - always visible */
+        .primary-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .primary-btn {
+            width: 100%;
+            padding: 14px 16px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.95em;
+            transition: transform 0.2s, opacity 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .primary-btn:hover {
+            transform: translateY(-1px);
+        }
+
+        .primary-btn.green {
+            background: linear-gradient(135deg, #4ade80 0%, #22c55e 100%);
+            color: white;
+        }
+
+        .primary-btn.purple {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-row {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-row .primary-btn {
+            flex: 1;
+        }
+
+        /* Collapsible sections */
+        .collapsible-section {
+            margin-bottom: 12px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.05);
+            overflow: hidden;
+        }
+
+        .collapsible-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 14px;
+            cursor: pointer;
+            transition: background 0.2s;
+            user-select: none;
+        }
+
+        .collapsible-header:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .collapsible-header h4 {
+            margin: 0;
+            font-size: 0.9em;
+            font-weight: 500;
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .collapsible-icon {
+            font-size: 12px;
+            transition: transform 0.2s;
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .collapsible-section.open .collapsible-icon {
+            transform: rotate(180deg);
+        }
+
+        .collapsible-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+
+        .collapsible-section.open .collapsible-content {
+            max-height: 500px;
+        }
+
+        .collapsible-inner {
+            padding: 0 14px 14px;
+        }
+
+        /* Settings Panel */
+        #settings-panel {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: min(360px, 90vw);
+            height: 100vh;
+            background: rgba(20, 20, 25, 0.98);
+            z-index: 500;
+            transform: translateX(-100%);
+            transition: transform 0.3s ease;
+            overflow-y: auto;
+            backdrop-filter: blur(20px);
+        }
+
+        #settings-panel.open {
+            transform: translateX(0);
+        }
+
+        .settings-backdrop {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 499;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+        }
+
+        .settings-backdrop.open {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .settings-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .settings-header h3 {
+            margin: 0;
+            color: white;
+            font-size: 1.1em;
+        }
+
+        .settings-close {
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
+            border: none;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            cursor: pointer;
+            font-size: 18px;
+        }
+
+        .settings-section {
+            padding: 16px 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .settings-section h4 {
+            margin: 0 0 12px 0;
+            font-size: 0.85em;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .settings-row {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+
+        .settings-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .settings-row input,
+        .settings-row select {
+            flex: 1;
+            padding: 10px 12px;
+            border-radius: 6px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            background: rgba(255, 255, 255, 0.05);
+            color: white;
+            font-size: 0.9em;
+        }
+
+        .settings-row button {
+            padding: 10px 14px;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 0.85em;
+            transition: transform 0.2s;
+        }
+
+        .settings-row button:hover {
+            transform: translateY(-1px);
+        }
+
+        .settings-row button.primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .settings-row button.danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .settings-row button.secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+        }
+
+        .settings-info {
+            font-size: 0.75em;
+            color: rgba(255, 255, 255, 0.4);
+            margin-top: 8px;
+        }
+
+        /* Help Modal */
+        #help-modal {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0.9);
+            background: rgba(20, 20, 25, 0.98);
+            padding: 24px;
+            border-radius: 12px;
+            z-index: 600;
+            max-width: 320px;
+            width: 90%;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s, transform 0.2s;
+            backdrop-filter: blur(20px);
+            color: white;
+        }
+
+        #help-modal.open {
+            opacity: 1;
+            pointer-events: auto;
+            transform: translate(-50%, -50%) scale(1);
+        }
+
+        .help-backdrop {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            z-index: 599;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s;
+        }
+
+        .help-backdrop.open {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .help-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+        }
+
+        .help-header h3 {
+            margin: 0;
+            font-size: 1em;
+        }
+
+        .help-section {
+            margin-bottom: 16px;
+        }
+
+        .help-section:last-child {
+            margin-bottom: 0;
+        }
+
+        .help-section h4 {
+            margin: 0 0 8px 0;
+            font-size: 0.85em;
+            color: #667eea;
+        }
+
+        .help-section p {
+            margin: 0;
+            font-size: 0.8em;
+            line-height: 1.6;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .help-key {
+            display: inline-block;
+            padding: 2px 6px;
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 0.85em;
+            margin: 0 2px;
+        }
+
+        /* Wall spots badge */
+        .wall-spots-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 12px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 6px;
+            font-size: 0.85em;
+            color: rgba(255, 255, 255, 0.8);
+            margin-bottom: 15px;
+        }
+
+        .wall-spots-badge .count {
+            font-weight: 600;
+        }
+
+        /* Upload section styling */
+        .upload-tabs {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 12px;
+        }
+
+        .upload-tab {
+            flex: 1;
+            padding: 8px 12px;
+            border: none;
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.05);
+            color: rgba(255, 255, 255, 0.6);
+            cursor: pointer;
+            font-size: 0.85em;
+            transition: all 0.2s;
+        }
+
+        .upload-tab.active {
+            background: rgba(102, 126, 234, 0.3);
+            color: white;
+        }
+
+        .upload-panel {
+            display: none;
+        }
+
+        .upload-panel.active {
+            display: block;
+        }
+
+        .compact-input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            background: rgba(255, 255, 255, 0.05);
+            color: white;
+            border-radius: 6px;
+            font-size: 0.9em;
+            box-sizing: border-box;
+            margin-bottom: 10px;
+        }
+
+        .compact-input::placeholder {
+            color: rgba(255, 255, 255, 0.4);
+        }
+
+        .compact-drop-zone {
+            border: 2px dashed rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            padding: 16px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.85em;
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .compact-drop-zone:hover,
+        .compact-drop-zone.dragover {
+            border-color: #667eea;
+            background: rgba(102, 126, 234, 0.1);
+        }
     </style>
 </head>
 <body>
@@ -2815,128 +3259,152 @@
     </div>
 
     <div id="ui-overlay">
-        <h2>VR Art Museum</h2>
-        
+        <!-- Simplified Menu Header -->
+        <div class="menu-header">
+            <h2>VR Art Museum</h2>
+            <div class="menu-header-icons">
+                <button class="icon-btn" onclick="openSettings()" title="Settings">&#9881;</button>
+                <button class="icon-btn" onclick="openHelp()" title="Help">?</button>
+            </div>
+        </div>
+
+        <!-- Admin Section -->
         <div id="admin-section" style="display: none;">
-            <div class="airtable-config">
-                <h3 style="margin-top: 0; color: #667eea; font-size: 1em;">Gallery Sync</h3>
-                <button onclick="saveAirtableConfig()">Reload Artworks from Gallery</button>
-                <div id="sync-status" class="sync-status"></div>
+            <!-- Wall Spots Badge -->
+            <div class="wall-spots-badge">
+                <span>Wall Spots:</span>
+                <span id="wall-spots" class="count spot-available">0/12</span>
             </div>
 
-            <div class="control-group">
-                <label>Gallery Manager</label>
-                <div class="input-row">
-                    <select id="gallery-select"></select>
-                    <button class="small-button" onclick="setActiveGallery(document.getElementById('gallery-select').value)">Open</button>
-                </div>
-                <div class="input-row">
-                    <input type="text" id="gallery-name-input" placeholder="Gallery name">
-                    <button class="small-button secondary" onclick="renameActiveGallery()">Rename</button>
-                </div>
-                <div class="input-row">
-                    <select id="gallery-room-select"></select>
-                    <button class="small-button" onclick="generateNewGallery()">New Gallery</button>
-                </div>
-                <div class="input-row">
-                    <button class="small-button" onclick="openGalleryMap()" style="flex: 1;">Gallery Map</button>
-                    <button class="small-button secondary" onclick="deleteActiveGallery()" style="background: #dc3545;">Delete</button>
-                </div>
-                <div class="muted-label">Shareable links: ?gallery=&lt;id&gt; or ?gallery=&lt;id&gt;&amp;room=&lt;room-id&gt;</div>
-            </div>
-
-            <div class="control-group">
-                <label>Room Color Temperature (K)</label>
-                <input type="range" id="color-temp-input" min="2700" max="5000" step="100" value="3400">
-                <div id="color-temp-display" class="muted-label">3400K · recommended 3300K–3600K for neutral gallery viewing</div>
-                <div class="supported-formats">Warmer (2700K-3200K) feels cozy; 3300K-3600K keeps colors true to neutral daylight; 4000K+ feels cooler and sharper.</div>
-            </div>
-
-            <div class="control-group">
-                <label>Upload Images</label>
-                <input type="file" id="file-input" multiple
-                       accept="image/*">
-                <label for="file-input" class="file-label">Choose Files</label>
-                <div id="drop-zone">Drop files here or click to browse</div>
-                <div class="supported-formats">
-                    Supported formats: JPG, PNG, GIF and more.
-                </div>
-            </div>
-
-            <div class="control-group">
-                <label>Add Artwork by URL</label>
-                <input type="text" id="image-url-input" placeholder="https://example.com/image.jpg"
-                       style="width: 100%; padding: 10px; border: 1px solid rgba(255,255,255,0.3); background: rgba(255,255,255,0.1); color: white; border-radius: 6px; box-sizing: border-box; margin: 10px 0;">
-                <button onclick="loadArtworkFromURL()" style="width: 100%; padding: 10px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 500;">
-                    Load Artwork
+            <!-- Primary Actions -->
+            <div class="primary-actions">
+                <button class="primary-btn green" onclick="openCatalogue()">
+                    Open Catalogue (<span id="catalogue-count">0</span>)
                 </button>
-                <div class="supported-formats">
-                    Enter a direct link to an image (JPG, PNG, GIF, etc.)<br>
-                    Note: Some CDN images may have loading restrictions
+                <div class="btn-row">
+                    <button id="show-spaces-btn" class="primary-btn purple" onclick="toggleShowSpaces()">
+                        Show Spaces
+                    </button>
+                    <button class="primary-btn purple" onclick="openGalleryMap()">
+                        Map
+                    </button>
                 </div>
             </div>
 
-            <div class="spots-indicator">
-                <div>Available Wall Spots: <span id="wall-spots" class="spot-available">0/0</span></div>
+            <!-- Collapsible: Add Art -->
+            <div class="collapsible-section" id="add-art-section">
+                <div class="collapsible-header" onclick="toggleCollapsible('add-art-section')">
+                    <h4>Add Artwork</h4>
+                    <span class="collapsible-icon">&#9660;</span>
+                </div>
+                <div class="collapsible-content">
+                    <div class="collapsible-inner">
+                        <div class="upload-tabs">
+                            <button class="upload-tab active" onclick="switchUploadTab('upload')">Upload</button>
+                            <button class="upload-tab" onclick="switchUploadTab('url')">From URL</button>
+                        </div>
+                        <div id="upload-panel" class="upload-panel active">
+                            <input type="file" id="file-input" multiple accept="image/*">
+                            <div id="drop-zone" class="compact-drop-zone">
+                                Drop files or click to browse
+                            </div>
+                        </div>
+                        <div id="url-panel" class="upload-panel">
+                            <input type="text" id="image-url-input" class="compact-input" placeholder="https://example.com/image.jpg">
+                            <button class="primary-btn purple" onclick="loadArtworkFromURL()" style="padding: 10px;">
+                                Load from URL
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </div>
 
-            <div class="control-group">
-                <label>Art Catalogue</label>
-                <button onclick="openCatalogue()" style="width: 100%; padding: 12px; background: linear-gradient(135deg, #4ade80 0%, #22c55e 100%); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 500; font-size: 1em;">
-                    Open Catalogue (<span id="catalogue-count">0</span> items)
-                </button>
-                <div class="supported-formats">Browse and place artwork from your catalogue - most intuitive way to add art</div>
-            </div>
-
-            <div class="control-group">
-                <button id="show-spaces-btn" onclick="toggleShowSpaces()" style="width: 100%; padding: 12px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 500; font-size: 1em;">
-                    Show Spaces
-                </button>
-                <div class="supported-formats">Highlight available wall spots for art placement (Tab key)</div>
-            </div>
-
-            <div class="control-group">
-                <label>Placement History</label>
-                <button onclick="openEventHistory()" style="width: 100%; padding: 12px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 500; font-size: 1em;">
-                    View Save Locations
-                </button>
-                <div class="supported-formats">See where all artworks have been placed</div>
-            </div>
-
+            <!-- Sync Status (hidden by default, shows when syncing) -->
+            <div id="sync-status" class="sync-status"></div>
             <div id="art-queue"></div>
         </div>
 
+        <!-- Public Section -->
         <div id="public-section">
             <div class="instructions">
                 <h3>Welcome to the Gallery</h3>
-                Click on any artwork to view details and zoom in.<br><br>
-                Admins can upload artwork or enter image URLs from the menu.
+                Click on any artwork to view details and zoom in.
             </div>
-            <button onclick="openGalleryMap()" style="width: 100%; padding: 12px; margin-top: 15px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 500; font-size: 1em;">
+            <button class="primary-btn purple" onclick="openGalleryMap()" style="margin-top: 15px;">
                 Gallery Map
             </button>
         </div>
-        
-        <button id="vr-button" disabled>Enter VR Mode</button>
-        
-        <div class="instructions">
-            <h3>Controls:</h3>
-            <strong>Desktop:</strong><br>
-            WASD or Arrow Keys to move<br>
-            Mouse to look around<br>
-            Click artwork to view details<br>
-            M to open gallery map<br>
-            R to remove artwork (admin)<br>
-            Tab to toggle spot view (admin only)<br>
-            <br>
-            <strong>VR Mode:</strong><br>
-            Use controllers to point and interact<br>
-            Trigger to select<br>
-            Thumbstick to move
+
+        <button id="vr-button" disabled style="margin-top: 15px;">VR Not Supported</button>
+    </div>
+
+    <button id="toggle-ui">Menu</button>
+
+    <!-- Settings Panel (slides in from left) -->
+    <div class="settings-backdrop" id="settings-backdrop" onclick="closeSettings()"></div>
+    <div id="settings-panel">
+        <div class="settings-header">
+            <h3>Settings</h3>
+            <button class="settings-close" onclick="closeSettings()">&times;</button>
+        </div>
+
+        <div class="settings-section">
+            <h4>Gallery</h4>
+            <div class="settings-row">
+                <select id="gallery-select"></select>
+                <button class="primary" onclick="setActiveGallery(document.getElementById('gallery-select').value)">Open</button>
+            </div>
+            <div class="settings-row">
+                <input type="text" id="gallery-name-input" placeholder="Gallery name">
+                <button class="secondary" onclick="renameActiveGallery()">Rename</button>
+            </div>
+            <div class="settings-row">
+                <select id="gallery-room-select"></select>
+                <button class="primary" onclick="generateNewGallery()">New</button>
+            </div>
+            <div class="settings-row">
+                <button class="danger" onclick="deleteActiveGallery()" style="flex: 1;">Delete Gallery</button>
+            </div>
+            <div class="settings-info">Shareable: ?gallery=&lt;id&gt; or ?gallery=&lt;id&gt;&amp;room=&lt;room-id&gt;</div>
+        </div>
+
+        <div class="settings-section">
+            <h4>Lighting</h4>
+            <input type="range" id="color-temp-input" min="2700" max="5000" step="100" value="3400" style="width: 100%;">
+            <div id="color-temp-display" class="settings-info" style="margin-top: 4px;">3400K - Neutral daylight</div>
+        </div>
+
+        <div class="settings-section">
+            <h4>Data</h4>
+            <div class="settings-row">
+                <button class="secondary" onclick="saveAirtableConfig()" style="flex: 1;">Reload Artworks</button>
+            </div>
+            <div class="settings-row">
+                <button class="secondary" onclick="openEventHistory()" style="flex: 1;">Placement History</button>
+            </div>
         </div>
     </div>
-    
-    <button id="toggle-ui">Menu</button>
+
+    <!-- Help Modal -->
+    <div class="help-backdrop" id="help-backdrop" onclick="closeHelp()"></div>
+    <div id="help-modal">
+        <div class="help-header">
+            <h3>Controls</h3>
+            <button class="settings-close" onclick="closeHelp()">&times;</button>
+        </div>
+        <div class="help-section">
+            <h4>Movement</h4>
+            <p><span class="help-key">W</span><span class="help-key">A</span><span class="help-key">S</span><span class="help-key">D</span> or Arrow keys to move<br>Mouse to look around</p>
+        </div>
+        <div class="help-section">
+            <h4>Actions</h4>
+            <p>Click artwork to view details<br><span class="help-key">M</span> Gallery map<br><span class="help-key">Tab</span> Toggle wall spots<br><span class="help-key">R</span> Remove artwork</p>
+        </div>
+        <div class="help-section">
+            <h4>VR Mode</h4>
+            <p>Point controllers to interact<br>Trigger to select, Thumbstick to move</p>
+        </div>
+    </div>
     
             <div id="placement-dialog">
         <h3>Artwork Details</h3>
@@ -3397,6 +3865,52 @@
         const DEFAULT_COLOR_TEMPERATURE = 3400;
         const MIN_COLOR_TEMPERATURE = 2700;
         const MAX_COLOR_TEMPERATURE = 5000;
+
+        // ===== Simplified UI Functions =====
+
+        function openSettings() {
+            document.getElementById('settings-panel').classList.add('open');
+            document.getElementById('settings-backdrop').classList.add('open');
+        }
+
+        function closeSettings() {
+            document.getElementById('settings-panel').classList.remove('open');
+            document.getElementById('settings-backdrop').classList.remove('open');
+        }
+
+        function openHelp() {
+            document.getElementById('help-modal').classList.add('open');
+            document.getElementById('help-backdrop').classList.add('open');
+        }
+
+        function closeHelp() {
+            document.getElementById('help-modal').classList.remove('open');
+            document.getElementById('help-backdrop').classList.remove('open');
+        }
+
+        function toggleCollapsible(sectionId) {
+            const section = document.getElementById(sectionId);
+            section.classList.toggle('open');
+        }
+
+        function switchUploadTab(tab) {
+            // Update tab buttons
+            document.querySelectorAll('.upload-tab').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+
+            // Update panels
+            document.getElementById('upload-panel').classList.remove('active');
+            document.getElementById('url-panel').classList.remove('active');
+            document.getElementById(tab + '-panel').classList.add('active');
+        }
+
+        // Close modals on Escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeSettings();
+                closeHelp();
+            }
+        });
 
         const wallSpotPosition = (x, z) => ({ x, y: DEFAULT_EYE_LEVEL_METERS, z });
         
