@@ -8979,6 +8979,16 @@
         }
         
         function onKeyDown(event) {
+            // Ignore keyboard shortcuts when typing in input fields
+            const activeElement = document.activeElement;
+            const isTyping = activeElement && (
+                activeElement.tagName === 'INPUT' ||
+                activeElement.tagName === 'TEXTAREA' ||
+                activeElement.tagName === 'SELECT' ||
+                activeElement.isContentEditable
+            );
+            if (isTyping) return;
+
             switch(event.code) {
                 case 'ArrowUp':
                 case 'KeyW':
@@ -9017,6 +9027,16 @@
         }
 
         function onKeyUp(event) {
+            // Ignore keyboard shortcuts when typing in input fields
+            const activeElement = document.activeElement;
+            const isTyping = activeElement && (
+                activeElement.tagName === 'INPUT' ||
+                activeElement.tagName === 'TEXTAREA' ||
+                activeElement.tagName === 'SELECT' ||
+                activeElement.isContentEditable
+            );
+            if (isTyping) return;
+
             switch(event.code) {
                 case 'ArrowUp':
                 case 'KeyW':
