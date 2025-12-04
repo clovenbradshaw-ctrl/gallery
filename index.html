@@ -3433,59 +3433,174 @@
                     galleries: {},     // gallery configurations
                     catalogue: {}      // catalogue items
                 };
+                // Concurrency guards
+                this._fetchInProgress = false;
+                this._fetchPromise = null;
+                this._postQueue = [];
+                this._isProcessingQueue = false;
+                // Track initialization state
+                this._initialized = false;
+                this._lastFetchTime = 0;
             }
 
-            // Fetch all events from Xano
-            async fetchEvents() {
+            // Retry helper with exponential backoff
+            async _retryWithBackoff(operation, maxRetries = 3, baseDelayMs = 1000) {
+                let lastError;
+                for (let attempt = 0; attempt <= maxRetries; attempt++) {
+                    try {
+                        return await operation();
+                    } catch (error) {
+                        lastError = error;
+                        // Don't retry on client errors (4xx) except 429 (rate limit)
+                        if (error.status && error.status >= 400 && error.status < 500 && error.status !== 429) {
+                            throw error;
+                        }
+                        if (attempt < maxRetries) {
+                            const delay = baseDelayMs * Math.pow(2, attempt);
+                            console.warn(`API call failed (attempt ${attempt + 1}/${maxRetries + 1}), retrying in ${delay}ms:`, error.message);
+                            await new Promise(resolve => setTimeout(resolve, delay));
+                        }
+                    }
+                }
+                throw lastError;
+            }
+
+            // Fetch all events from Xano with retry and deduplication
+            async fetchEvents(options = {}) {
+                const { forceRefresh = false } = options;
+
+                // If a fetch is already in progress, return the existing promise
+                if (this._fetchInProgress && this._fetchPromise) {
+                    console.log('Fetch already in progress, waiting for existing request...');
+                    return this._fetchPromise;
+                }
+
+                // Debounce rapid fetches (unless forced)
+                const now = Date.now();
+                if (!forceRefresh && this._initialized && (now - this._lastFetchTime) < 2000) {
+                    console.log('Skipping fetch - last fetch was less than 2 seconds ago');
+                    return this.events;
+                }
+
+                this._fetchInProgress = true;
+                this._fetchPromise = this._doFetchEvents();
+
                 try {
+                    const result = await this._fetchPromise;
+                    this._lastFetchTime = Date.now();
+                    this._initialized = true;
+                    return result;
+                } finally {
+                    this._fetchInProgress = false;
+                    this._fetchPromise = null;
+                }
+            }
+
+            async _doFetchEvents() {
+                return this._retryWithBackoff(async () => {
                     const response = await fetch(XANO_API_URL);
                     if (!response.ok) {
-                        throw new Error(`Failed to fetch events: ${response.status}`);
+                        const error = new Error(`Failed to fetch events: ${response.status}`);
+                        error.status = response.status;
+                        throw error;
                     }
                     const jsonData = await response.json();
 
                     // Handle both array response and wrapped response (e.g., { items: [...] } or { data: [...] })
+                    let fetchedEvents = [];
                     if (Array.isArray(jsonData)) {
-                        this.events = jsonData;
+                        fetchedEvents = jsonData;
                     } else if (jsonData && typeof jsonData === 'object') {
                         // Try common wrapper properties
-                        this.events = jsonData.items || jsonData.data || jsonData.events || jsonData.records || [];
-                        if (!Array.isArray(this.events)) {
+                        fetchedEvents = jsonData.items || jsonData.data || jsonData.events || jsonData.records || [];
+                        if (!Array.isArray(fetchedEvents)) {
                             console.warn('Unexpected API response structure:', Object.keys(jsonData));
-                            this.events = [];
+                            fetchedEvents = [];
                         }
-                    } else {
-                        this.events = [];
                     }
+
+                    // Validate and normalize events before storing
+                    this.events = fetchedEvents.map(e => this._normalizeEvent(e)).filter(e => e !== null);
 
                     console.log('Fetched events from Xano:', this.events.length);
                     if (this.events.length > 0) {
                         const sample = this.events[0];
                         console.log('Sample event structure:', JSON.stringify(sample, null, 2));
-                        console.log('Event data type:', typeof sample.data,
-                            sample.data ? `(${typeof sample.data === 'string' ? 'JSON string, length=' + sample.data.length : 'object with keys: ' + Object.keys(sample.data).join(', ')})` : '(empty)');
                     }
                     this.reconstructState();
                     return this.events;
-                } catch (error) {
-                    console.error('Failed to fetch events:', error);
-                    throw error;
-                }
+                });
             }
 
-            // Check if an event already exists (for deduplication)
-            eventExists(objectId, op, objectType) {
+            // Normalize event data to ensure consistent structure
+            _normalizeEvent(event) {
+                if (!event || typeof event !== 'object') {
+                    console.warn('Invalid event object:', event);
+                    return null;
+                }
+
+                // Parse data field if it's a JSON string
+                let data = event.data;
+                if (typeof data === 'string' && data.trim()) {
+                    try {
+                        data = JSON.parse(data);
+                    } catch (e) {
+                        console.warn('Failed to parse event.data as JSON for event:', event.object_id, '- keeping as string');
+                        // Keep original string if it's not valid JSON - might be intentional
+                    }
+                }
+
+                // Ensure data is an object
+                if (!data || typeof data !== 'object') {
+                    data = {};
+                }
+
+                return {
+                    ...event,
+                    data,
+                    // Ensure required fields have defaults
+                    verb: event.verb || 'unknown',
+                    op: event.op || '',
+                    object_type: event.object_type || 'unknown',
+                    object_id: event.object_id || ''
+                };
+            }
+
+            // Check if events have been loaded
+            isInitialized() {
+                return this._initialized;
+            }
+
+            // Check if an event already exists (for deduplication) - enhanced version
+            eventExists(objectId, op, objectType, verb = 'create') {
                 return this.events.some(e =>
                     e.object_id === objectId &&
                     e.op === op &&
                     e.object_type === objectType &&
-                    e.verb === 'create'
+                    e.verb === verb
                 );
             }
 
-            // Post a new event to Xano
+            // Check for recent duplicate (within last few seconds) to prevent double-clicks
+            _isRecentDuplicate(eventData) {
+                const now = Date.now();
+                const recentThreshold = 5000; // 5 seconds
+
+                return this.events.some(e => {
+                    if (e.object_id !== eventData.object_id) return false;
+                    if (e.op !== eventData.op) return false;
+                    if (e.object_type !== eventData.object_type) return false;
+                    if (e.verb !== eventData.verb) return false;
+
+                    // Check if event was created recently
+                    const eventTime = new Date(e.created_at || e.published).getTime();
+                    return (now - eventTime) < recentThreshold;
+                });
+            }
+
+            // Post a new event to Xano with retry logic
             async postEvent(eventData, options = {}) {
-                const { skipDuplicateCheck = false } = options;
+                const { skipDuplicateCheck = false, skipRecentCheck = false } = options;
 
                 // Check for duplicates on create events (unless explicitly skipped)
                 if (!skipDuplicateCheck && eventData.verb === 'create') {
@@ -3498,6 +3613,12 @@
                         console.log(`Skipping duplicate event: ${eventData.op} for ${eventData.object_id}`);
                         return { skipped: true, reason: 'duplicate' };
                     }
+                }
+
+                // Check for recent duplicates (prevents double-click issues)
+                if (!skipRecentCheck && this._isRecentDuplicate(eventData)) {
+                    console.log(`Skipping recent duplicate event: ${eventData.op} for ${eventData.object_id}`);
+                    return { skipped: true, reason: 'recent_duplicate' };
                 }
 
                 const event = {
@@ -3515,7 +3636,7 @@
 
                 console.log('Posting event to Xano:', event);
 
-                try {
+                return this._retryWithBackoff(async () => {
                     const response = await fetch(XANO_API_URL, {
                         method: 'POST',
                         headers: {
@@ -3526,21 +3647,25 @@
 
                     if (!response.ok) {
                         const errorText = await response.text();
-                        throw new Error(`Failed to post event: ${response.status} - ${errorText}`);
+                        const error = new Error(`Failed to post event: ${response.status} - ${errorText}`);
+                        error.status = response.status;
+                        throw error;
                     }
 
                     const result = await response.json();
                     console.log('Event posted successfully:', result);
 
-                    // Add to local events and update state
-                    this.events.push({ ...event, id: result.id, created_at: result.created_at });
-                    this.applyEvent(event);
+                    // Add to local events with full server response data
+                    const storedEvent = {
+                        ...event,
+                        id: result.id,
+                        created_at: result.created_at || new Date().toISOString()
+                    };
+                    this.events.push(storedEvent);
+                    this.applyEvent(storedEvent);
 
                     return result;
-                } catch (error) {
-                    console.error('Failed to post event:', error);
-                    throw error;
-                }
+                }, 2); // Max 2 retries for POST operations
             }
 
             // Reconstruct current state from event history
@@ -3584,34 +3709,39 @@
             applyEvent(event) {
                 const { verb, object_type, object_id } = event;
 
-                // Handle both nested data structure and flat structure from API
-                // If event.data exists, use it; otherwise extract data from top-level properties
+                // Events should already be normalized by _normalizeEvent(), but handle edge cases
                 let data = event.data;
 
-                // Parse data if it's a JSON string (API may return stringified JSON in data field)
+                // Fallback: Parse data if it's still a JSON string (for locally created events)
                 if (typeof data === 'string') {
                     try {
                         data = JSON.parse(data);
-                        console.log('Parsed JSON data for event:', object_id, 'keys:', Object.keys(data).join(', '));
                     } catch (e) {
                         console.warn('Failed to parse event.data as JSON:', object_id, e.message);
                         data = {};
                     }
                 }
 
-                if (!data || (typeof data === 'object' && Object.keys(data).length === 0)) {
-                    // Extract data from top-level event properties (excluding event metadata)
+                // Ensure data is an object
+                if (!data || typeof data !== 'object') {
+                    data = {};
+                }
+
+                // Fallback: Extract data from top-level event properties if data is empty
+                if (Object.keys(data).length === 0) {
                     const eventMetaKeys = ['id', 'event_uid', 'verb', 'op', 'object_type', 'object_id',
                                           'published', 'created_at', 'updated_at', 'actor_id', 'data', 'frame', 'scale'];
-                    data = {};
                     for (const key of Object.keys(event)) {
                         if (!eventMetaKeys.includes(key)) {
                             data[key] = event[key];
                         }
                     }
-                    if (Object.keys(data).length > 0) {
-                        console.log('Extracted flat data from event:', object_id, data);
-                    }
+                }
+
+                // Skip events with missing required fields
+                if (!object_type || !object_id) {
+                    console.warn('Skipping event with missing object_type or object_id:', event);
+                    return;
                 }
 
                 switch (object_type) {
@@ -3762,17 +3892,21 @@
                 console.log('Deleting event record from Xano:', eventId);
 
                 try {
-                    const response = await fetch(`${XANO_API_URL}/${eventId}`, {
-                        method: 'DELETE',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        }
-                    });
+                    await this._retryWithBackoff(async () => {
+                        const response = await fetch(`${XANO_API_URL}/${eventId}`, {
+                            method: 'DELETE',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            }
+                        });
 
-                    if (!response.ok) {
-                        const errorText = await response.text();
-                        throw new Error(`Failed to delete event: ${response.status} - ${errorText}`);
-                    }
+                        if (!response.ok) {
+                            const errorText = await response.text();
+                            const error = new Error(`Failed to delete event: ${response.status} - ${errorText}`);
+                            error.status = response.status;
+                            throw error;
+                        }
+                    }, 2); // Max 2 retries for DELETE
 
                     // Remove from local events array
                     const eventIndex = this.events.findIndex(e => e.id === eventId);
@@ -4636,14 +4770,24 @@
         }
 
         // Migrate catalogue to database
+        let _migrationRetryCount = 0;
+        const MAX_MIGRATION_RETRIES = 30; // Max 30 seconds of waiting
+
         async function migrateCatalogueToDatabase() {
-            // Wait for event store to be initialized and events fetched
-            if (!eventStore || !eventStore.events || eventStore.events.length === 0) {
-                // Events not loaded yet, wait a bit and retry
-                console.log('Waiting for event store to initialize...');
+            // Wait for event store to be initialized
+            if (!eventStore || !eventStore.isInitialized()) {
+                _migrationRetryCount++;
+                if (_migrationRetryCount > MAX_MIGRATION_RETRIES) {
+                    console.warn('Catalogue migration: Gave up waiting for event store initialization after', MAX_MIGRATION_RETRIES, 'seconds');
+                    return;
+                }
+                console.log('Waiting for event store to initialize... (attempt', _migrationRetryCount, '/', MAX_MIGRATION_RETRIES, ')');
                 setTimeout(migrateCatalogueToDatabase, 1000);
                 return;
             }
+
+            // Reset retry counter on successful initialization
+            _migrationRetryCount = 0;
 
             // Check database for existing catalogue items (server-side check)
             const existingCatalogueIds = new Set(
@@ -6458,6 +6602,58 @@
             loadArtworksFromAirtable();
         }
         
+        // Helper function to normalize locationId to always include room prefix
+        function normalizeLocationId(locationId, roomId, fallbackRoomId = 'main-gallery') {
+            if (!locationId) return null;
+
+            const locStr = String(locationId).trim();
+            if (!locStr) return null;
+
+            // Already in full format (roomId:spotId)
+            if (locStr.includes(':')) {
+                return locStr;
+            }
+
+            // Just a spot number - prepend roomId
+            const effectiveRoomId = roomId || fallbackRoomId;
+            return `${effectiveRoomId}:${locStr}`;
+        }
+
+        // Helper function to parse locationId into components
+        function parseLocationId(locationId, artworkRoomId = null, fallbackRoomId = 'main-gallery') {
+            if (!locationId) {
+                return { roomId: null, spotId: null, locationId: null };
+            }
+
+            const locStr = String(locationId).trim();
+            if (!locStr) {
+                return { roomId: null, spotId: null, locationId: null };
+            }
+
+            let roomId, spotId, fullLocationId;
+
+            if (locStr.includes(':')) {
+                // Full format: roomId:spotId
+                [roomId, spotId] = locStr.split(':');
+                fullLocationId = locStr;
+            } else {
+                // Just spot number - use artworkRoomId or fallback
+                spotId = locStr;
+                roomId = artworkRoomId || fallbackRoomId;
+                fullLocationId = `${roomId}:${spotId}`;
+            }
+
+            // If artworkRoomId is provided and different from parsed roomId, prefer artworkRoomId
+            // This handles cases where the locationId was saved without room prefix but roomId was saved separately
+            if (artworkRoomId && artworkRoomId !== roomId) {
+                console.log(`[parseLocationId] Using artworkRoomId "${artworkRoomId}" over parsed roomId "${roomId}"`);
+                roomId = artworkRoomId;
+                fullLocationId = `${roomId}:${spotId}`;
+            }
+
+            return { roomId, spotId, locationId: fullLocationId };
+        }
+
         async function loadArtworksFromEvents() {
             try {
                 const activeGallery = getActiveGallery();
@@ -6470,11 +6666,14 @@
                 const placedArtworks = eventStore.getPlacedArtworks(galleryFilterId);
                 console.log('Placed artworks from event store:', placedArtworks);
 
+                // Clear pending artworks and loaded artwork tracking for fresh load
                 roomManager.pendingArtworks = {};
+                roomManager.loadedArtworkIds.clear();
 
                 const loadPromises = [];
                 const totalRecords = Object.keys(eventStore.state.artworks).length;
                 let eligibleCount = 0;
+                let skippedCount = 0;
 
                 for (const artwork of placedArtworks) {
                     console.log('[loadArtworksFromEvents] Processing artwork:', {
@@ -6489,48 +6688,44 @@
 
                     // Skip if no image URL
                     if (!artwork.imageUrl) {
-                        console.warn(`No image URL for ${artwork.title}`);
+                        console.warn(`[loadArtworksFromEvents] Skipping "${artwork.title}" - no image URL`);
+                        skippedCount++;
                         continue;
                     }
 
-                    // Parse location from artwork data
-                    const locationId = artwork.locationId || artwork.location;
-                    const locationName = artwork.locationName;
-                    // Use roomId directly from artwork data if available
+                    // Parse location from artwork data - use helper function for consistency
+                    const rawLocationId = artwork.locationId || artwork.location;
                     const artworkRoomId = artwork.roomId;
+                    const locationName = artwork.locationName;
 
                     let parsedLocation;
-                    if (locationId && locationId.includes(':')) {
-                        // Full location ID format: roomId:spotId
-                        const [roomId, spotId] = locationId.split(':');
-                        parsedLocation = { roomId, spotId, locationId };
-                    } else if (locationId && !locationId.includes(':')) {
-                        // locationId is just a spot number (e.g., "1"), use roomId from artwork or current room
-                        const roomId = artworkRoomId || roomManager.currentRoom || 'main-gallery';
-                        const fullLocationId = `${roomId}:${locationId}`;
-                        parsedLocation = { roomId, spotId: locationId, locationId: fullLocationId };
-                        console.log(`[loadArtworksFromEvents] Reconstructed locationId: "${locationId}" -> "${fullLocationId}"`);
-                    } else if (locationName) {
+
+                    // Try to parse from locationId first (preferred)
+                    if (rawLocationId) {
+                        parsedLocation = parseLocationId(
+                            rawLocationId,
+                            artworkRoomId,
+                            roomManager?.currentRoom || 'main-gallery'
+                        );
+                    }
+
+                    // Fall back to parsing from locationName if locationId didn't work
+                    if (!parsedLocation?.locationId && locationName) {
                         parsedLocation = parseLocationData(locationName);
-                    } else {
-                        console.warn(`Could not determine location for ${artwork.title}`);
-                        continue;
+                        // If we have artworkRoomId, override the parsed roomId
+                        if (parsedLocation && artworkRoomId && artworkRoomId !== parsedLocation.roomId) {
+                            const correctLocationId = `${artworkRoomId}:${parsedLocation.spotId}`;
+                            parsedLocation = {
+                                roomId: artworkRoomId,
+                                spotId: parsedLocation.spotId,
+                                locationId: correctLocationId
+                            };
+                        }
                     }
 
-                    // Override roomId with artwork's stored roomId if available and different
-                    if (artworkRoomId && artworkRoomId !== parsedLocation.roomId) {
-                        console.log(`[loadArtworksFromEvents] Using artwork roomId "${artworkRoomId}" instead of parsed "${parsedLocation.roomId}"`);
-                        // Reconstruct locationId with correct roomId
-                        const correctLocationId = `${artworkRoomId}:${parsedLocation.spotId}`;
-                        parsedLocation = {
-                            roomId: artworkRoomId,
-                            spotId: parsedLocation.spotId,
-                            locationId: correctLocationId
-                        };
-                    }
-
-                    if (!parsedLocation.locationId) {
-                        console.warn(`Could not map location for ${artwork.title}:`, locationName);
+                    if (!parsedLocation?.locationId) {
+                        console.warn(`[loadArtworksFromEvents] Skipping "${artwork.title}" - could not determine location`);
+                        skippedCount++;
                         continue;
                     }
 
@@ -6562,22 +6757,62 @@
                     );
                 }
 
-                await Promise.all(loadPromises);
+                if (skippedCount > 0) {
+                    console.log(`[loadArtworksFromEvents] Skipped ${skippedCount} artworks due to missing data`);
+                }
 
-                const placedCount = loadPromises.length;
+                // Wait for all artwork loads with error tracking
+                const results = await Promise.allSettled(loadPromises);
+                const successCount = results.filter(r => r.status === 'fulfilled').length;
+                const failedCount = results.filter(r => r.status === 'rejected').length;
+
+                if (failedCount > 0) {
+                    console.warn(`[loadArtworksFromEvents] ${failedCount} artworks failed to load`);
+                    results.forEach((r, i) => {
+                        if (r.status === 'rejected') {
+                            console.warn(`  - Artwork load failed:`, r.reason);
+                        }
+                    });
+                }
+
+                const placedCount = successCount;
                 const statusElement = document.getElementById('sync-status');
 
                 if (placedCount > 0) {
-                    statusElement.textContent = `✓ Loaded ${placedCount} artwork${placedCount !== 1 ? 's' : ''} from events (${eligibleCount}/${totalRecords} total)`;
-                    statusElement.style.color = '#4ade80';
-                } else {
-                    statusElement.textContent = `ℹ️ No artworks available to display (${totalRecords} in database)`;
+                    let statusMsg = `✓ Loaded ${placedCount} artwork${placedCount !== 1 ? 's' : ''}`;
+                    if (failedCount > 0) {
+                        statusMsg += ` (${failedCount} failed)`;
+                    }
+                    if (skippedCount > 0) {
+                        statusMsg += ` (${skippedCount} skipped)`;
+                    }
+                    statusElement.textContent = statusMsg;
+                    statusElement.style.color = failedCount > 0 ? '#fbbf24' : '#4ade80';
+                } else if (totalRecords > 0) {
+                    statusElement.textContent = `ℹ️ No artworks available to display (${totalRecords} in database, ${skippedCount} skipped)`;
                     statusElement.style.color = '#fbbf24';
+                } else {
+                    statusElement.textContent = `ℹ️ No artworks in database yet`;
+                    statusElement.style.color = '#94a3b8';
                 }
             } catch (error) {
                 console.error('Failed to load artworks from events:', error);
-                document.getElementById('sync-status').textContent = '❌ Failed to load artworks';
-                document.getElementById('sync-status').style.color = '#ff6b6b';
+                const statusElement = document.getElementById('sync-status');
+
+                // Provide more helpful error messages
+                let errorMsg = '❌ Failed to load artworks';
+                if (error.message?.includes('fetch')) {
+                    errorMsg = '❌ Network error - check your connection';
+                } else if (error.message?.includes('401') || error.message?.includes('403')) {
+                    errorMsg = '❌ Authentication error';
+                } else if (error.message?.includes('500')) {
+                    errorMsg = '❌ Server error - try again later';
+                } else if (error.message?.includes('timeout')) {
+                    errorMsg = '❌ Request timed out - try again';
+                }
+
+                statusElement.textContent = errorMsg;
+                statusElement.style.color = '#ff6b6b';
             }
         }
 
@@ -6686,6 +6921,10 @@
             // Get gallery info
             const gallery = getActiveGallery();
 
+            // Normalize locationId to always include room prefix for consistency
+            const roomId = artworkData.roomId || roomManager?.currentRoom || 'main-gallery';
+            const normalizedLocationId = normalizeLocationId(artworkData.locationId, roomId, roomId);
+
             // Prepare event data
             const eventData = {
                 verb: 'create',
@@ -6706,9 +6945,10 @@
                     heightMeters: heightMeters ? roundToTwoDecimals(heightMeters) : undefined,
                     widthInches: widthInches ? roundToTwoDecimals(widthInches) : undefined,
                     aspectRatio: aspectRatio,
-                    locationId: artworkData.locationId || '',
+                    // Always store locationId in full format (roomId:spotId)
+                    locationId: normalizedLocationId || '',
                     locationName: artworkData.locationName || '',
-                    roomId: artworkData.roomId || '',
+                    roomId: roomId,
                     galleryId: gallery?.id || '',
                     galleryName: gallery?.name || '',
                     tags: Array.isArray(artworkData.tags) ? artworkData.tags : [],
@@ -6730,11 +6970,15 @@
 
             try {
                 const result = await eventStore.postEvent(eventData);
+                if (result.skipped) {
+                    console.log('Artwork event was skipped:', result.reason);
+                    return objectId; // Return the ID even if skipped (duplicate)
+                }
                 console.log('Artwork event created:', result);
                 return objectId;
             } catch (error) {
                 console.error('Failed to create artwork event:', error);
-                return null;
+                throw error; // Re-throw to let caller handle it
             }
         }
 
