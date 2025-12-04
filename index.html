@@ -5569,6 +5569,16 @@
             // Save custom rooms to localStorage
             saveCustomRooms();
 
+            // Create a corresponding gallery entry for this room
+            const newGallery = {
+                id: roomId,
+                name: name,
+                homeRoom: roomId,
+                colorTemperature: themeConfig.colorTemperature
+            };
+            galleries.push(newGallery);
+            saveGalleryState();
+
             closeAddRoomDialog();
 
             // Show success message
