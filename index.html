@@ -1952,17 +1952,45 @@
             display: flex;
             align-items: center;
             gap: 12px;
-            padding: 10px 14px;
-            background: linear-gradient(135deg, rgba(76, 175, 80, 0.2), rgba(56, 142, 60, 0.15));
-            border: 1px solid rgba(76, 175, 80, 0.4);
+            padding: 14px 16px;
+            background: linear-gradient(135deg, rgba(76, 175, 80, 0.25), rgba(56, 142, 60, 0.2));
+            border: 2px solid rgba(76, 175, 80, 0.5);
+            border-radius: 10px;
+        }
+
+        .catalogue-selected-spot .selected-spot-icon {
+            width: 36px;
+            height: 36px;
+            background: rgba(76, 175, 80, 0.3);
             border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .catalogue-selected-spot .selected-spot-icon svg {
+            width: 20px;
+            height: 20px;
+            color: #4ade80;
+        }
+
+        .catalogue-selected-spot .selected-spot-info {
+            flex: 1;
+        }
+
+        .catalogue-selected-spot .selected-spot-label {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 2px;
         }
 
         .catalogue-selected-spot .selected-spot-name {
-            flex: 1;
-            color: rgba(255, 255, 255, 0.95);
-            font-size: 14px;
-            font-weight: 500;
+            color: #4ade80;
+            font-size: 15px;
+            font-weight: 600;
         }
 
         .catalogue-selected-spot .selected-spot-change {
@@ -3307,16 +3335,26 @@
         }
 
         .place-assign-location {
-            background: rgba(255, 255, 255, 0.05);
-            padding: 15px;
-            border-radius: 10px;
+            background: rgba(102, 126, 234, 0.15);
+            border: 2px solid rgba(102, 126, 234, 0.4);
+            padding: 18px;
+            border-radius: 12px;
             margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .place-assign-location-label {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 0.85em;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
         .place-assign-location-name {
-            font-weight: 600;
+            font-weight: 700;
             color: #667eea;
-            font-size: 1.1em;
+            font-size: 1.3em;
         }
 
         .place-assign-location-room {
@@ -4159,6 +4197,98 @@
             border-color: #667eea;
             background: rgba(102, 126, 234, 0.1);
         }
+
+        /* Toast Notification Styles */
+        #toast-container {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10000;
+            display: flex;
+            flex-direction: column-reverse;
+            gap: 10px;
+            pointer-events: none;
+        }
+
+        .toast {
+            background: linear-gradient(135deg, rgba(76, 175, 80, 0.95), rgba(56, 142, 60, 0.95));
+            border: 1px solid rgba(76, 175, 80, 0.6);
+            color: white;
+            padding: 16px 24px;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 15px;
+            font-weight: 500;
+            backdrop-filter: blur(10px);
+            animation: toastSlideIn 0.3s ease-out;
+            pointer-events: auto;
+            max-width: 400px;
+        }
+
+        .toast.toast-success {
+            background: linear-gradient(135deg, rgba(76, 175, 80, 0.95), rgba(56, 142, 60, 0.95));
+            border-color: rgba(76, 175, 80, 0.6);
+        }
+
+        .toast.toast-error {
+            background: linear-gradient(135deg, rgba(239, 68, 68, 0.95), rgba(220, 38, 38, 0.95));
+            border-color: rgba(239, 68, 68, 0.6);
+        }
+
+        .toast-icon {
+            width: 24px;
+            height: 24px;
+            flex-shrink: 0;
+        }
+
+        .toast-icon svg {
+            width: 100%;
+            height: 100%;
+        }
+
+        .toast-message {
+            flex: 1;
+        }
+
+        .toast-message strong {
+            display: block;
+            margin-bottom: 2px;
+        }
+
+        .toast-message small {
+            opacity: 0.85;
+            font-size: 13px;
+        }
+
+        .toast.toast-hiding {
+            animation: toastSlideOut 0.3s ease-in forwards;
+        }
+
+        @keyframes toastSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes toastSlideOut {
+            from {
+                opacity: 1;
+                transform: translateY(0);
+            }
+            to {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+        }
     </style>
 </head>
 <body>
@@ -4567,10 +4697,11 @@
     <div id="place-assign-dialog">
         <div class="place-assign-container">
             <div class="place-assign-header">
-                <h3>Assign Artwork</h3>
+                <h3>Place Art Here</h3>
                 <button class="place-assign-close" onclick="closePlaceAssignDialog()">&times;</button>
             </div>
             <div class="place-assign-location">
+                <div class="place-assign-location-label">Your artwork will appear at:</div>
                 <div class="place-assign-location-name" id="assign-location-name">Location Name</div>
                 <div class="place-assign-location-room" id="assign-location-room">Room Name</div>
             </div>
@@ -4583,8 +4714,8 @@
                         </svg>
                     </div>
                     <div class="place-assign-option-text">
-                        <div class="place-assign-option-title">From Catalogue</div>
-                        <div class="place-assign-option-desc">Choose from your saved artworks</div>
+                        <div class="place-assign-option-title">Choose from Catalogue</div>
+                        <div class="place-assign-option-desc">Select saved artwork to place here</div>
                     </div>
                 </div>
                 <div class="place-assign-option" onclick="assignFromUpload()">
@@ -4596,8 +4727,8 @@
                         </svg>
                     </div>
                     <div class="place-assign-option-text">
-                        <div class="place-assign-option-title">Upload New</div>
-                        <div class="place-assign-option-desc">Upload a new image file</div>
+                        <div class="place-assign-option-title">Upload New Artwork</div>
+                        <div class="place-assign-option-desc">Upload an image to place here</div>
                     </div>
                 </div>
             </div>
@@ -4814,9 +4945,17 @@
                         <select id="catalogue-gallery"></select>
                     </div>
                     <div id="catalogue-selected-spot" class="catalogue-selected-spot" style="display: none;">
-                        <label>Placing at</label>
                         <div class="selected-spot-display">
-                            <span class="selected-spot-name" id="catalogue-selected-spot-name"></span>
+                            <div class="selected-spot-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                                    <circle cx="12" cy="10" r="3"/>
+                                </svg>
+                            </div>
+                            <div class="selected-spot-info">
+                                <div class="selected-spot-label">Will appear immediately at:</div>
+                                <span class="selected-spot-name" id="catalogue-selected-spot-name"></span>
+                            </div>
                             <button class="selected-spot-change" onclick="toggleCatalogueLocationPicker()" title="Change location">Change</button>
                         </div>
                     </div>
@@ -5018,6 +5157,9 @@
         </div>
     </div>
 
+    <!-- Toast Notification Container -->
+    <div id="toast-container"></div>
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128/examples/js/libs/inflate.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128/examples/js/loaders/GLTFLoader.js"></script>
@@ -5035,6 +5177,39 @@
         const DEFAULT_COLOR_TEMPERATURE = 3400;
         const MIN_COLOR_TEMPERATURE = 2700;
         const MAX_COLOR_TEMPERATURE = 5000;
+
+        // ===== Toast Notification System =====
+        function showToast(title, message, type = 'success', duration = 4000) {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+
+            const iconSvg = type === 'success'
+                ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>'
+                : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>';
+
+            toast.innerHTML = `
+                <div class="toast-icon">${iconSvg}</div>
+                <div class="toast-message">
+                    <strong>${title}</strong>
+                    <small>${message}</small>
+                </div>
+            `;
+
+            container.appendChild(toast);
+
+            // Auto-remove after duration
+            setTimeout(() => {
+                toast.classList.add('toast-hiding');
+                setTimeout(() => toast.remove(), 300);
+            }, duration);
+
+            // Allow click to dismiss
+            toast.addEventListener('click', () => {
+                toast.classList.add('toast-hiding');
+                setTimeout(() => toast.remove(), 300);
+            });
+        }
 
         // ===== Simplified UI Functions =====
 
@@ -6971,15 +7146,14 @@
                     });
                 }
 
-                alert(`"${title}" has been placed in ${locationName}!`);
+                // Show success toast
+                const roomName = ROOM_ID_TO_NAME_MAP[roomId] || roomId;
+                showToast('Artwork Placed', `"${title}" is now displayed at ${locationName}`, 'success');
 
             } catch (error) {
                 console.error('Failed to place catalogue artwork:', error);
-                if (error.message) {
-                    alert('Failed to place artwork: ' + error.message);
-                } else {
-                    alert('Failed to place artwork. Please check your connection and try again.');
-                }
+                const errorMsg = error.message || 'Please check your connection and try again.';
+                showToast('Placement Failed', errorMsg, 'error', 6000);
             }
         }
 
@@ -11398,11 +11572,16 @@
                         createArtworkMesh(texture, fileName, wallSpot,
                             { width: scaledWidth, height: scaledHeight }, metadata, artData.imageUrl, artworkId);
                         updateArtQueue(fileName, artData.imageUrl, 'Placed on wall');
+
+                        // Show success toast
+                        const locationName = mapLocationIdToName(locationId);
+                        showToast('Artwork Placed', `"${metadata.title}" is now displayed at ${locationName}`, 'success');
                     } finally {
                         endArtworkLoad();
                     }
                 }, undefined, (error) => {
                     console.error('Failed to load texture for new artwork:', error);
+                    showToast('Upload Failed', 'Could not load the image. Please try again.', 'error', 6000);
                     endArtworkLoad();
                 });
             } else {
