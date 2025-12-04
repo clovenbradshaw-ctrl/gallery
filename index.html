@@ -1063,6 +1063,233 @@
             background: rgba(255, 255, 255, 0.3);
         }
 
+        /* Space Assignment Section Styles */
+        #viewer-space-assignment {
+            margin-top: 20px;
+            padding-top: 16px;
+            border-top: 1px solid rgba(255, 255, 255, 0.15);
+        }
+
+        .space-assignment-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+
+        .space-assignment-header h4 {
+            font-size: 0.9em;
+            font-weight: 600;
+            color: #ffffff;
+            margin: 0;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .space-assignment-toggle {
+            background: transparent;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: rgba(255, 255, 255, 0.8);
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 0.75em;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .space-assignment-toggle:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.5);
+        }
+
+        .space-assignment-content {
+            display: none;
+        }
+
+        .space-assignment-content.active {
+            display: block;
+        }
+
+        .current-location {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 12px;
+            background: rgba(102, 126, 234, 0.15);
+            border: 1px solid rgba(102, 126, 234, 0.3);
+            border-radius: 6px;
+            margin-bottom: 12px;
+        }
+
+        .current-location .location-icon {
+            font-size: 1.1em;
+        }
+
+        .current-location .location-text {
+            font-size: 0.9em;
+            color: #ffffff;
+        }
+
+        .current-location .location-name {
+            font-weight: 500;
+        }
+
+        .current-location.unassigned {
+            background: rgba(255, 187, 0, 0.1);
+            border-color: rgba(255, 187, 0, 0.3);
+        }
+
+        .current-location.unassigned .location-text {
+            color: #fbbf24;
+        }
+
+        .legacy-warning {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            padding: 8px 12px;
+            background: rgba(255, 107, 107, 0.1);
+            border: 1px solid rgba(255, 107, 107, 0.3);
+            border-radius: 6px;
+            margin-bottom: 12px;
+        }
+
+        .legacy-warning .warning-icon {
+            font-size: 1em;
+            color: #ff6b6b;
+            flex-shrink: 0;
+        }
+
+        .legacy-warning .warning-text {
+            font-size: 0.8em;
+            color: rgba(255, 255, 255, 0.8);
+            line-height: 1.4;
+        }
+
+        .space-selectors {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+
+        .selector-group {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .selector-group label {
+            font-size: 0.75em;
+            color: rgba(255, 255, 255, 0.6);
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .space-selector {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            color: white;
+            padding: 10px 12px;
+            border-radius: 6px;
+            font-size: 0.9em;
+            cursor: pointer;
+            transition: all 0.2s;
+            width: 100%;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='white' d='M6 8L2 4h8z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            padding-right: 32px;
+        }
+
+        .space-selector:hover {
+            border-color: rgba(255, 255, 255, 0.4);
+            background-color: rgba(255, 255, 255, 0.15);
+        }
+
+        .space-selector:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.3);
+        }
+
+        .space-selector option {
+            background: #1a1a2e;
+            color: white;
+        }
+
+        .assignment-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .assignment-btn {
+            flex: 1;
+            padding: 10px 16px;
+            border-radius: 6px;
+            font-size: 0.85em;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+        }
+
+        .assignment-btn.primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .assignment-btn.primary:hover:not(:disabled) {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .assignment-btn.primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .assignment-btn.secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: rgba(255, 255, 255, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .assignment-btn.secondary:hover {
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .assignment-status {
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 0.8em;
+            text-align: center;
+            margin-top: 8px;
+            display: none;
+        }
+
+        .assignment-status.success {
+            display: block;
+            background: rgba(74, 222, 128, 0.15);
+            border: 1px solid rgba(74, 222, 128, 0.3);
+            color: #4ade80;
+        }
+
+        .assignment-status.error {
+            display: block;
+            background: rgba(255, 107, 107, 0.15);
+            border: 1px solid rgba(255, 107, 107, 0.3);
+            color: #ff6b6b;
+        }
+
+        .assignment-status.loading {
+            display: block;
+            background: rgba(102, 126, 234, 0.15);
+            border: 1px solid rgba(102, 126, 234, 0.3);
+            color: #667eea;
+        }
+
         @media (max-width: 640px) {
             #ui-overlay {
                 width: calc(100vw - 32px);
@@ -4428,6 +4655,53 @@
             <div id="viewer-description"></div>
             <div id="viewer-price" style="margin-top: 10px; font-weight: bold;"></div>
             <div id="viewer-product-link" style="margin-top: 5px;"></div>
+
+            <!-- Space Assignment Section -->
+            <div id="viewer-space-assignment">
+                <div class="space-assignment-header">
+                    <h4>Space Assignment</h4>
+                    <button class="space-assignment-toggle" id="space-assignment-toggle" onclick="toggleSpaceAssignment()">Edit</button>
+                </div>
+
+                <!-- Current Location Display -->
+                <div class="current-location" id="current-location-display">
+                    <span class="location-icon">📍</span>
+                    <span class="location-text">
+                        <span class="location-name" id="current-location-name">Not assigned</span>
+                    </span>
+                </div>
+
+                <!-- Legacy Warning (shown when using old location format) -->
+                <div class="legacy-warning" id="legacy-location-warning" style="display: none;">
+                    <span class="warning-icon">⚠️</span>
+                    <span class="warning-text">This artwork uses a legacy location format. Reassign to use permanent GUIDs for more reliable placement.</span>
+                </div>
+
+                <!-- Space Selection UI (hidden by default) -->
+                <div class="space-assignment-content" id="space-assignment-content">
+                    <div class="space-selectors">
+                        <div class="selector-group">
+                            <label for="viewer-room-selector">Room</label>
+                            <select class="space-selector" id="viewer-room-selector" onchange="onViewerRoomChange()">
+                                <option value="">Select a room...</option>
+                            </select>
+                        </div>
+                        <div class="selector-group">
+                            <label for="viewer-space-selector">Space</label>
+                            <select class="space-selector" id="viewer-space-selector" onchange="onViewerSpaceChange()">
+                                <option value="">Select a space...</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="assignment-actions">
+                        <button class="assignment-btn secondary" onclick="cancelSpaceAssignment()">Cancel</button>
+                        <button class="assignment-btn primary" id="apply-space-btn" onclick="applySpaceAssignment()" disabled>Apply</button>
+                    </div>
+
+                    <div class="assignment-status" id="assignment-status"></div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -5146,6 +5420,9 @@
                             frame: event.frame || data.frame || 'classic',
                             scale: event.scale || data.scale || '1',
                             placed: true,
+                            // Capture spaceId if provided (GUID-based location)
+                            spaceId: data.spaceId || null,
+                            roomGuid: data.roomGuid || null,
                             created_at: event.created_at || event.published
                         };
                         break;
@@ -5156,6 +5433,9 @@
                                 ...data,
                                 frame: event.frame || this.state.artworks[object_id].frame,
                                 scale: event.scale || this.state.artworks[object_id].scale,
+                                // Update spaceId if provided
+                                spaceId: data.spaceId !== undefined ? data.spaceId : this.state.artworks[object_id].spaceId,
+                                roomGuid: data.roomGuid !== undefined ? data.roomGuid : this.state.artworks[object_id].roomGuid,
                                 updated_at: event.created_at || event.published
                             };
                         }
@@ -5172,6 +5452,13 @@
                             this.state.artworks[object_id].location = data.location;
                             this.state.artworks[object_id].locationName = data.locationName;
                             this.state.artworks[object_id].roomId = data.roomId;
+                            // Also capture spaceId if provided during place
+                            if (data.spaceId) {
+                                this.state.artworks[object_id].spaceId = data.spaceId;
+                            }
+                            if (data.roomGuid) {
+                                this.state.artworks[object_id].roomGuid = data.roomGuid;
+                            }
                         }
                         break;
                     case 'unplace':
@@ -7008,6 +7295,260 @@
             }
         };
 
+        // ============================================
+        // ROOMS CONFIGURATION WITH PERMANENT GUIDs
+        // Each room has a unique GUID (room_xxx) and contains spaces with their own GUIDs (space_xxx)
+        // This ensures art assignments use permanent GUIDs instead of array indices
+        // ============================================
+        const ROOMS_CONFIG = {
+            rooms: [
+                {
+                    guid: 'room_001',
+                    legacyId: 'main-gallery',
+                    name: 'Main Gallery',
+                    description: 'The primary exhibition space',
+                    spaces: [
+                        { guid: 'space_001', legacySpotId: '1', name: 'Back Wall Left', wall: 'back', position: 1 },
+                        { guid: 'space_002', legacySpotId: '2', name: 'Back Wall Center', wall: 'back', position: 2 },
+                        { guid: 'space_003', legacySpotId: '3', name: 'Back Wall Right', wall: 'back', position: 3 },
+                        { guid: 'space_004', legacySpotId: '4', name: 'Right Wall Front', wall: 'right', position: 1 },
+                        { guid: 'space_005', legacySpotId: '5', name: 'Right Wall Center', wall: 'right', position: 2 },
+                        { guid: 'space_006', legacySpotId: '6', name: 'Right Wall Back', wall: 'right', position: 3 },
+                        { guid: 'space_007', legacySpotId: '7', name: 'Front Wall Left', wall: 'front', position: 1 },
+                        { guid: 'space_008', legacySpotId: '8', name: 'Front Wall Center', wall: 'front', position: 2 },
+                        { guid: 'space_009', legacySpotId: '9', name: 'Front Wall Right', wall: 'front', position: 3 },
+                        { guid: 'space_010', legacySpotId: '10', name: 'Left Wall Front', wall: 'left', position: 1 },
+                        { guid: 'space_011', legacySpotId: '11', name: 'Left Wall Center', wall: 'left', position: 2 },
+                        { guid: 'space_012', legacySpotId: '12', name: 'Left Wall Back', wall: 'left', position: 3 }
+                    ]
+                },
+                {
+                    guid: 'room_002',
+                    legacyId: 'contemporary-wing',
+                    name: 'Contemporary Wing',
+                    description: 'Modern and contemporary art collection',
+                    spaces: [
+                        { guid: 'space_013', legacySpotId: '1', name: 'Back Wall Far Left', wall: 'back', position: 1 },
+                        { guid: 'space_014', legacySpotId: '2', name: 'Back Wall Left', wall: 'back', position: 2 },
+                        { guid: 'space_015', legacySpotId: '3', name: 'Back Wall Right', wall: 'back', position: 3 },
+                        { guid: 'space_016', legacySpotId: '4', name: 'Back Wall Far Right', wall: 'back', position: 4 },
+                        { guid: 'space_017', legacySpotId: '5', name: 'Right Wall Front', wall: 'right', position: 1 },
+                        { guid: 'space_018', legacySpotId: '6', name: 'Right Wall Center', wall: 'right', position: 2 },
+                        { guid: 'space_019', legacySpotId: '7', name: 'Right Wall Back', wall: 'right', position: 3 },
+                        { guid: 'space_020', legacySpotId: '8', name: 'Front Wall Left', wall: 'front', position: 1 },
+                        { guid: 'space_021', legacySpotId: '9', name: 'Front Wall Center', wall: 'front', position: 2 },
+                        { guid: 'space_022', legacySpotId: '10', name: 'Front Wall Right', wall: 'front', position: 3 },
+                        { guid: 'space_023', legacySpotId: '11', name: 'Left Wall Front', wall: 'left', position: 1 },
+                        { guid: 'space_024', legacySpotId: '12', name: 'Left Wall Center', wall: 'left', position: 2 },
+                        { guid: 'space_025', legacySpotId: '13', name: 'Left Wall Back', wall: 'left', position: 3 }
+                    ]
+                }
+            ]
+        };
+
+        // Build GUID lookup maps for efficient access
+        const ROOM_GUID_MAP = {};
+        const SPACE_GUID_MAP = {};
+        const LEGACY_TO_GUID_MAP = { rooms: {}, spaces: {} };
+
+        ROOMS_CONFIG.rooms.forEach(room => {
+            ROOM_GUID_MAP[room.guid] = room;
+            LEGACY_TO_GUID_MAP.rooms[room.legacyId] = room.guid;
+            room.spaces.forEach(space => {
+                SPACE_GUID_MAP[space.guid] = { ...space, roomGuid: room.guid, roomName: room.name };
+                const legacyKey = `${room.legacyId}:${space.legacySpotId}`;
+                LEGACY_TO_GUID_MAP.spaces[legacyKey] = space.guid;
+            });
+        });
+
+        // ============================================
+        // ROOM/SPACE HELPER FUNCTIONS
+        // ============================================
+
+        /**
+         * Find a room by its permanent GUID
+         * @param {string} roomGuid - The room GUID (e.g., 'room_001')
+         * @returns {object|null} The room object or null if not found
+         */
+        function findRoomById(roomGuid) {
+            return ROOM_GUID_MAP[roomGuid] || null;
+        }
+
+        /**
+         * Find a space by its permanent GUID
+         * @param {string} spaceGuid - The space GUID (e.g., 'space_001')
+         * @returns {object|null} The space object with roomGuid and roomName or null
+         */
+        function findSpaceById(spaceGuid) {
+            return SPACE_GUID_MAP[spaceGuid] || null;
+        }
+
+        /**
+         * Get the room name for a given space GUID
+         * @param {string} spaceGuid - The space GUID
+         * @returns {string} The room name or 'Unknown Room'
+         */
+        function getRoomNameBySpaceId(spaceGuid) {
+            const space = findSpaceById(spaceGuid);
+            return space ? space.roomName : 'Unknown Room';
+        }
+
+        /**
+         * Get the space name for a given space GUID
+         * @param {string} spaceGuid - The space GUID
+         * @returns {string} The space name or 'Unknown Space'
+         */
+        function getSpaceNameById(spaceGuid) {
+            const space = findSpaceById(spaceGuid);
+            return space ? space.name : 'Unknown Space';
+        }
+
+        /**
+         * Get the full location name (Room - Space) for a given space GUID
+         * @param {string} spaceGuid - The space GUID
+         * @returns {string} The full location name or 'Unknown Location'
+         */
+        function getFullLocationName(spaceGuid) {
+            const space = findSpaceById(spaceGuid);
+            if (!space) return 'Unknown Location';
+            return `${space.roomName} - ${space.name}`;
+        }
+
+        /**
+         * Convert legacy location ID to space GUID
+         * @param {string} legacyLocationId - Legacy location ID (e.g., 'main-gallery:1')
+         * @returns {string|null} The space GUID or null
+         */
+        function legacyLocationToSpaceGuid(legacyLocationId) {
+            return LEGACY_TO_GUID_MAP.spaces[legacyLocationId] || null;
+        }
+
+        /**
+         * Convert legacy room ID to room GUID
+         * @param {string} legacyRoomId - Legacy room ID (e.g., 'main-gallery')
+         * @returns {string|null} The room GUID or null
+         */
+        function legacyRoomToRoomGuid(legacyRoomId) {
+            return LEGACY_TO_GUID_MAP.rooms[legacyRoomId] || null;
+        }
+
+        /**
+         * Convert space GUID to legacy location ID (for backward compatibility)
+         * @param {string} spaceGuid - The space GUID
+         * @returns {string|null} The legacy location ID or null
+         */
+        function spaceGuidToLegacyLocation(spaceGuid) {
+            const space = findSpaceById(spaceGuid);
+            if (!space) return null;
+            const room = findRoomById(space.roomGuid);
+            if (!room) return null;
+            return `${room.legacyId}:${space.legacySpotId}`;
+        }
+
+        /**
+         * Check if a location is using legacy format (not GUID)
+         * @param {string} locationId - The location identifier
+         * @returns {boolean} True if legacy format
+         */
+        function isLegacyLocation(locationId) {
+            if (!locationId) return false;
+            // Legacy format: 'room-id:spotNumber' or just a number
+            // GUID format: 'space_xxx'
+            return !locationId.startsWith('space_');
+        }
+
+        /**
+         * Populate room selector dropdown
+         * @param {HTMLSelectElement} selectElement - The select element to populate
+         * @param {string} selectedGuid - Optional GUID to pre-select
+         */
+        function populateRoomSelector(selectElement, selectedGuid = null) {
+            selectElement.innerHTML = '<option value="">Select a room...</option>';
+            ROOMS_CONFIG.rooms.forEach(room => {
+                const option = document.createElement('option');
+                option.value = room.guid;
+                option.textContent = room.name;
+                if (selectedGuid && room.guid === selectedGuid) {
+                    option.selected = true;
+                }
+                selectElement.appendChild(option);
+            });
+        }
+
+        /**
+         * Populate space selector dropdown based on selected room
+         * @param {HTMLSelectElement} selectElement - The select element to populate
+         * @param {string} roomGuid - The room GUID to filter spaces
+         * @param {string} selectedSpaceGuid - Optional space GUID to pre-select
+         */
+        function populateSpaceSelector(selectElement, roomGuid, selectedSpaceGuid = null) {
+            selectElement.innerHTML = '<option value="">Select a space...</option>';
+            if (!roomGuid) return;
+
+            const room = findRoomById(roomGuid);
+            if (!room) return;
+
+            room.spaces.forEach(space => {
+                const option = document.createElement('option');
+                option.value = space.guid;
+                option.textContent = space.name;
+                if (selectedSpaceGuid && space.guid === selectedSpaceGuid) {
+                    option.selected = true;
+                }
+                selectElement.appendChild(option);
+            });
+        }
+
+        /**
+         * Assign artwork to a space using GUIDs, posts to Xano Events API
+         * @param {string} artworkId - The artwork/event object_id
+         * @param {string} spaceGuid - The space GUID to assign to
+         * @returns {Promise<object>} The result from Xano API
+         */
+        async function assignArtworkToSpace(artworkId, spaceGuid) {
+            const space = findSpaceById(spaceGuid);
+            if (!space) {
+                throw new Error(`Invalid space GUID: ${spaceGuid}`);
+            }
+
+            const room = findRoomById(space.roomGuid);
+            if (!room) {
+                throw new Error(`Room not found for space: ${spaceGuid}`);
+            }
+
+            // Get legacy location for backward compatibility with existing display logic
+            const legacyLocationId = spaceGuidToLegacyLocation(spaceGuid);
+
+            const eventData = {
+                verb: 'update',
+                op: 'assign_space',
+                object_type: 'artwork',
+                object_id: artworkId,
+                data: {
+                    spaceId: spaceGuid,
+                    roomGuid: space.roomGuid,
+                    spaceName: space.name,
+                    roomName: room.name,
+                    // Include legacy fields for backward compatibility
+                    locationId: legacyLocationId,
+                    locationName: `${room.name} - ${space.name}`,
+                    roomId: room.legacyId,
+                    placed: true
+                }
+            };
+
+            console.log('[assignArtworkToSpace] Posting assignment:', eventData);
+
+            try {
+                const result = await eventStore.postEvent(eventData, { skipDuplicateCheck: true });
+                console.log('[assignArtworkToSpace] Assignment successful:', result);
+                return result;
+            } catch (error) {
+                console.error('[assignArtworkToSpace] Failed to assign artwork:', error);
+                throw error;
+            }
+        }
+
         const LOCATION_NAME_TO_ID_MAP = {};
         const LOCATION_ID_TO_NAME_MAP = {};
         const ROOM_ID_TO_NAME_MAP = {};
@@ -8525,7 +9066,9 @@
                         location: artwork.location,
                         locationId: artwork.locationId,
                         locationName: artwork.locationName,
-                        roomId: artwork.roomId
+                        roomId: artwork.roomId,
+                        spaceId: artwork.spaceId,
+                        roomGuid: artwork.roomGuid
                     });
 
                     // Skip if no image URL
@@ -8574,7 +9117,12 @@
                     const metadata = {
                         title: artwork.title || '',
                         artist: artwork.artist || '',
-                        description: artwork.description || ''
+                        description: artwork.description || '',
+                        // Include spaceId and location info for viewer UI
+                        spaceId: artwork.spaceId || null,
+                        roomGuid: artwork.roomGuid || null,
+                        locationId: parsedLocation.locationId,
+                        locationName: artwork.locationName || ''
                     };
 
                     // Height in meters (default 36 inches = 0.9144m)
@@ -8594,7 +9142,10 @@
                             gatewayTo: artwork.gatewayTo,
                             displayMode: artwork.displayMode,
                             images: artwork.images,
-                            currentImageIndex: artwork.currentImageIndex
+                            currentImageIndex: artwork.currentImageIndex,
+                            // Include spaceId for GUID-based location tracking
+                            spaceId: artwork.spaceId,
+                            roomGuid: artwork.roomGuid
                         })
                     );
                 }
@@ -11548,6 +12099,9 @@
                 productLinkEl.style.display = 'none';
             }
 
+            // Update space assignment UI
+            updateSpaceAssignmentUI(artData);
+
             // Show info panel by default
             info.classList.remove('hidden');
 
@@ -11583,6 +12137,257 @@
             viewer.classList.remove('active');
             document.body.style.overflow = '';
             resetViewerTransform();
+            // Reset space assignment state
+            currentViewerArtwork = null;
+            hideSpaceAssignmentContent();
+        }
+
+        // ============================================
+        // SPACE ASSIGNMENT UI FUNCTIONS
+        // ============================================
+
+        // Store current artwork being viewed for space assignment
+        let currentViewerArtwork = null;
+        let selectedRoomGuid = null;
+        let selectedSpaceGuid = null;
+
+        /**
+         * Update the space assignment UI based on artwork data
+         * @param {object} artData - The artwork data object
+         */
+        function updateSpaceAssignmentUI(artData) {
+            currentViewerArtwork = artData;
+
+            const locationDisplay = document.getElementById('current-location-display');
+            const locationName = document.getElementById('current-location-name');
+            const legacyWarning = document.getElementById('legacy-location-warning');
+            const roomSelector = document.getElementById('viewer-room-selector');
+            const spaceSelector = document.getElementById('viewer-space-selector');
+
+            // Get location info from artwork
+            const spaceId = artData.spaceId || artData.metadata?.spaceId;
+            const locationId = artData.locationId || artData.metadata?.locationId;
+            const legacyLocationName = artData.locationName || artData.metadata?.locationName;
+
+            // Reset state
+            selectedRoomGuid = null;
+            selectedSpaceGuid = null;
+            hideSpaceAssignmentContent();
+
+            // Populate room selector
+            populateRoomSelector(roomSelector);
+            spaceSelector.innerHTML = '<option value="">Select a space...</option>';
+
+            // Determine current location status
+            if (spaceId && spaceId.startsWith('space_')) {
+                // Using GUID-based location
+                const space = findSpaceById(spaceId);
+                if (space) {
+                    locationName.textContent = getFullLocationName(spaceId);
+                    locationDisplay.classList.remove('unassigned');
+                    legacyWarning.style.display = 'none';
+
+                    // Pre-select current room and space
+                    selectedRoomGuid = space.roomGuid;
+                    selectedSpaceGuid = spaceId;
+                } else {
+                    locationName.textContent = `Unknown space (${spaceId})`;
+                    locationDisplay.classList.add('unassigned');
+                    legacyWarning.style.display = 'none';
+                }
+            } else if (locationId) {
+                // Using legacy location format
+                const spaceGuid = legacyLocationToSpaceGuid(locationId);
+                if (spaceGuid) {
+                    const space = findSpaceById(spaceGuid);
+                    locationName.textContent = getFullLocationName(spaceGuid);
+                    locationDisplay.classList.remove('unassigned');
+                    legacyWarning.style.display = 'flex';
+
+                    // Pre-select based on legacy mapping
+                    selectedRoomGuid = space?.roomGuid;
+                    selectedSpaceGuid = spaceGuid;
+                } else if (legacyLocationName) {
+                    locationName.textContent = legacyLocationName + ' (legacy)';
+                    locationDisplay.classList.remove('unassigned');
+                    legacyWarning.style.display = 'flex';
+                } else {
+                    locationName.textContent = locationId + ' (legacy)';
+                    locationDisplay.classList.remove('unassigned');
+                    legacyWarning.style.display = 'flex';
+                }
+            } else {
+                // Not assigned
+                locationName.textContent = 'Not assigned to a space';
+                locationDisplay.classList.add('unassigned');
+                legacyWarning.style.display = 'none';
+            }
+
+            // Update apply button state
+            updateApplyButtonState();
+        }
+
+        /**
+         * Toggle space assignment edit mode
+         */
+        function toggleSpaceAssignment() {
+            const content = document.getElementById('space-assignment-content');
+            const toggle = document.getElementById('space-assignment-toggle');
+            const roomSelector = document.getElementById('viewer-room-selector');
+            const spaceSelector = document.getElementById('viewer-space-selector');
+
+            if (content.classList.contains('active')) {
+                hideSpaceAssignmentContent();
+            } else {
+                content.classList.add('active');
+                toggle.textContent = 'Cancel';
+
+                // Pre-select current values if available
+                if (selectedRoomGuid) {
+                    roomSelector.value = selectedRoomGuid;
+                    populateSpaceSelector(spaceSelector, selectedRoomGuid, selectedSpaceGuid);
+                }
+
+                updateApplyButtonState();
+                clearAssignmentStatus();
+            }
+        }
+
+        /**
+         * Hide space assignment content and reset toggle
+         */
+        function hideSpaceAssignmentContent() {
+            const content = document.getElementById('space-assignment-content');
+            const toggle = document.getElementById('space-assignment-toggle');
+            content.classList.remove('active');
+            toggle.textContent = 'Edit';
+            clearAssignmentStatus();
+        }
+
+        /**
+         * Handle room selector change
+         */
+        function onViewerRoomChange() {
+            const roomSelector = document.getElementById('viewer-room-selector');
+            const spaceSelector = document.getElementById('viewer-space-selector');
+
+            const roomGuid = roomSelector.value;
+            populateSpaceSelector(spaceSelector, roomGuid);
+            updateApplyButtonState();
+        }
+
+        /**
+         * Handle space selector change
+         */
+        function onViewerSpaceChange() {
+            updateApplyButtonState();
+        }
+
+        /**
+         * Update apply button enabled state
+         */
+        function updateApplyButtonState() {
+            const applyBtn = document.getElementById('apply-space-btn');
+            const spaceSelector = document.getElementById('viewer-space-selector');
+
+            if (applyBtn && spaceSelector) {
+                applyBtn.disabled = !spaceSelector.value;
+            }
+        }
+
+        /**
+         * Cancel space assignment and close edit mode
+         */
+        function cancelSpaceAssignment() {
+            hideSpaceAssignmentContent();
+
+            // Reset selectors to original values
+            if (currentViewerArtwork) {
+                updateSpaceAssignmentUI(currentViewerArtwork);
+            }
+        }
+
+        /**
+         * Apply the selected space assignment
+         */
+        async function applySpaceAssignment() {
+            const spaceSelector = document.getElementById('viewer-space-selector');
+            const newSpaceGuid = spaceSelector.value;
+
+            if (!newSpaceGuid || !currentViewerArtwork) {
+                showAssignmentStatus('error', 'Please select a space');
+                return;
+            }
+
+            // Get artwork ID
+            const artworkId = currentViewerArtwork.eventId ||
+                              currentViewerArtwork.id ||
+                              currentViewerArtwork.airtableId ||
+                              currentViewerArtwork.metadata?.eventId;
+
+            if (!artworkId) {
+                showAssignmentStatus('error', 'Could not identify artwork');
+                return;
+            }
+
+            showAssignmentStatus('loading', 'Assigning artwork...');
+
+            try {
+                await assignArtworkToSpace(artworkId, newSpaceGuid);
+
+                // Update local artwork data
+                currentViewerArtwork.spaceId = newSpaceGuid;
+                if (currentViewerArtwork.metadata) {
+                    currentViewerArtwork.metadata.spaceId = newSpaceGuid;
+                }
+
+                // Update UI to show new assignment
+                selectedSpaceGuid = newSpaceGuid;
+                const space = findSpaceById(newSpaceGuid);
+                if (space) {
+                    selectedRoomGuid = space.roomGuid;
+                }
+
+                showAssignmentStatus('success', 'Space assigned successfully!');
+
+                // Update the location display
+                const locationName = document.getElementById('current-location-name');
+                const locationDisplay = document.getElementById('current-location-display');
+                const legacyWarning = document.getElementById('legacy-location-warning');
+
+                locationName.textContent = getFullLocationName(newSpaceGuid);
+                locationDisplay.classList.remove('unassigned');
+                legacyWarning.style.display = 'none';
+
+                // Hide edit mode after brief delay
+                setTimeout(() => {
+                    hideSpaceAssignmentContent();
+                }, 1500);
+
+            } catch (error) {
+                console.error('[applySpaceAssignment] Failed:', error);
+                showAssignmentStatus('error', error.message || 'Failed to assign space');
+            }
+        }
+
+        /**
+         * Show assignment status message
+         * @param {string} type - 'success', 'error', or 'loading'
+         * @param {string} message - The message to display
+         */
+        function showAssignmentStatus(type, message) {
+            const statusEl = document.getElementById('assignment-status');
+            statusEl.className = 'assignment-status ' + type;
+            statusEl.textContent = message;
+        }
+
+        /**
+         * Clear assignment status message
+         */
+        function clearAssignmentStatus() {
+            const statusEl = document.getElementById('assignment-status');
+            statusEl.className = 'assignment-status';
+            statusEl.textContent = '';
         }
 
         function toggleViewerInfo() {
