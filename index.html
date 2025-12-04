@@ -7812,24 +7812,43 @@
             }
         }
 
-        function generateNewGallery() {
+        async function generateNewGallery() {
             const nameInput = document.getElementById('gallery-name-input');
             const name = (nameInput?.value || '').trim() || `Gallery ${galleries.length + 1}`;
             const id = generateGUID();
+            const homeRoom = getActiveGallery()?.homeRoom || 'main-gallery';
+            const colorTemperature = getActiveGallery()?.colorTemperature || DEFAULT_COLOR_TEMPERATURE;
 
-            galleries.push({
+            const newGallery = {
                 id,
                 name,
-                homeRoom: getActiveGallery()?.homeRoom || 'main-gallery',
-                colorTemperature: getActiveGallery()?.colorTemperature || DEFAULT_COLOR_TEMPERATURE
-            });
+                homeRoom,
+                colorTemperature
+            };
+
+            galleries.push(newGallery);
 
             saveGalleryState();
             renderGalleryControls();
             setActiveGallery(id);
+
+            // Log gallery creation to activity store
+            if (eventStore) {
+                await eventStore.postEvent({
+                    verb: 'create',
+                    op: 'gallery_create',
+                    object_type: 'gallery',
+                    object_id: id,
+                    data: {
+                        name: name,
+                        homeRoom: homeRoom,
+                        colorTemperature: colorTemperature
+                    }
+                });
+            }
         }
 
-        function renameActiveGallery() {
+        async function renameActiveGallery() {
             const gallery = getActiveGallery();
             if (!gallery) return;
 
@@ -7837,12 +7856,27 @@
             const newName = (nameInput?.value || '').trim();
             if (!newName) return;
 
+            const oldName = gallery.name;
             gallery.name = newName;
             saveGalleryState();
             renderGalleryControls();
+
+            // Log gallery rename to activity store
+            if (eventStore) {
+                await eventStore.postEvent({
+                    verb: 'update',
+                    op: 'gallery_rename',
+                    object_type: 'gallery',
+                    object_id: gallery.id,
+                    data: {
+                        name: newName,
+                        previousName: oldName
+                    }
+                });
+            }
         }
 
-        function deleteActiveGallery() {
+        async function deleteActiveGallery() {
             const gallery = getActiveGallery();
             if (!gallery) return;
 
@@ -7854,6 +7888,11 @@
 
             const confirmDelete = confirm(`Are you sure you want to delete "${gallery.name}"?\n\nThis will remove the gallery but artwork in the catalogue will be preserved.`);
             if (!confirmDelete) return;
+
+            // Store gallery info for logging before deletion
+            const deletedGalleryId = gallery.id;
+            const deletedGalleryName = gallery.name;
+            const deletedGalleryRoom = gallery.homeRoom;
 
             // Remove the gallery from the list
             const index = galleries.findIndex(g => g.id === gallery.id);
@@ -7871,26 +7910,72 @@
             if (newActiveGallery) {
                 setActiveGallery(newActiveGallery.id);
             }
+
+            // Log gallery deletion to activity store
+            if (eventStore) {
+                await eventStore.postEvent({
+                    verb: 'delete',
+                    op: 'gallery_delete',
+                    object_type: 'gallery',
+                    object_id: deletedGalleryId,
+                    data: {
+                        name: deletedGalleryName,
+                        homeRoom: deletedGalleryRoom
+                    }
+                });
+            }
         }
 
-        function updateActiveGalleryRoom(roomId) {
+        async function updateActiveGalleryRoom(roomId) {
             const gallery = getActiveGallery();
             if (!gallery || !roomId || !ROOMS[roomId]) return;
 
+            const previousRoom = gallery.homeRoom;
             gallery.homeRoom = roomId;
             saveGalleryState();
             if (roomManager) {
                 roomManager.loadRoom(roomId);
             }
+
+            // Log gallery room change to activity store
+            if (eventStore) {
+                await eventStore.postEvent({
+                    verb: 'update',
+                    op: 'gallery_room_change',
+                    object_type: 'gallery',
+                    object_id: gallery.id,
+                    data: {
+                        homeRoom: roomId,
+                        roomName: ROOMS[roomId]?.name || roomId,
+                        previousRoom: previousRoom,
+                        previousRoomName: ROOMS[previousRoom]?.name || previousRoom
+                    }
+                });
+            }
         }
 
-        function updateActiveGalleryColorTemperature(temp) {
+        async function updateActiveGalleryColorTemperature(temp) {
             const gallery = getActiveGallery();
             if (!gallery) return;
 
+            const previousTemp = gallery.colorTemperature;
             gallery.colorTemperature = clampColorTemperature(temp);
             saveGalleryState();
             applyColorTemperature(gallery.colorTemperature);
+
+            // Log color temperature change to activity store
+            if (eventStore) {
+                await eventStore.postEvent({
+                    verb: 'update',
+                    op: 'gallery_color_temperature',
+                    object_type: 'gallery',
+                    object_id: gallery.id,
+                    data: {
+                        colorTemperature: gallery.colorTemperature,
+                        previousColorTemperature: previousTemp
+                    }
+                });
+            }
         }
 
         function openGalleryMap() {
@@ -8021,7 +8106,7 @@
             document.getElementById('add-room-dialog').classList.remove('active');
         }
 
-        function createNewRoom() {
+        async function createNewRoom() {
             const nameInput = document.getElementById('new-room-name');
             const sizeSelect = document.getElementById('new-room-size');
             const wallSpotsSelect = document.getElementById('new-room-wall-spots');
@@ -8129,6 +8214,37 @@
 
             // Reopen gallery map to show the new room
             openGalleryMap();
+
+            // Log room creation to activity store
+            if (eventStore) {
+                await eventStore.postEvent({
+                    verb: 'create',
+                    op: 'room_create',
+                    object_type: 'room',
+                    object_id: roomId,
+                    data: {
+                        name: name,
+                        size: size,
+                        dimensions: dimensions,
+                        theme: theme,
+                        wallSpotCount: wallSpotCount,
+                        colorTemperature: themeConfig.colorTemperature
+                    }
+                });
+
+                // Also log the gallery creation since a gallery is created for this room
+                await eventStore.postEvent({
+                    verb: 'create',
+                    op: 'gallery_create',
+                    object_type: 'gallery',
+                    object_id: roomId,
+                    data: {
+                        name: name,
+                        homeRoom: roomId,
+                        colorTemperature: themeConfig.colorTemperature
+                    }
+                });
+            }
         }
 
         function generateWallSpots(roomId, count, dimensions) {
