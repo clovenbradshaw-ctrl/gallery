@@ -8067,7 +8067,20 @@
             textureLoader.load(imageUrl, (texture) => {
                 texture.colorSpace = THREE.SRGBColorSpace;
 
-                // Find the painted surface in the artwork mesh
+                // Calculate new dimensions
+                const userData = artworkMesh.userData;
+                const heightFeet = userData.heightFeet || 3;
+                const heightMeters = heightFeet * 0.3048;
+                const widthMeters = heightMeters * aspectRatio;
+
+                // Update the frame (children[0]) geometry
+                const frame = artworkMesh.children[0];
+                if (frame && frame.geometry) {
+                    frame.geometry.dispose();
+                    frame.geometry = new THREE.BoxGeometry(widthMeters + 0.1, heightMeters + 0.1, 0.05);
+                }
+
+                // Find the painted surface in the artwork mesh and update it
                 artworkMesh.traverse((child) => {
                     if (child.isMesh && child.material && child.material.map) {
                         // Dispose old texture
@@ -8079,23 +8092,18 @@
                         child.material.map = texture;
                         child.material.needsUpdate = true;
 
-                        // Update geometry for new aspect ratio
-                        const userData = artworkMesh.userData;
-                        const heightFeet = userData.heightFeet || 3;
-                        const heightMeters = heightFeet * 0.3048;
-                        const widthMeters = heightMeters * aspectRatio;
-
                         // Update the plane geometry
                         if (child.geometry) {
                             child.geometry.dispose();
                             child.geometry = new THREE.PlaneGeometry(widthMeters, heightMeters);
                         }
-
-                        // Update stored aspect ratio
-                        artworkMesh.userData.aspectRatio = aspectRatio;
-                        artworkMesh.userData.imageUrl = imageUrl;
                     }
                 });
+
+                // Update stored data
+                artworkMesh.userData.aspectRatio = aspectRatio;
+                artworkMesh.userData.imageUrl = imageUrl;
+                artworkMesh.userData.width = widthMeters;
 
                 // Update the event in storage if admin
                 if (isAdmin && (artworkMesh.userData.artworkId || artworkMesh.userData.eventId)) {
