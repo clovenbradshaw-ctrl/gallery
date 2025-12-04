@@ -4472,7 +4472,9 @@
 
         // Place catalogue item in gallery
         async function placeCatalogueItem() {
-            if (!selectedCatalogueItem || !isAdmin) return;
+            // Capture reference to avoid race condition during async operations
+            const item = selectedCatalogueItem;
+            if (!item || !isAdmin) return;
 
             const title = document.getElementById('catalogue-title').value.trim();
             const artist = document.getElementById('catalogue-artist').value.trim();
@@ -4514,7 +4516,7 @@
                 return;
             }
 
-            console.log('Placing artwork:', { locationId, locationName, roomId, imageUrl: selectedCatalogueItem.image_url });
+            console.log('Placing artwork:', { locationId, locationName, roomId, imageUrl: item.image_url });
 
             // Load image to get dimensions
             let aspectRatio = 1;
@@ -4532,7 +4534,7 @@
                         console.warn('Image preload failed, using default aspect ratio:', e);
                         resolve(); // Continue with default aspect ratio
                     };
-                    img.src = selectedCatalogueItem.image_url;
+                    img.src = item.image_url;
                 });
 
                 if (img.width && img.height) {
@@ -4557,7 +4559,7 @@
                         title: title,
                         artist: artist,
                         description: description,
-                        imageUrl: selectedCatalogueItem.image_url,
+                        imageUrl: item.image_url,
                         heightInches: heightInches,
                         heightMeters: heightMeters,
                         widthInches: widthInches,
@@ -4566,10 +4568,10 @@
                         locationName: locationName,
                         roomId: roomId,
                         galleryId: galleryId || 'default',
-                        catalogueId: selectedCatalogueItem.id,
-                        productUrl: selectedCatalogueItem.product_url,
-                        price: selectedCatalogueItem.price,
-                        currency: selectedCatalogueItem.currency
+                        catalogueId: item.id,
+                        productUrl: item.product_url,
+                        price: item.price,
+                        currency: item.currency
                     }
                 };
 
@@ -4587,7 +4589,7 @@
                     roomManager.addArtwork({
                         roomId: roomId,
                         locationId: locationId,
-                        url: selectedCatalogueItem.image_url,
+                        url: item.image_url,
                         heightMeters: heightMeters,
                         eventId: objectId,
                         metadata: {
