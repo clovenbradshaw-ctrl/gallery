@@ -8717,6 +8717,9 @@
                 this.createRoomLighting(roomGroup, roomConfig, spots);
                 this.addRoomDecor(roomGroup, roomConfig);
 
+                // Add room name sign
+                createRoomNameSign(roomConfig.name, roomConfig, roomGroup);
+
                 roomGroup.position.set(
                     roomConfig.position.x,
                     roomConfig.position.y,
@@ -9963,7 +9966,62 @@
 
             return placardGroup;
         }
-        
+
+        // Create uniform room name sign - same size for all rooms
+        function createRoomNameSign(roomName, roomConfig, parent) {
+            const signGroup = new THREE.Group();
+
+            // Uniform sign dimensions for all rooms
+            const signWidth = 1.2;
+            const signHeight = 0.4;
+
+            // Create sign backing
+            const signGeometry = new THREE.BoxGeometry(signWidth, signHeight, 0.03);
+            const signMaterial = new THREE.MeshStandardMaterial({
+                color: 0x2a2a2a,
+                roughness: 0.3,
+                metalness: 0.1
+            });
+            const sign = new THREE.Mesh(signGeometry, signMaterial);
+            signGroup.add(sign);
+
+            // Create canvas for room name text
+            const canvas = document.createElement('canvas');
+            canvas.width = 512;
+            canvas.height = 128;
+            const context = canvas.getContext('2d');
+
+            // Dark background
+            context.fillStyle = '#2a2a2a';
+            context.fillRect(0, 0, canvas.width, canvas.height);
+
+            // White text - centered room name
+            context.fillStyle = '#ffffff';
+            context.font = 'bold 48px "Segoe UI", Arial';
+            context.textAlign = 'center';
+            context.textBaseline = 'middle';
+            context.fillText(roomName, canvas.width / 2, canvas.height / 2);
+
+            const textTexture = new THREE.CanvasTexture(canvas);
+            const textMaterial = new THREE.MeshBasicMaterial({ map: textTexture });
+            const textMesh = new THREE.Mesh(
+                new THREE.PlaneGeometry(signWidth - 0.04, signHeight - 0.04),
+                textMaterial
+            );
+            textMesh.position.z = 0.016;
+            signGroup.add(textMesh);
+
+            // Position sign on the back wall, centered and near the ceiling
+            const { width, depth, height } = roomConfig.dimensions;
+            signGroup.position.set(0, height - 0.6, -depth / 2 + 0.02);
+            signGroup.rotation.y = 0; // Face forward
+
+            signGroup.name = 'room-name-sign';
+            parent.add(signGroup);
+
+            return signGroup;
+        }
+
         function setupControls() {
             // Pointer lock is now toggled by double-click (not single click)
             // This allows keyboard movement to always work while still enabling
@@ -11392,32 +11450,6 @@
             artworkGroup.position.add(normal.multiplyScalar(0.05));
 
             const parentGroup = spot.parent || scene;
-            const roomHeight = (spot.userData.roomId && ROOMS[spot.userData.roomId])
-                ? ROOMS[spot.userData.roomId].dimensions.height
-                : spot.position.y + 2.5;
-            const wireAnchor = new THREE.Vector3(
-                spot.position.x,
-                roomHeight - 0.05,
-                spot.position.z
-            );
-            const wireEnd = new THREE.Vector3(
-                spot.position.x,
-                spot.position.y + (height / 2) + 0.1,
-                spot.position.z
-            ).add(normal.clone().multiplyScalar(0.05));
-            const wireVector = new THREE.Vector3().subVectors(wireEnd, wireAnchor);
-            const wireLength = wireVector.length();
-            const wireGeometry = new THREE.CylinderGeometry(0.007, 0.007, wireLength, 8);
-            const wireMaterial = new THREE.MeshStandardMaterial({ color: 0x555555, metalness: 0.6, roughness: 0.4 });
-            const wire = new THREE.Mesh(wireGeometry, wireMaterial);
-            const wireMidpoint = new THREE.Vector3().addVectors(wireAnchor, wireEnd).multiplyScalar(0.5);
-            wire.position.copy(wireMidpoint);
-            wire.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), wireVector.clone().normalize());
-            wire.castShadow = false;
-            wire.receiveShadow = false;
-            parentGroup.add(wire);
-
-            artworkGroup.userData.wire = wire;
 
             artworks.push(artworkGroup);
             parentGroup.add(artworkGroup);
@@ -11975,39 +12007,6 @@
                     };
 
                     gridGroup.add(imageGroup);
-
-                    loadedCount++;
-                    if (loadedCount === imagesData.length) {
-                        // All images loaded, add wires and placard
-                        const roomHeight = (spot.userData.roomId && ROOMS[spot.userData.roomId])
-                            ? ROOMS[spot.userData.roomId].dimensions.height
-                            : spot.position.y + 2.5;
-
-                        const wireAnchor = new THREE.Vector3(
-                            spot.position.x,
-                            roomHeight - 0.05,
-                            spot.position.z
-                        );
-                        const wireEnd = new THREE.Vector3(
-                            spot.position.x,
-                            spot.position.y + (gridHeight / 2) + 0.1,
-                            spot.position.z
-                        ).add(normal.clone().multiplyScalar(0.05));
-
-                        const wireVector = new THREE.Vector3().subVectors(wireEnd, wireAnchor);
-                        const wireLength = wireVector.length();
-                        const wireGeometry = new THREE.CylinderGeometry(0.007, 0.007, wireLength, 8);
-                        const wireMaterial = new THREE.MeshStandardMaterial({ color: 0x555555, metalness: 0.6, roughness: 0.4 });
-                        const wire = new THREE.Mesh(wireGeometry, wireMaterial);
-                        const wireMidpoint = new THREE.Vector3().addVectors(wireAnchor, wireEnd).multiplyScalar(0.5);
-                        wire.position.copy(wireMidpoint);
-                        wire.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), wireVector.clone().normalize());
-                        wire.castShadow = false;
-                        wire.receiveShadow = false;
-                        parentGroup.add(wire);
-
-                        gridGroup.userData.wire = wire;
-                    }
                 }, undefined, (error) => {
                     console.error('Failed to load grid image:', imageData.imageUrl, error);
                 });
