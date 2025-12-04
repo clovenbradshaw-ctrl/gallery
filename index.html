@@ -4583,9 +4583,8 @@
                 closeCatalogueDetail();
                 closeCatalogue();
 
-                // Refresh gallery if we're in the target room
-                if (typeof roomManager !== 'undefined' && roomManager.currentRoom === roomId) {
-                    // Load the artwork into the scene with correct data structure
+                // Add artwork to the scene (loads immediately if in target room, otherwise queued for later)
+                if (typeof roomManager !== 'undefined') {
                     roomManager.addArtwork({
                         roomId: roomId,
                         locationId: locationId,
