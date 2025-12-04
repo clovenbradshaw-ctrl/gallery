@@ -6031,7 +6031,15 @@
                 ).join('');
 
             // Populate location dropdown with room tag priority
-            populateCatalogueLocations(item.roomTag);
+            // If there's a pending location from clicking a space, pre-select it
+            const pendingLocation = window.pendingCatalogueLocation;
+            const preSelectedLocationId = pendingLocation ? pendingLocation.locationId : null;
+            const preferredRoomId = pendingLocation ? pendingLocation.roomId : item.roomTag;
+
+            populateCatalogueLocations(preferredRoomId, preSelectedLocationId);
+
+            // Clear the pending location after use
+            window.pendingCatalogueLocation = null;
 
             document.getElementById('catalogue-detail').classList.add('active');
         }
@@ -6050,7 +6058,7 @@
         }
 
         // Populate location dropdown based on selected gallery and room tag
-        function populateCatalogueLocations(preferredRoomId = null) {
+        function populateCatalogueLocations(preferredRoomId = null, preSelectedLocationId = null) {
             const locationSelect = document.getElementById('catalogue-location');
             const placedArtworks = eventStore.getPlacedArtworks();
             const occupiedLocations = new Set(placedArtworks.map(a => a.locationId));
@@ -6073,19 +6081,36 @@
                 });
             });
 
-            // Sort: preferred room first, then by room name
+            // Sort: pre-selected location first, then preferred room, then by room name
             options.sort((a, b) => {
+                // Pre-selected location always first
+                if (preSelectedLocationId) {
+                    if (a.id === preSelectedLocationId) return -1;
+                    if (b.id === preSelectedLocationId) return 1;
+                }
                 if (a.preferred && !b.preferred) return -1;
                 if (!a.preferred && b.preferred) return 1;
                 return a.name.localeCompare(b.name);
             });
 
-            // Find first available preferred location
-            const firstAvailable = options.find(opt => opt.preferred && !opt.occupied);
+            // Determine which option to select:
+            // 1. Pre-selected location if available and not occupied
+            // 2. Otherwise first available in preferred room
+            let selectedOption = null;
+            if (preSelectedLocationId) {
+                const preSelected = options.find(opt => opt.id === preSelectedLocationId && !opt.occupied);
+                if (preSelected) {
+                    selectedOption = preSelected;
+                }
+            }
+            if (!selectedOption) {
+                selectedOption = options.find(opt => opt.preferred && !opt.occupied);
+            }
 
             locationSelect.innerHTML = options.map(opt => {
-                const isSelected = firstAvailable && opt.id === firstAvailable.id;
-                const label = opt.preferred ? `★ ${opt.name}` : opt.name;
+                const isSelected = selectedOption && opt.id === selectedOption.id;
+                const isPreSelected = preSelectedLocationId && opt.id === preSelectedLocationId;
+                const label = isPreSelected ? `★ ${opt.name}` : (opt.preferred ? `★ ${opt.name}` : opt.name);
                 return `<option value="${opt.id}" ${opt.occupied ? 'disabled' : ''} ${isSelected ? 'selected' : ''}>${label}${opt.occupied ? ' (Occupied)' : ''}</option>`;
             }).join('');
         }
@@ -7956,24 +7981,13 @@
         function assignFromCatalogue() {
             if (!pendingAssignLocation) return;
 
+            // Save the location before closing the dialog (which clears pendingAssignLocation)
+            window.pendingCatalogueLocation = { ...pendingAssignLocation };
+
             closePlaceAssignDialog();
 
             // Open catalogue with pre-selected location
             openCatalogue();
-
-            // After a brief delay, set the location in the catalogue
-            setTimeout(() => {
-                const locationSelect = document.getElementById('catalogue-location');
-                if (locationSelect && pendingAssignLocation.locationId) {
-                    // Find and select the matching option
-                    for (let option of locationSelect.options) {
-                        if (option.value === pendingAssignLocation.locationId) {
-                            locationSelect.value = pendingAssignLocation.locationId;
-                            break;
-                        }
-                    }
-                }
-            }, 100);
         }
 
         function assignFromUpload() {
