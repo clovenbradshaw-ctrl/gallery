@@ -12333,6 +12333,9 @@
             showAssignmentStatus('loading', 'Assigning artwork...');
 
             try {
+                // Store old spotId before assignment for cleanup
+                const oldSpotId = currentViewerArtwork.spotId;
+
                 await assignArtworkToSpace(artworkId, newSpaceGuid);
 
                 // Update local artwork data
@@ -12358,6 +12361,89 @@
                 locationName.textContent = getFullLocationName(newSpaceGuid);
                 locationDisplay.classList.remove('unassigned');
                 legacyWarning.style.display = 'none';
+
+                // === SCENE REFRESH: Move artwork to new location ===
+                // 1. Remove artwork from old scene position
+                const artworkMesh = artworks.find(a =>
+                    a.userData.artworkId === artworkId ||
+                    a.userData.eventId === artworkId
+                );
+
+                if (artworkMesh) {
+                    // Free up the old wall spot
+                    const oldWallSpot = wallSpots.find(s => s.userData.id === artworkMesh.userData.spotId);
+                    if (oldWallSpot) {
+                        oldWallSpot.userData.occupied = false;
+                        oldWallSpot.userData.currentWidth = 0;
+                        oldWallSpot.material.color.setHex(0x667eea);
+                        oldWallSpot.material.emissive.setHex(0x667eea);
+                    }
+
+                    // Remove wire if exists
+                    if (artworkMesh.userData.wire && artworkMesh.userData.wire.parent) {
+                        artworkMesh.userData.wire.parent.remove(artworkMesh.userData.wire);
+                    }
+
+                    // Remove placard if exists
+                    if (artworkMesh.userData.placardIndex !== undefined &&
+                        placards[artworkMesh.userData.placardIndex]) {
+                        const placard = placards[artworkMesh.userData.placardIndex];
+                        if (placard && placard.parent) {
+                            placard.parent.remove(placard);
+                        }
+                        placards[artworkMesh.userData.placardIndex] = null;
+                    }
+
+                    // Remove from scene
+                    if (artworkMesh.parent) {
+                        artworkMesh.parent.remove(artworkMesh);
+                    }
+                    const artworkIndex = artworks.indexOf(artworkMesh);
+                    if (artworkIndex > -1) artworks.splice(artworkIndex, 1);
+                }
+
+                // 2. Clear from loadedArtworkIds so it can be re-added
+                if (roomManager && roomManager.loadedArtworkIds) {
+                    roomManager.loadedArtworkIds.delete(artworkId);
+                }
+
+                // 3. Add artwork to new location
+                const room = findRoomById(space.roomGuid);
+                const newLocationId = spaceGuidToLegacyLocation(newSpaceGuid);
+
+                if (room && newLocationId && roomManager) {
+                    // Get artwork data from event store for complete info
+                    const storedArtwork = eventStore.getArtwork(artworkId);
+                    const imageUrl = currentViewerArtwork.imageUrl ||
+                                    currentViewerArtwork.metadata?.imageUrl ||
+                                    storedArtwork?.imageUrl;
+                    const heightMeters = storedArtwork?.heightMeters ||
+                                        (storedArtwork?.heightInches ? storedArtwork.heightInches * 0.0254 : 0.9144);
+
+                    if (imageUrl) {
+                        roomManager.addArtwork({
+                            roomId: room.legacyId,
+                            locationId: newLocationId,
+                            url: imageUrl,
+                            heightMeters: heightMeters,
+                            eventId: artworkId,
+                            spaceId: newSpaceGuid,
+                            roomGuid: space.roomGuid,
+                            metadata: {
+                                title: currentViewerArtwork.metadata?.title || currentViewerArtwork.name || storedArtwork?.title || '',
+                                artist: currentViewerArtwork.metadata?.artist || storedArtwork?.artist || '',
+                                description: currentViewerArtwork.metadata?.description || storedArtwork?.description || '',
+                                spaceId: newSpaceGuid,
+                                roomGuid: space.roomGuid,
+                                locationId: newLocationId
+                            }
+                        });
+                        console.log('[applySpaceAssignment] Artwork moved to new location:', newLocationId);
+                    }
+                }
+
+                updateSpotCounters();
+                // === END SCENE REFRESH ===
 
                 // Hide edit mode after brief delay
                 setTimeout(() => {
