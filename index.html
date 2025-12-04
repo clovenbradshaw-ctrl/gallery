@@ -1948,6 +1948,39 @@
             resize: vertical;
         }
 
+        .catalogue-selected-spot .selected-spot-display {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 14px;
+            background: linear-gradient(135deg, rgba(76, 175, 80, 0.2), rgba(56, 142, 60, 0.15));
+            border: 1px solid rgba(76, 175, 80, 0.4);
+            border-radius: 8px;
+        }
+
+        .catalogue-selected-spot .selected-spot-name {
+            flex: 1;
+            color: rgba(255, 255, 255, 0.95);
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .catalogue-selected-spot .selected-spot-change {
+            padding: 6px 12px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: rgba(255, 255, 255, 0.7);
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .catalogue-selected-spot .selected-spot-change:hover {
+            background: rgba(255, 255, 255, 0.15);
+            color: rgba(255, 255, 255, 0.9);
+        }
+
         .catalogue-detail-actions {
             display: flex;
             gap: 12px;
@@ -4780,13 +4813,20 @@
                         <label>Gallery</label>
                         <select id="catalogue-gallery"></select>
                     </div>
-                    <div>
+                    <div id="catalogue-selected-spot" class="catalogue-selected-spot" style="display: none;">
+                        <label>Placing at</label>
+                        <div class="selected-spot-display">
+                            <span class="selected-spot-name" id="catalogue-selected-spot-name"></span>
+                            <button class="selected-spot-change" onclick="toggleCatalogueLocationPicker()" title="Change location">Change</button>
+                        </div>
+                    </div>
+                    <div id="catalogue-room-picker" style="display: none;">
                         <label>Room</label>
                         <select id="catalogue-room-tag" onchange="onCatalogueRoomTagChange()">
                             <option value="">No room</option>
                         </select>
                     </div>
-                    <div>
+                    <div id="catalogue-location-picker">
                         <label>Location</label>
                         <select id="catalogue-location"></select>
                     </div>
@@ -6030,18 +6070,53 @@
                     `<option value="${room.id}" ${item.roomTag === room.id ? 'selected' : ''}>${room.name}</option>`
                 ).join('');
 
-            // Populate location dropdown with room tag priority
-            // If there's a pending location from clicking a space, pre-select it
+            // Check if we're coming from a spot click (user already selected where to place)
             const pendingLocation = window.pendingCatalogueLocation;
-            const preSelectedLocationId = pendingLocation ? pendingLocation.locationId : null;
-            const preferredRoomId = pendingLocation ? pendingLocation.roomId : item.roomTag;
+            const selectedSpotDisplay = document.getElementById('catalogue-selected-spot');
+            const roomPicker = document.getElementById('catalogue-room-picker');
+            const locationPicker = document.getElementById('catalogue-location-picker');
 
-            populateCatalogueLocations(preferredRoomId, preSelectedLocationId);
+            if (pendingLocation && pendingLocation.locationId) {
+                // User clicked on a spot first - show simplified UI with spot already selected
+                const locationName = pendingLocation.locationName || LOCATION_ID_TO_NAME_MAP[pendingLocation.locationId] || pendingLocation.locationId;
+                document.getElementById('catalogue-selected-spot-name').textContent = locationName;
+                selectedSpotDisplay.style.display = 'block';
+                roomPicker.style.display = 'none';
+                locationPicker.style.display = 'none';
 
-            // Clear the pending location after use
+                // Still populate the location dropdown in case user wants to change
+                populateCatalogueLocations(pendingLocation.roomId, pendingLocation.locationId);
+
+                // Store pending location for placement (don't clear it)
+                window.catalogueSelectedFromSpot = pendingLocation;
+            } else {
+                // User opened catalogue directly - show full room/location pickers
+                selectedSpotDisplay.style.display = 'none';
+                roomPicker.style.display = 'block';
+                locationPicker.style.display = 'block';
+                window.catalogueSelectedFromSpot = null;
+
+                // Populate location dropdown with room tag priority
+                populateCatalogueLocations(item.roomTag);
+            }
+
+            // Clear the pending location
             window.pendingCatalogueLocation = null;
 
             document.getElementById('catalogue-detail').classList.add('active');
+        }
+
+        // Toggle showing the location picker when user wants to change spot
+        function toggleCatalogueLocationPicker() {
+            const selectedSpotDisplay = document.getElementById('catalogue-selected-spot');
+            const locationPicker = document.getElementById('catalogue-location-picker');
+
+            // Hide the selected spot display and show the location dropdown
+            selectedSpotDisplay.style.display = 'none';
+            locationPicker.style.display = 'block';
+
+            // Clear the pre-selected spot so placement uses dropdown instead
+            window.catalogueSelectedFromSpot = null;
         }
 
         function onCatalogueRoomTagChange() {
@@ -6119,6 +6194,7 @@
         function closeCatalogueDetail() {
             document.getElementById('catalogue-detail').classList.remove('active');
             selectedCatalogueItem = null;
+            window.catalogueSelectedFromSpot = null;
         }
 
         // ==========================================
@@ -6770,8 +6846,11 @@
             const artist = document.getElementById('catalogue-artist').value.trim();
             const description = document.getElementById('catalogue-description').value.trim();
             const galleryId = document.getElementById('catalogue-gallery').value;
-            const locationId = document.getElementById('catalogue-location').value;
             const heightInches = parseFloat(document.getElementById('catalogue-height').value) || 36;
+
+            // Use pre-selected spot from spot click, or fall back to dropdown
+            const preSelectedSpot = window.catalogueSelectedFromSpot;
+            const locationId = preSelectedSpot ? preSelectedSpot.locationId : document.getElementById('catalogue-location').value;
 
             if (!title || !artist) {
                 alert('Please enter a title and artist name.');
@@ -6782,6 +6861,9 @@
                 alert('Please select a location for the artwork.');
                 return;
             }
+
+            // Clear the pre-selected spot after use
+            window.catalogueSelectedFromSpot = null;
 
             // Find location details
             let locationName = '';
