@@ -3413,6 +3413,11 @@
             return prefix + '_' + Date.now().toString(36) + '_' + Math.random().toString(36).substring(2, 8);
         }
 
+        // Generate a GUID for room and gallery IDs
+        function generateGUID() {
+            return crypto.randomUUID();
+        }
+
         // Get or create actor ID (session-based)
         function getActorId() {
             let actorId = localStorage.getItem('vr-gallery:actor-id');
@@ -5405,8 +5410,7 @@
         function generateNewGallery() {
             const nameInput = document.getElementById('gallery-name-input');
             const name = (nameInput?.value || '').trim() || `Gallery ${galleries.length + 1}`;
-            const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'gallery';
-            const id = `${slug}-${Date.now().toString(36).slice(-4)}`;
+            const id = generateGUID();
 
             galleries.push({
                 id,
@@ -5640,8 +5644,8 @@
             const wallSpotCount = parseInt(wallSpotsSelect.value);
             const theme = themeSelect.value;
 
-            // Generate room ID from name
-            const roomId = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') + '-' + Date.now().toString(36).slice(-4);
+            // Generate room ID using GUID
+            const roomId = generateGUID();
 
             // Determine dimensions based on size
             let dimensions;
