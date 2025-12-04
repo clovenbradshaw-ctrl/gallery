@@ -6198,7 +6198,7 @@
                         continue;
                     }
 
-                    await loadImageFromURL(entry.url, entry.locationId, entry.heightMeters, entry.metadata, artworkId);
+                    await loadImageFromURL(entry.url, entry.locationId, entry.heightMeters, entry.metadata, artworkId, entry);
                     this.loadedArtworkIds.add(artworkId);
                 }
 
@@ -6496,17 +6496,37 @@
                     // Parse location from artwork data
                     const locationId = artwork.locationId || artwork.location;
                     const locationName = artwork.locationName;
+                    // Use roomId directly from artwork data if available
+                    const artworkRoomId = artwork.roomId;
 
                     let parsedLocation;
                     if (locationId && locationId.includes(':')) {
                         // Full location ID format: roomId:spotId
                         const [roomId, spotId] = locationId.split(':');
                         parsedLocation = { roomId, spotId, locationId };
+                    } else if (locationId && !locationId.includes(':')) {
+                        // locationId is just a spot number (e.g., "1"), use roomId from artwork or current room
+                        const roomId = artworkRoomId || roomManager.currentRoom || 'main-gallery';
+                        const fullLocationId = `${roomId}:${locationId}`;
+                        parsedLocation = { roomId, spotId: locationId, locationId: fullLocationId };
+                        console.log(`[loadArtworksFromEvents] Reconstructed locationId: "${locationId}" -> "${fullLocationId}"`);
                     } else if (locationName) {
                         parsedLocation = parseLocationData(locationName);
                     } else {
                         console.warn(`Could not determine location for ${artwork.title}`);
                         continue;
+                    }
+
+                    // Override roomId with artwork's stored roomId if available and different
+                    if (artworkRoomId && artworkRoomId !== parsedLocation.roomId) {
+                        console.log(`[loadArtworksFromEvents] Using artwork roomId "${artworkRoomId}" instead of parsed "${parsedLocation.roomId}"`);
+                        // Reconstruct locationId with correct roomId
+                        const correctLocationId = `${artworkRoomId}:${parsedLocation.spotId}`;
+                        parsedLocation = {
+                            roomId: artworkRoomId,
+                            spotId: parsedLocation.spotId,
+                            locationId: correctLocationId
+                        };
                     }
 
                     if (!parsedLocation.locationId) {
