@@ -1963,6 +1963,710 @@
             color: rgba(255, 255, 255, 0.5);
         }
 
+        /* Parent Badge with Type Icon */
+        .parent-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(102, 126, 234, 0.15);
+            border: 1px solid rgba(102, 126, 234, 0.3);
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 500;
+            color: #a5b4fc;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .parent-badge:hover {
+            background: rgba(102, 126, 234, 0.25);
+            border-color: rgba(102, 126, 234, 0.5);
+        }
+
+        .parent-badge-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 20px;
+            height: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 4px;
+        }
+
+        .parent-badge-icon svg {
+            width: 12px;
+            height: 12px;
+            color: white;
+        }
+
+        .parent-badge-text {
+            max-width: 150px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .parent-badge-dropdown-icon {
+            color: rgba(255, 255, 255, 0.5);
+            transition: transform 0.2s;
+        }
+
+        .parent-badge.open .parent-badge-dropdown-icon {
+            transform: rotate(180deg);
+        }
+
+        .parent-badge.unset {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: rgba(255, 255, 255, 0.2);
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        /* Parent Dropdown */
+        .parent-dropdown-container {
+            position: relative;
+            display: inline-block;
+        }
+
+        .parent-dropdown {
+            position: absolute;
+            top: calc(100% + 8px);
+            left: 0;
+            min-width: 280px;
+            background: rgba(30, 30, 40, 0.98);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 12px;
+            box-shadow: 0 15px 50px rgba(0, 0, 0, 0.5);
+            z-index: 100;
+            display: none;
+            overflow: hidden;
+        }
+
+        .parent-dropdown.active {
+            display: block;
+        }
+
+        .parent-dropdown-search {
+            padding: 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .parent-dropdown-search input {
+            width: 100%;
+            padding: 10px 12px;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 8px;
+            color: white;
+            font-size: 13px;
+            box-sizing: border-box;
+        }
+
+        .parent-dropdown-search input::placeholder {
+            color: rgba(255, 255, 255, 0.4);
+        }
+
+        .parent-dropdown-list {
+            max-height: 250px;
+            overflow-y: auto;
+        }
+
+        .parent-dropdown-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 14px;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+
+        .parent-dropdown-item:hover {
+            background: rgba(102, 126, 234, 0.15);
+        }
+
+        .parent-dropdown-item.selected {
+            background: rgba(102, 126, 234, 0.2);
+        }
+
+        .parent-dropdown-item-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 6px;
+            flex-shrink: 0;
+        }
+
+        .parent-dropdown-item-icon svg {
+            width: 16px;
+            height: 16px;
+            color: #a5b4fc;
+        }
+
+        .parent-dropdown-item-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .parent-dropdown-item-name {
+            font-weight: 500;
+            color: white;
+            font-size: 13px;
+        }
+
+        .parent-dropdown-item-type {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.5);
+            margin-top: 2px;
+        }
+
+        .parent-dropdown-none {
+            padding: 12px 14px;
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 13px;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+
+        .parent-dropdown-none:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        /* Create Connection Panel */
+        #create-connection-dialog {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.92);
+            z-index: 500;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            box-sizing: border-box;
+            backdrop-filter: blur(10px);
+        }
+
+        #create-connection-dialog.active {
+            display: flex;
+        }
+
+        .create-connection-content {
+            background: linear-gradient(145deg, rgba(35, 35, 45, 0.98), rgba(25, 25, 35, 0.98));
+            border-radius: 16px;
+            max-width: 560px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 25px 80px rgba(0, 0, 0, 0.6);
+        }
+
+        .create-connection-header {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 20px 24px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .create-connection-header-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex: 1;
+        }
+
+        .create-connection-title {
+            margin: 0;
+            color: white;
+            font-size: 1.2em;
+            font-weight: 600;
+        }
+
+        .create-connection-close {
+            background: none;
+            border: none;
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 1.8em;
+            cursor: pointer;
+            padding: 0;
+            line-height: 1;
+            transition: color 0.2s;
+        }
+
+        .create-connection-close:hover {
+            color: white;
+        }
+
+        .create-connection-body {
+            padding: 24px;
+        }
+
+        /* Operator Buttons Section */
+        .connection-operator-section {
+            margin-bottom: 24px;
+        }
+
+        .connection-section-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.5);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 12px;
+        }
+
+        .operator-buttons {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .operator-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 18px;
+            background: rgba(255, 255, 255, 0.06);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .operator-btn:hover {
+            background: rgba(102, 126, 234, 0.1);
+            border-color: rgba(102, 126, 234, 0.3);
+        }
+
+        .operator-btn.selected {
+            background: rgba(102, 126, 234, 0.2);
+            border-color: #667eea;
+            color: white;
+        }
+
+        .operator-btn-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 24px;
+            height: 24px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+        }
+
+        .operator-btn.selected .operator-btn-icon {
+            background: rgba(102, 126, 234, 0.4);
+        }
+
+        .operator-btn-icon svg {
+            width: 14px;
+            height: 14px;
+        }
+
+        /* More Operators Toggle */
+        .more-operators-toggle {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 0;
+            margin-top: 12px;
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 13px;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+
+        .more-operators-toggle:hover {
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .more-operators-toggle svg {
+            width: 16px;
+            height: 16px;
+            transition: transform 0.2s;
+        }
+
+        .more-operators-toggle.expanded svg {
+            transform: rotate(180deg);
+        }
+
+        .advanced-operators {
+            display: none;
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .advanced-operators.visible {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .advanced-operator-btn {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 14px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 8px;
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .advanced-operator-btn:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(255, 255, 255, 0.15);
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .advanced-operator-btn.selected {
+            background: rgba(102, 126, 234, 0.15);
+            border-color: rgba(102, 126, 234, 0.4);
+            color: #a5b4fc;
+        }
+
+        /* Sentence Preview */
+        .connection-preview-section {
+            margin-bottom: 24px;
+        }
+
+        .sentence-preview {
+            background: rgba(102, 126, 234, 0.08);
+            border: 1px solid rgba(102, 126, 234, 0.2);
+            border-radius: 10px;
+            padding: 16px;
+            font-size: 15px;
+            line-height: 1.6;
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .sentence-preview-subject {
+            color: #a5b4fc;
+            font-weight: 600;
+        }
+
+        .sentence-preview-operator {
+            color: #fbbf24;
+            font-weight: 600;
+            padding: 2px 8px;
+            background: rgba(251, 191, 36, 0.15);
+            border-radius: 4px;
+            margin: 0 4px;
+        }
+
+        .sentence-preview-object {
+            color: #4ade80;
+            font-weight: 600;
+        }
+
+        .sentence-preview-placeholder {
+            color: rgba(255, 255, 255, 0.4);
+            font-style: italic;
+        }
+
+        /* Target Selection */
+        .connection-target-section {
+            margin-bottom: 24px;
+        }
+
+        .target-input-wrapper {
+            display: flex;
+            gap: 10px;
+        }
+
+        .target-input-wrapper select {
+            flex: 1;
+            padding: 12px 14px;
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 8px;
+            color: white;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        .target-input-wrapper select:focus {
+            border-color: #667eea;
+            outline: none;
+        }
+
+        /* Collapsible Notes Section */
+        .connection-notes-section {
+            margin-bottom: 24px;
+        }
+
+        .notes-toggle {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 0;
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 14px;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+
+        .notes-toggle:hover {
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .notes-toggle svg {
+            width: 18px;
+            height: 18px;
+            transition: transform 0.2s;
+        }
+
+        .notes-toggle.expanded svg {
+            transform: rotate(90deg);
+        }
+
+        .notes-content {
+            display: none;
+            padding-top: 12px;
+        }
+
+        .notes-content.visible {
+            display: block;
+        }
+
+        .notes-content textarea {
+            width: 100%;
+            padding: 12px 14px;
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 8px;
+            color: white;
+            font-size: 14px;
+            min-height: 100px;
+            resize: vertical;
+            box-sizing: border-box;
+        }
+
+        .notes-content textarea::placeholder {
+            color: rgba(255, 255, 255, 0.4);
+        }
+
+        .notes-content textarea:focus {
+            border-color: #667eea;
+            outline: none;
+        }
+
+        /* Work Product Selector */
+        .connection-workproduct-section {
+            margin-bottom: 24px;
+        }
+
+        .workproduct-selector {
+            display: flex;
+            gap: 10px;
+            align-items: stretch;
+        }
+
+        .workproduct-selector select {
+            flex: 1;
+            padding: 12px 14px;
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 8px;
+            color: white;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        .workproduct-selector select:focus {
+            border-color: #667eea;
+            outline: none;
+        }
+
+        .quick-create-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 12px 16px;
+            background: rgba(74, 222, 128, 0.15);
+            border: 1px solid rgba(74, 222, 128, 0.3);
+            border-radius: 8px;
+            color: #4ade80;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.2s;
+        }
+
+        .quick-create-btn:hover {
+            background: rgba(74, 222, 128, 0.25);
+            border-color: rgba(74, 222, 128, 0.5);
+        }
+
+        .quick-create-btn svg {
+            width: 16px;
+            height: 16px;
+        }
+
+        /* Quick Create Modal */
+        .quick-create-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 600;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .quick-create-modal.active {
+            display: flex;
+        }
+
+        .quick-create-content {
+            background: rgba(35, 35, 45, 0.98);
+            border-radius: 12px;
+            padding: 24px;
+            max-width: 400px;
+            width: 90%;
+        }
+
+        .quick-create-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .quick-create-header h4 {
+            margin: 0;
+            color: white;
+            font-size: 1.1em;
+        }
+
+        .quick-create-close {
+            background: none;
+            border: none;
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 1.5em;
+            cursor: pointer;
+        }
+
+        .quick-create-form {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .quick-create-form input {
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 8px;
+            color: white;
+            font-size: 14px;
+        }
+
+        .quick-create-form input::placeholder {
+            color: rgba(255, 255, 255, 0.4);
+        }
+
+        .quick-create-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 8px;
+        }
+
+        .quick-create-actions button {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+        }
+
+        .quick-create-actions .create-btn {
+            background: linear-gradient(135deg, #4ade80 0%, #22c55e 100%);
+            color: white;
+        }
+
+        .quick-create-actions .cancel-btn {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+        }
+
+        /* Connection Actions */
+        .create-connection-actions {
+            display: flex;
+            gap: 12px;
+            padding: 20px 24px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .create-connection-actions button {
+            padding: 14px 24px;
+            border: none;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .create-connection-actions .create-btn {
+            flex: 1;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .create-connection-actions .create-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .create-connection-actions .cancel-btn {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+        }
+
+        .create-connection-actions .cancel-btn:hover {
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        @media (max-width: 640px) {
+            .create-connection-content {
+                max-width: 100%;
+                margin: 10px;
+            }
+
+            .operator-buttons {
+                flex-direction: column;
+            }
+
+            .operator-btn {
+                width: 100%;
+                justify-content: flex-start;
+            }
+
+            .workproduct-selector {
+                flex-direction: column;
+            }
+        }
+
         /* Inline Editing */
         .inline-edit-field {
             background: transparent;
@@ -3848,6 +4552,158 @@
         </div>
     </div>
 
+    <!-- Create Connection Dialog -->
+    <div id="create-connection-dialog">
+        <div class="create-connection-content">
+            <div class="create-connection-header">
+                <div class="create-connection-header-left">
+                    <h3 class="create-connection-title">Create Connection</h3>
+                    <div class="parent-dropdown-container">
+                        <div class="parent-badge unset" id="connection-parent-badge" onclick="toggleParentDropdown()">
+                            <span class="parent-badge-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12.75V12A2.25 2.25 0 014.5 9.75h15A2.25 2.25 0 0121.75 12v.75m-8.69-6.44l-2.12-2.12a1.5 1.5 0 00-1.061-.44H4.5A2.25 2.25 0 002.25 6v12a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9a2.25 2.25 0 00-2.25-2.25h-5.379a1.5 1.5 0 01-1.06-.44z" />
+                                </svg>
+                            </span>
+                            <span class="parent-badge-text" id="parent-badge-text">Set parent...</span>
+                            <svg class="parent-badge-dropdown-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+                            </svg>
+                        </div>
+                        <div class="parent-dropdown" id="parent-dropdown">
+                            <div class="parent-dropdown-search">
+                                <input type="text" placeholder="Search items..." id="parent-search" oninput="filterParentDropdown()">
+                            </div>
+                            <div class="parent-dropdown-list" id="parent-dropdown-list">
+                                <!-- Populated dynamically -->
+                            </div>
+                            <div class="parent-dropdown-none" onclick="selectParent(null)">
+                                Clear parent
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <button class="create-connection-close" onclick="closeCreateConnection()">&times;</button>
+            </div>
+            <div class="create-connection-body">
+                <!-- Operator Selection -->
+                <div class="connection-operator-section">
+                    <div class="connection-section-label">Connection Type</div>
+                    <div class="operator-buttons" id="operator-buttons">
+                        <button class="operator-btn selected" data-operator="define" onclick="selectOperator('define')">
+                            <span class="operator-btn-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
+                                </svg>
+                            </span>
+                            Define
+                        </button>
+                        <button class="operator-btn" data-operator="link" onclick="selectOperator('link')">
+                            <span class="operator-btn-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244" />
+                                </svg>
+                            </span>
+                            Link
+                        </button>
+                        <button class="operator-btn" data-operator="shift" onclick="selectOperator('shift')">
+                            <span class="operator-btn-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
+                                </svg>
+                            </span>
+                            Shift
+                        </button>
+                    </div>
+                    <div class="more-operators-toggle" id="more-operators-toggle" onclick="toggleAdvancedOperators()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+                        </svg>
+                        More operators
+                    </div>
+                    <div class="advanced-operators" id="advanced-operators">
+                        <button class="advanced-operator-btn" data-operator="divide" onclick="selectOperator('divide')">Divide</button>
+                        <button class="advanced-operator-btn" data-operator="merge" onclick="selectOperator('merge')">Merge</button>
+                        <button class="advanced-operator-btn" data-operator="balance" onclick="selectOperator('balance')">Balance</button>
+                        <button class="advanced-operator-btn" data-operator="loop" onclick="selectOperator('loop')">Loop</button>
+                        <button class="advanced-operator-btn" data-operator="notice" onclick="selectOperator('notice')">Notice</button>
+                    </div>
+                </div>
+
+                <!-- Sentence Preview -->
+                <div class="connection-preview-section">
+                    <div class="connection-section-label">Preview</div>
+                    <div class="sentence-preview" id="sentence-preview">
+                        <span class="sentence-preview-subject" id="preview-subject">Subject</span>
+                        <span class="sentence-preview-operator" id="preview-operator">defines</span>
+                        <span class="sentence-preview-object sentence-preview-placeholder" id="preview-object">select target...</span>
+                    </div>
+                </div>
+
+                <!-- Target Selection -->
+                <div class="connection-target-section">
+                    <div class="connection-section-label">Connect To</div>
+                    <div class="target-input-wrapper">
+                        <select id="connection-target" onchange="updateConnectionPreview()">
+                            <option value="">Select target...</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Work Product Selector -->
+                <div class="connection-workproduct-section">
+                    <div class="connection-section-label">Work Product (Optional)</div>
+                    <div class="workproduct-selector">
+                        <select id="connection-workproduct" onchange="updateConnectionPreview()">
+                            <option value="">None</option>
+                        </select>
+                        <button class="quick-create-btn" onclick="openQuickCreate()">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                            </svg>
+                            Quick Create
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Collapsible Notes Section -->
+                <div class="connection-notes-section">
+                    <div class="notes-toggle" id="notes-toggle" onclick="toggleNotesSection()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                        </svg>
+                        Add notes or details
+                    </div>
+                    <div class="notes-content" id="notes-content">
+                        <textarea id="connection-notes" placeholder="Add any additional notes, context, or details about this connection..."></textarea>
+                    </div>
+                </div>
+            </div>
+            <div class="create-connection-actions">
+                <button class="cancel-btn" onclick="closeCreateConnection()">Cancel</button>
+                <button class="create-btn" onclick="createConnection()">Create Connection</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Create Work Product Modal -->
+    <div class="quick-create-modal" id="quick-create-modal">
+        <div class="quick-create-content">
+            <div class="quick-create-header">
+                <h4>Quick Create Work Product</h4>
+                <button class="quick-create-close" onclick="closeQuickCreate()">&times;</button>
+            </div>
+            <div class="quick-create-form">
+                <input type="text" id="quick-create-name" placeholder="Work product name...">
+                <input type="text" id="quick-create-description" placeholder="Brief description (optional)...">
+                <div class="quick-create-actions">
+                    <button class="cancel-btn" onclick="closeQuickCreate()">Cancel</button>
+                    <button class="create-btn" onclick="quickCreateWorkProduct()">Create</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128/examples/js/libs/inflate.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128/examples/js/loaders/GLTFLoader.js"></script>
@@ -5121,6 +5977,475 @@
 
         // ==========================================
         // End Event History Functions
+        // ==========================================
+
+        // ==========================================
+        // Create Connection Functions
+        // ==========================================
+
+        // State for Create Connection dialog
+        let connectionState = {
+            subject: null,
+            operator: 'define',
+            target: null,
+            parent: null,
+            workProduct: null,
+            notes: ''
+        };
+
+        // Sample data for connections (in production, this would come from the backend)
+        let availableItems = [];
+        let workProducts = [];
+
+        // Operator definitions with verb forms
+        const OPERATORS = {
+            define: { label: 'Define', verb: 'defines', description: 'Establishes or characterizes' },
+            link: { label: 'Link', verb: 'links to', description: 'Creates a connection between' },
+            shift: { label: 'Shift', verb: 'shifts', description: 'Transforms or changes' },
+            divide: { label: 'Divide', verb: 'divides', description: 'Splits into parts' },
+            merge: { label: 'Merge', verb: 'merges with', description: 'Combines together' },
+            balance: { label: 'Balance', verb: 'balances', description: 'Equalizes or adjusts' },
+            loop: { label: 'Loop', verb: 'loops through', description: 'Iterates or cycles' },
+            notice: { label: 'Notice', verb: 'notices', description: 'Observes or acknowledges' }
+        };
+
+        // Type icons for different item types
+        const TYPE_ICONS = {
+            folder: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12.75V12A2.25 2.25 0 014.5 9.75h15A2.25 2.25 0 0121.75 12v.75m-8.69-6.44l-2.12-2.12a1.5 1.5 0 00-1.061-.44H4.5A2.25 2.25 0 002.25 6v12a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9a2.25 2.25 0 00-2.25-2.25h-5.379a1.5 1.5 0 01-1.06-.44z" /></svg>`,
+            artwork: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" /></svg>`,
+            room: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21" /></svg>`,
+            gallery: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 21v-8.25M15.75 21v-8.25M8.25 21v-8.25M3 9l9-6 9 6m-1.5 12V10.332A48.36 48.36 0 0012 9.75c-2.551 0-5.056.2-7.5.582V21M3 21h18M12 6.75h.008v.008H12V6.75z" /></svg>`,
+            concept: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z" /></svg>`,
+            workproduct: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" /></svg>`
+        };
+
+        // Open Create Connection dialog
+        function openCreateConnection(subjectData = null) {
+            // Reset state
+            connectionState = {
+                subject: subjectData || { id: 'current-item', name: 'Current Item', type: 'artwork' },
+                operator: 'define',
+                target: null,
+                parent: null,
+                workProduct: null,
+                notes: ''
+            };
+
+            // Initialize available items (in production, fetch from backend)
+            initializeAvailableItems();
+
+            // Populate dropdowns
+            populateTargetDropdown();
+            populateWorkProductDropdown();
+            populateParentDropdown();
+
+            // Reset UI state
+            resetOperatorSelection();
+            updateConnectionPreview();
+
+            // Close notes section
+            document.getElementById('notes-content').classList.remove('visible');
+            document.getElementById('notes-toggle').classList.remove('expanded');
+            document.getElementById('connection-notes').value = '';
+
+            // Close advanced operators
+            document.getElementById('advanced-operators').classList.remove('visible');
+            document.getElementById('more-operators-toggle').classList.remove('expanded');
+
+            // Show dialog
+            document.getElementById('create-connection-dialog').classList.add('active');
+        }
+
+        // Close Create Connection dialog
+        function closeCreateConnection() {
+            document.getElementById('create-connection-dialog').classList.remove('active');
+            closeParentDropdown();
+        }
+
+        // Initialize available items from current state
+        function initializeAvailableItems() {
+            availableItems = [];
+
+            // Add rooms as potential targets/parents
+            Object.values(ROOMS).forEach(room => {
+                availableItems.push({
+                    id: room.id,
+                    name: room.name,
+                    type: 'room'
+                });
+            });
+
+            // Add galleries
+            const galleries = JSON.parse(localStorage.getItem('vr-gallery:galleries') || '[]');
+            galleries.forEach(gallery => {
+                availableItems.push({
+                    id: gallery.id,
+                    name: gallery.name,
+                    type: 'gallery'
+                });
+            });
+
+            // Add placed artworks
+            const artworks = eventStore.state.artworks || {};
+            Object.entries(artworks).forEach(([id, artwork]) => {
+                if (artwork.title) {
+                    availableItems.push({
+                        id: id,
+                        name: artwork.title,
+                        type: 'artwork'
+                    });
+                }
+            });
+
+            // Add catalogue items
+            if (artCatalogue && artCatalogue.length > 0) {
+                artCatalogue.forEach(item => {
+                    if (!availableItems.find(ai => ai.id === item.id)) {
+                        availableItems.push({
+                            id: item.id,
+                            name: item.title,
+                            type: 'artwork'
+                        });
+                    }
+                });
+            }
+
+            // Sample work products
+            workProducts = [
+                { id: 'wp-1', name: 'Exhibition Proposal', type: 'workproduct' },
+                { id: 'wp-2', name: 'Artist Statement', type: 'workproduct' },
+                { id: 'wp-3', name: 'Curatorial Notes', type: 'workproduct' }
+            ];
+        }
+
+        // Populate target dropdown
+        function populateTargetDropdown() {
+            const select = document.getElementById('connection-target');
+            select.innerHTML = '<option value="">Select target...</option>';
+
+            // Group items by type
+            const grouped = {};
+            availableItems.forEach(item => {
+                if (!grouped[item.type]) grouped[item.type] = [];
+                grouped[item.type].push(item);
+            });
+
+            // Add optgroups
+            const typeLabels = {
+                gallery: 'Galleries',
+                room: 'Rooms',
+                artwork: 'Artworks',
+                concept: 'Concepts'
+            };
+
+            Object.entries(grouped).forEach(([type, items]) => {
+                if (items.length > 0) {
+                    const optgroup = document.createElement('optgroup');
+                    optgroup.label = typeLabels[type] || type;
+                    items.forEach(item => {
+                        const option = document.createElement('option');
+                        option.value = item.id;
+                        option.textContent = item.name;
+                        optgroup.appendChild(option);
+                    });
+                    select.appendChild(optgroup);
+                }
+            });
+        }
+
+        // Populate work product dropdown
+        function populateWorkProductDropdown() {
+            const select = document.getElementById('connection-workproduct');
+            select.innerHTML = '<option value="">None</option>';
+
+            workProducts.forEach(wp => {
+                const option = document.createElement('option');
+                option.value = wp.id;
+                option.textContent = wp.name;
+                select.appendChild(option);
+            });
+        }
+
+        // Populate parent dropdown list
+        function populateParentDropdown() {
+            const list = document.getElementById('parent-dropdown-list');
+            list.innerHTML = '';
+
+            availableItems.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'parent-dropdown-item';
+                if (connectionState.parent && connectionState.parent.id === item.id) {
+                    div.classList.add('selected');
+                }
+                div.onclick = () => selectParent(item);
+                div.innerHTML = `
+                    <div class="parent-dropdown-item-icon">
+                        ${TYPE_ICONS[item.type] || TYPE_ICONS.concept}
+                    </div>
+                    <div class="parent-dropdown-item-info">
+                        <div class="parent-dropdown-item-name">${escapeHtml(item.name)}</div>
+                        <div class="parent-dropdown-item-type">${item.type}</div>
+                    </div>
+                `;
+                list.appendChild(div);
+            });
+        }
+
+        // Filter parent dropdown by search
+        function filterParentDropdown() {
+            const search = document.getElementById('parent-search').value.toLowerCase();
+            const items = document.querySelectorAll('.parent-dropdown-item');
+
+            items.forEach(item => {
+                const name = item.querySelector('.parent-dropdown-item-name').textContent.toLowerCase();
+                item.style.display = name.includes(search) ? 'flex' : 'none';
+            });
+        }
+
+        // Toggle parent dropdown
+        function toggleParentDropdown() {
+            const dropdown = document.getElementById('parent-dropdown');
+            const badge = document.getElementById('connection-parent-badge');
+
+            if (dropdown.classList.contains('active')) {
+                closeParentDropdown();
+            } else {
+                dropdown.classList.add('active');
+                badge.classList.add('open');
+                document.getElementById('parent-search').value = '';
+                filterParentDropdown();
+                document.getElementById('parent-search').focus();
+            }
+        }
+
+        // Close parent dropdown
+        function closeParentDropdown() {
+            document.getElementById('parent-dropdown').classList.remove('active');
+            document.getElementById('connection-parent-badge').classList.remove('open');
+        }
+
+        // Select parent
+        function selectParent(item) {
+            connectionState.parent = item;
+            const badge = document.getElementById('connection-parent-badge');
+            const badgeText = document.getElementById('parent-badge-text');
+
+            if (item) {
+                badge.classList.remove('unset');
+                badgeText.textContent = item.name;
+                // Update icon based on type
+                const iconSpan = badge.querySelector('.parent-badge-icon');
+                iconSpan.innerHTML = TYPE_ICONS[item.type] || TYPE_ICONS.folder;
+            } else {
+                badge.classList.add('unset');
+                badgeText.textContent = 'Set parent...';
+                const iconSpan = badge.querySelector('.parent-badge-icon');
+                iconSpan.innerHTML = TYPE_ICONS.folder;
+            }
+
+            closeParentDropdown();
+            populateParentDropdown(); // Update selection state
+        }
+
+        // Select operator
+        function selectOperator(operatorKey) {
+            connectionState.operator = operatorKey;
+
+            // Update primary buttons
+            document.querySelectorAll('.operator-btn').forEach(btn => {
+                btn.classList.toggle('selected', btn.dataset.operator === operatorKey);
+            });
+
+            // Update advanced buttons
+            document.querySelectorAll('.advanced-operator-btn').forEach(btn => {
+                btn.classList.toggle('selected', btn.dataset.operator === operatorKey);
+            });
+
+            updateConnectionPreview();
+        }
+
+        // Reset operator selection
+        function resetOperatorSelection() {
+            selectOperator('define');
+        }
+
+        // Toggle advanced operators
+        function toggleAdvancedOperators() {
+            const container = document.getElementById('advanced-operators');
+            const toggle = document.getElementById('more-operators-toggle');
+
+            container.classList.toggle('visible');
+            toggle.classList.toggle('expanded');
+        }
+
+        // Toggle notes section
+        function toggleNotesSection() {
+            const content = document.getElementById('notes-content');
+            const toggle = document.getElementById('notes-toggle');
+
+            content.classList.toggle('visible');
+            toggle.classList.toggle('expanded');
+
+            if (content.classList.contains('visible')) {
+                document.getElementById('connection-notes').focus();
+            }
+        }
+
+        // Update connection preview sentence
+        function updateConnectionPreview() {
+            const subjectEl = document.getElementById('preview-subject');
+            const operatorEl = document.getElementById('preview-operator');
+            const objectEl = document.getElementById('preview-object');
+
+            // Subject
+            subjectEl.textContent = connectionState.subject ? connectionState.subject.name : 'Subject';
+
+            // Operator verb
+            const op = OPERATORS[connectionState.operator];
+            operatorEl.textContent = op ? op.verb : 'connects to';
+
+            // Target/Object
+            const targetSelect = document.getElementById('connection-target');
+            const targetId = targetSelect.value;
+
+            if (targetId) {
+                const targetItem = availableItems.find(item => item.id === targetId);
+                objectEl.textContent = targetItem ? targetItem.name : 'Target';
+                objectEl.classList.remove('sentence-preview-placeholder');
+            } else {
+                objectEl.textContent = 'select target...';
+                objectEl.classList.add('sentence-preview-placeholder');
+            }
+        }
+
+        // Open quick create modal
+        function openQuickCreate() {
+            document.getElementById('quick-create-modal').classList.add('active');
+            document.getElementById('quick-create-name').value = '';
+            document.getElementById('quick-create-description').value = '';
+            document.getElementById('quick-create-name').focus();
+        }
+
+        // Close quick create modal
+        function closeQuickCreate() {
+            document.getElementById('quick-create-modal').classList.remove('active');
+        }
+
+        // Quick create work product
+        function quickCreateWorkProduct() {
+            const name = document.getElementById('quick-create-name').value.trim();
+            const description = document.getElementById('quick-create-description').value.trim();
+
+            if (!name) {
+                alert('Please enter a name for the work product.');
+                return;
+            }
+
+            // Create new work product
+            const newWP = {
+                id: 'wp-' + Date.now(),
+                name: name,
+                description: description,
+                type: 'workproduct'
+            };
+
+            workProducts.push(newWP);
+
+            // Update dropdown and select new item
+            populateWorkProductDropdown();
+            document.getElementById('connection-workproduct').value = newWP.id;
+
+            closeQuickCreate();
+            updateConnectionPreview();
+        }
+
+        // Create the connection
+        async function createConnection() {
+            const targetId = document.getElementById('connection-target').value;
+            const workProductId = document.getElementById('connection-workproduct').value;
+            const notes = document.getElementById('connection-notes').value.trim();
+
+            if (!targetId) {
+                alert('Please select a target for the connection.');
+                return;
+            }
+
+            const targetItem = availableItems.find(item => item.id === targetId);
+            const workProductItem = workProductId ? workProducts.find(wp => wp.id === workProductId) : null;
+
+            // Build connection data
+            const connectionData = {
+                id: 'conn-' + Date.now(),
+                subject: connectionState.subject,
+                operator: connectionState.operator,
+                target: targetItem,
+                parent: connectionState.parent,
+                workProduct: workProductItem,
+                notes: notes,
+                created_at: new Date().toISOString()
+            };
+
+            console.log('Creating connection:', connectionData);
+
+            // In production, this would post to the backend
+            // For now, we can store it locally or post as an event
+            try {
+                // Store connection in local storage for demo
+                const connections = JSON.parse(localStorage.getItem('vr-gallery:connections') || '[]');
+                connections.push(connectionData);
+                localStorage.setItem('vr-gallery:connections', JSON.stringify(connections));
+
+                // Show success feedback
+                alert(`Connection created: "${connectionState.subject.name}" ${OPERATORS[connectionState.operator].verb} "${targetItem.name}"`);
+
+                closeCreateConnection();
+            } catch (error) {
+                console.error('Failed to create connection:', error);
+                alert('Failed to create connection. Please try again.');
+            }
+        }
+
+        // Close dialogs on backdrop click
+        document.addEventListener('click', function(e) {
+            // Create Connection dialog
+            if (e.target.id === 'create-connection-dialog') {
+                closeCreateConnection();
+            }
+            // Quick Create modal
+            if (e.target.id === 'quick-create-modal') {
+                closeQuickCreate();
+            }
+            // Parent dropdown - close if clicking outside
+            const dropdown = document.getElementById('parent-dropdown');
+            const badge = document.getElementById('connection-parent-badge');
+            if (dropdown && dropdown.classList.contains('active')) {
+                if (!dropdown.contains(e.target) && !badge.contains(e.target)) {
+                    closeParentDropdown();
+                }
+            }
+        });
+
+        // Keyboard shortcuts for Create Connection
+        document.addEventListener('keydown', function(e) {
+            // Check if we're in an input field
+            const isInputField = ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName);
+
+            if (document.getElementById('create-connection-dialog').classList.contains('active')) {
+                if (e.key === 'Escape') {
+                    closeCreateConnection();
+                }
+            }
+            if (document.getElementById('quick-create-modal').classList.contains('active')) {
+                if (e.key === 'Escape') {
+                    closeQuickCreate();
+                } else if (e.key === 'Enter' && !e.shiftKey) {
+                    quickCreateWorkProduct();
+                }
+            }
+        });
+
+        // ==========================================
+        // End Create Connection Functions
         // ==========================================
 
         // Place catalogue item in gallery
