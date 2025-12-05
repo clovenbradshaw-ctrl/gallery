@@ -5178,6 +5178,10 @@
         const MIN_COLOR_TEMPERATURE = 2700;
         const MAX_COLOR_TEMPERATURE = 5000;
 
+        // Permanent GUIDs for built-in rooms (never change these)
+        const MAIN_GALLERY_GUID = '550e8400-e29b-41d4-a716-446655440001';
+        const CONTEMPORARY_WING_GUID = '550e8400-e29b-41d4-a716-446655440002';
+
         // ===== Toast Notification System =====
         function showToast(title, message, type = 'success', duration = 4000) {
             const container = document.getElementById('toast-container');
@@ -7268,8 +7272,8 @@
         // ============================================
 
         const ROOMS = {
-            'main-gallery': {
-                id: 'main-gallery',
+            [MAIN_GALLERY_GUID]: {
+                id: MAIN_GALLERY_GUID,
                 name: 'Main Gallery',
                 dimensions: { width: 16, depth: 20, height: 5 },
                 position: { x: 0, y: 0, z: 0 },
@@ -7282,7 +7286,7 @@
                 walls: [
                     // Back wall - spots 1, 2, 3
                     {
-                        id: 'main-gallery:1',
+                        id: `${MAIN_GALLERY_GUID}:1`,
                         baseId: '1',
                         displayName: '1',
                         position: wallSpotPosition(-4, -9.9),
@@ -7292,7 +7296,7 @@
                         wallLength: 16 * 0.3048
                     },
                     {
-                        id: 'main-gallery:2',
+                        id: `${MAIN_GALLERY_GUID}:2`,
                         baseId: '2',
                         displayName: '2',
                         position: wallSpotPosition(0, -9.9),
@@ -7302,7 +7306,7 @@
                         wallLength: 16 * 0.3048
                     },
                     {
-                        id: 'main-gallery:3',
+                        id: `${MAIN_GALLERY_GUID}:3`,
                         baseId: '3',
                         displayName: '3',
                         position: wallSpotPosition(4, -9.9),
@@ -7313,7 +7317,7 @@
                     },
                     // Right wall - spots 4, 5, 6
                     {
-                        id: 'main-gallery:4',
+                        id: `${MAIN_GALLERY_GUID}:4`,
                         baseId: '4',
                         displayName: '4',
                         position: wallSpotPosition(7.9, -4),
@@ -7323,7 +7327,7 @@
                         wallLength: 20 * 0.3048
                     },
                     {
-                        id: 'main-gallery:5',
+                        id: `${MAIN_GALLERY_GUID}:5`,
                         baseId: '5',
                         displayName: '5',
                         position: wallSpotPosition(7.9, 0),
@@ -7333,7 +7337,7 @@
                         wallLength: 20 * 0.3048
                     },
                     {
-                        id: 'main-gallery:6',
+                        id: `${MAIN_GALLERY_GUID}:6`,
                         baseId: '6',
                         displayName: '6',
                         position: wallSpotPosition(7.9, 4),
@@ -7344,7 +7348,7 @@
                     },
                     // Front wall - spots 7, 8, 9
                     {
-                        id: 'main-gallery:7',
+                        id: `${MAIN_GALLERY_GUID}:7`,
                         baseId: '7',
                         displayName: '7',
                         position: wallSpotPosition(-4, 9.9),
@@ -7354,7 +7358,7 @@
                         wallLength: 16 * 0.3048
                     },
                     {
-                        id: 'main-gallery:8',
+                        id: `${MAIN_GALLERY_GUID}:8`,
                         baseId: '8',
                         displayName: '8',
                         position: wallSpotPosition(0, 9.9),
@@ -7364,7 +7368,7 @@
                         wallLength: 16 * 0.3048
                     },
                     {
-                        id: 'main-gallery:9',
+                        id: `${MAIN_GALLERY_GUID}:9`,
                         baseId: '9',
                         displayName: '9',
                         position: wallSpotPosition(2, 9.9),
@@ -7375,7 +7379,7 @@
                     },
                     // Left wall - spots 10, 11, 12
                     {
-                        id: 'main-gallery:10',
+                        id: `${MAIN_GALLERY_GUID}:10`,
                         baseId: '10',
                         displayName: '10',
                         position: wallSpotPosition(-7.9, -4),
@@ -7385,7 +7389,7 @@
                         wallLength: 20 * 0.3048
                     },
                     {
-                        id: 'main-gallery:11',
+                        id: `${MAIN_GALLERY_GUID}:11`,
                         baseId: '11',
                         displayName: '11',
                         position: wallSpotPosition(-7.9, 0),
@@ -7395,7 +7399,7 @@
                         wallLength: 20 * 0.3048
                     },
                     {
-                        id: 'main-gallery:12',
+                        id: `${MAIN_GALLERY_GUID}:12`,
                         baseId: '12',
                         displayName: '12',
                         position: wallSpotPosition(-7.9, 4),
@@ -7411,13 +7415,13 @@
                         id: 'door-to-contemporary',
                         position: { x: 6, y: 0, z: 10 },
                         rotation: Math.PI,
-                        targetRoom: 'contemporary-wing',
+                        targetRoom: CONTEMPORARY_WING_GUID,
                         label: 'Contemporary Art'
                     }
                 ]
             },
-            'contemporary-wing': {
-                id: 'contemporary-wing',
+            [CONTEMPORARY_WING_GUID]: {
+                id: CONTEMPORARY_WING_GUID,
                 name: 'Contemporary Wing',
                 dimensions: { width: 20, depth: 16, height: 5 },
                 position: { x: 0, y: 0, z: 28 },
@@ -7430,7 +7434,7 @@
                 walls: [
                     // Back wall - spots 1, 2, 3, 4 (avoiding door at center x=0)
                     {
-                        id: 'contemporary-wing:1',
+                        id: `${CONTEMPORARY_WING_GUID}:1`,
                         baseId: '1',
                         displayName: '1',
                         position: wallSpotPosition(-7, -7.9),
@@ -7440,7 +7444,7 @@
                         wallLength: 20 * 0.3048
                     },
                     {
-                        id: 'contemporary-wing:2',
+                        id: `${CONTEMPORARY_WING_GUID}:2`,
                         baseId: '2',
                         displayName: '2',
                         position: wallSpotPosition(-3, -7.9),
@@ -7450,7 +7454,7 @@
                         wallLength: 20 * 0.3048
                     },
                     {
-                        id: 'contemporary-wing:3',
+                        id: `${CONTEMPORARY_WING_GUID}:3`,
                         baseId: '3',
                         displayName: '3',
                         position: wallSpotPosition(3, -7.9),
@@ -7460,7 +7464,7 @@
                         wallLength: 20 * 0.3048
                     },
                     {
-                        id: 'contemporary-wing:4',
+                        id: `${CONTEMPORARY_WING_GUID}:4`,
                         baseId: '4',
                         displayName: '4',
                         position: wallSpotPosition(7, -7.9),
@@ -7471,7 +7475,7 @@
                     },
                     // Right wall - spots 5, 6, 7
                     {
-                        id: 'contemporary-wing:5',
+                        id: `${CONTEMPORARY_WING_GUID}:5`,
                         baseId: '5',
                         displayName: '5',
                         position: wallSpotPosition(9.9, -3),
@@ -7481,7 +7485,7 @@
                         wallLength: 16 * 0.3048
                     },
                     {
-                        id: 'contemporary-wing:6',
+                        id: `${CONTEMPORARY_WING_GUID}:6`,
                         baseId: '6',
                         displayName: '6',
                         position: wallSpotPosition(9.9, 0),
@@ -7491,7 +7495,7 @@
                         wallLength: 16 * 0.3048
                     },
                     {
-                        id: 'contemporary-wing:7',
+                        id: `${CONTEMPORARY_WING_GUID}:7`,
                         baseId: '7',
                         displayName: '7',
                         position: wallSpotPosition(9.9, 3),
@@ -7502,7 +7506,7 @@
                     },
                     // Front wall - spots 8, 9, 10
                     {
-                        id: 'contemporary-wing:8',
+                        id: `${CONTEMPORARY_WING_GUID}:8`,
                         baseId: '8',
                         displayName: '8',
                         position: wallSpotPosition(-5, 7.9),
@@ -7512,7 +7516,7 @@
                         wallLength: 20 * 0.3048
                     },
                     {
-                        id: 'contemporary-wing:9',
+                        id: `${CONTEMPORARY_WING_GUID}:9`,
                         baseId: '9',
                         displayName: '9',
                         position: wallSpotPosition(0, 7.9),
@@ -7522,7 +7526,7 @@
                         wallLength: 20 * 0.3048
                     },
                     {
-                        id: 'contemporary-wing:10',
+                        id: `${CONTEMPORARY_WING_GUID}:10`,
                         baseId: '10',
                         displayName: '10',
                         position: wallSpotPosition(5, 7.9),
@@ -7533,7 +7537,7 @@
                     },
                     // Left wall - spots 11, 12, 13
                     {
-                        id: 'contemporary-wing:11',
+                        id: `${CONTEMPORARY_WING_GUID}:11`,
                         baseId: '11',
                         displayName: '11',
                         position: wallSpotPosition(-9.9, -3),
@@ -7543,7 +7547,7 @@
                         wallLength: 16 * 0.3048
                     },
                     {
-                        id: 'contemporary-wing:12',
+                        id: `${CONTEMPORARY_WING_GUID}:12`,
                         baseId: '12',
                         displayName: '12',
                         position: wallSpotPosition(-9.9, 0),
@@ -7553,7 +7557,7 @@
                         wallLength: 16 * 0.3048
                     },
                     {
-                        id: 'contemporary-wing:13',
+                        id: `${CONTEMPORARY_WING_GUID}:13`,
                         baseId: '13',
                         displayName: '13',
                         position: wallSpotPosition(-9.9, 3),
@@ -7569,7 +7573,7 @@
                         id: 'door-to-main',
                         position: { x: 0, y: 0, z: -8 },
                         rotation: 0,
-                        targetRoom: 'main-gallery',
+                        targetRoom: MAIN_GALLERY_GUID,
                         label: 'Back to Main Gallery'
                     }
                 ]
@@ -7584,7 +7588,7 @@
         const ROOMS_CONFIG = {
             rooms: [
                 {
-                    guid: 'room_001',
+                    guid: MAIN_GALLERY_GUID,
                     legacyId: 'main-gallery',
                     name: 'Main Gallery',
                     description: 'The primary exhibition space',
@@ -7604,7 +7608,7 @@
                     ]
                 },
                 {
-                    guid: 'room_002',
+                    guid: CONTEMPORARY_WING_GUID,
                     legacyId: 'contemporary-wing',
                     name: 'Contemporary Wing',
                     description: 'Modern and contemporary art collection',
@@ -8063,7 +8067,7 @@
             if (!options.fromURL) {
                 const params = new URLSearchParams(window.location.search);
                 params.set('gallery', gallery.id);
-                params.set('room', gallery.homeRoom || 'main-gallery');
+                params.set('room', gallery.homeRoom || MAIN_GALLERY_GUID);
                 window.history.replaceState({}, '', `${window.location.pathname}?${params.toString()}`);
             }
         }
@@ -8072,7 +8076,7 @@
             const nameInput = document.getElementById('gallery-name-input');
             const name = (nameInput?.value || '').trim() || `Gallery ${galleries.length + 1}`;
             const id = generateGUID();
-            const homeRoom = getActiveGallery()?.homeRoom || 'main-gallery';
+            const homeRoom = getActiveGallery()?.homeRoom || MAIN_GALLERY_GUID;
             const colorTemperature = getActiveGallery()?.colorTemperature || DEFAULT_COLOR_TEMPERATURE;
 
             const newGallery = {
@@ -8627,7 +8631,7 @@
         function saveCustomRooms() {
             const customRooms = {};
             Object.keys(ROOMS).forEach(roomId => {
-                if (roomId !== 'main-gallery' && roomId !== 'contemporary-wing') {
+                if (roomId !== MAIN_GALLERY_GUID && roomId !== CONTEMPORARY_WING_GUID) {
                     customRooms[roomId] = ROOMS[roomId];
                 }
             });
@@ -9099,7 +9103,7 @@
             }
 
             addRoomDecor(roomGroup, roomConfig) {
-                if (roomConfig.id !== 'main-gallery') {
+                if (roomConfig.id !== MAIN_GALLERY_GUID) {
                     return;
                 }
 
@@ -9421,7 +9425,7 @@
         }
         
         // Helper function to normalize locationId to always include room prefix
-        function normalizeLocationId(locationId, roomId, fallbackRoomId = 'main-gallery') {
+        function normalizeLocationId(locationId, roomId, fallbackRoomId = MAIN_GALLERY_GUID) {
             if (!locationId) return null;
 
             const locStr = String(locationId).trim();
@@ -9438,7 +9442,7 @@
         }
 
         // Helper function to parse locationId into components
-        function parseLocationId(locationId, artworkRoomId = null, fallbackRoomId = 'main-gallery') {
+        function parseLocationId(locationId, artworkRoomId = null, fallbackRoomId = MAIN_GALLERY_GUID) {
             if (!locationId) {
                 return { roomId: null, spotId: null, locationId: null };
             }
@@ -9525,7 +9529,7 @@
                         parsedLocation = parseLocationId(
                             rawLocationId,
                             artworkRoomId,
-                            roomManager?.currentRoom || 'main-gallery'
+                            roomManager?.currentRoom || MAIN_GALLERY_GUID
                         );
                     }
 
@@ -9750,7 +9754,7 @@
             const gallery = getActiveGallery();
 
             // Normalize locationId to always include room prefix for consistency
-            const roomId = artworkData.roomId || roomManager?.currentRoom || 'main-gallery';
+            const roomId = artworkData.roomId || roomManager?.currentRoom || MAIN_GALLERY_GUID;
             const normalizedLocationId = normalizeLocationId(artworkData.locationId, roomId, roomId);
 
             // Prepare event data
@@ -10024,7 +10028,7 @@
                         galleries.push({
                             id: galleryFromURL,
                             name: `Gallery ${galleryFromURL}`,
-                            homeRoom: 'main-gallery',
+                            homeRoom: MAIN_GALLERY_GUID,
                             colorTemperature: DEFAULT_COLOR_TEMPERATURE
                         });
                         activeGalleryId = galleryFromURL;
@@ -10033,7 +10037,7 @@
                 }
 
                 const initialGallery = getActiveGallery();
-                const initialRoom = (roomFromURL && ROOMS[roomFromURL]) ? roomFromURL : (initialGallery?.homeRoom || 'main-gallery');
+                const initialRoom = (roomFromURL && ROOMS[roomFromURL]) ? roomFromURL : (initialGallery?.homeRoom || MAIN_GALLERY_GUID);
 
                 setActiveGallery(initialGallery?.id, { skipArtReload: true, skipRoomLoad: true, fromURL: true });
                 roomManager.loadRoom(initialRoom, { centerCamera: true });
@@ -11514,7 +11518,7 @@
         function parseLocationData(locationName) {
             if (!locationName) {
                 return {
-                    roomId: 'main-gallery',
+                    roomId: MAIN_GALLERY_GUID,
                     spotId: null,
                     locationId: null,
                     displayName: null
@@ -11527,7 +11531,7 @@
 
             if (!value) {
                 return {
-                    roomId: 'main-gallery',
+                    roomId: MAIN_GALLERY_GUID,
                     spotId: null,
                     locationId: null,
                     displayName: null
@@ -11556,7 +11560,7 @@
                 const room = ROOMS[roomId];
                 const spot = room ? [...room.walls, ...room.floors].find(s => s.id === locationId) : null;
                 return {
-                    roomId: roomId || 'main-gallery',
+                    roomId: roomId || MAIN_GALLERY_GUID,
                     spotId: (spot && spot.baseId) || baseSpotId,
                     locationId,
                     displayName: LOCATION_ID_TO_NAME_MAP[locationId] || baseSpotId
@@ -11581,7 +11585,7 @@
                 }
             }
 
-            const fallbackRoom = ROOMS['main-gallery'];
+            const fallbackRoom = ROOMS[MAIN_GALLERY_GUID];
             const fallbackSpot = [...fallbackRoom.walls, ...fallbackRoom.floors].find(spot => {
                 return spot.displayName.toLowerCase() === value.toLowerCase() || spot.baseId === value;
             });
@@ -11596,13 +11600,13 @@
             }
 
             return {
-                roomId: 'main-gallery',
+                roomId: MAIN_GALLERY_GUID,
                 spotId: null,
                 locationId: null,
                 displayName: null
             };
         }
-        
+
         function mapLocationIdToName(locationId) {
             if (!locationId) return null;
             const fullName = LOCATION_ID_TO_NAME_MAP[locationId];
