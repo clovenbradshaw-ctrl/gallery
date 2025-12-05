@@ -156,7 +156,7 @@
         }
         
         #ui-overlay:not(.hidden) + #toggle-ui {
-            left: 360px;
+            left: calc(20px + min(360px, calc(100vw - 48px)) + 40px + 10px);
         }
         
         h2 {
@@ -1304,8 +1304,7 @@
             }
 
             #ui-overlay:not(.hidden) + #toggle-ui {
-                left: 16px;
-                top: 16px;
+                display: none;
             }
 
             .input-row {
