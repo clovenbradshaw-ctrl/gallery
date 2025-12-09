@@ -7979,31 +7979,22 @@
         }
 
         function loadGalleryState() {
+            // Clear any stale cached gallery state from localStorage
             try {
-                const stored = localStorage.getItem('vr-gallery:galleries');
-                const parsed = stored ? JSON.parse(stored) : null;
-                galleries = Array.isArray(parsed) && parsed.length ? parsed : getDefaultGalleries();
+                localStorage.removeItem('vr-gallery:galleries');
+                localStorage.removeItem('vr-gallery:activeGallery');
             } catch (e) {
-                galleries = getDefaultGalleries();
+                // Ignore errors if localStorage is not available
             }
 
-            const storedActive = localStorage.getItem('vr-gallery:activeGallery');
-            if (storedActive && galleries.find(g => g.id === storedActive)) {
-                activeGalleryId = storedActive;
-            } else {
-                activeGalleryId = galleries[0]?.id || null;
-            }
+            // Always use fresh defaults - no localStorage caching to avoid showing stale gallery state
+            galleries = getDefaultGalleries();
+            activeGalleryId = galleries[0]?.id || null;
         }
 
         function saveGalleryState() {
-            try {
-                localStorage.setItem('vr-gallery:galleries', JSON.stringify(galleries));
-                if (activeGalleryId) {
-                    localStorage.setItem('vr-gallery:activeGallery', activeGalleryId);
-                }
-            } catch (e) {
-                console.warn('Could not persist gallery state', e);
-            }
+            // No-op: gallery state is no longer cached to localStorage
+            // This prevents stale gallery data from being shown on page refresh
         }
 
         function getActiveGallery() {
