@@ -7091,69 +7091,70 @@
                 console.warn('Image dimension check failed, using default aspect ratio:', imgError);
             }
 
-            try {
-                // Create artwork event
-                const objectId = generateObjectId('art');
-                const eventData = {
-                    verb: 'create',
-                    op: 'artwork_upload',
-                    object_type: 'artwork',
-                    object_id: objectId,
-                    frame: 'classic',
-                    scale: '1',
-                    data: {
+            // Create artwork event data
+            const objectId = generateObjectId('art');
+            const eventData = {
+                verb: 'create',
+                op: 'artwork_upload',
+                object_type: 'artwork',
+                object_id: objectId,
+                frame: 'classic',
+                scale: '1',
+                data: {
+                    title: title,
+                    artist: artist,
+                    description: description,
+                    imageUrl: item.image_url,
+                    heightInches: heightInches,
+                    heightMeters: heightMeters,
+                    widthInches: widthInches,
+                    aspectRatio: aspectRatio,
+                    locationId: locationId,
+                    locationName: locationName,
+                    roomId: roomId,
+                    galleryId: galleryId || 'default',
+                    catalogueId: item.id,
+                    productUrl: item.product_url,
+                    price: item.price,
+                    currency: item.currency
+                }
+            };
+
+            // OPTIMISTIC UI: Add artwork to scene immediately for fast feedback
+            // This displays the art right away while XANO sync happens in background
+            if (typeof roomManager !== 'undefined') {
+                roomManager.addArtwork({
+                    roomId: roomId,
+                    locationId: locationId,
+                    url: item.image_url,
+                    heightMeters: heightMeters,
+                    eventId: objectId,
+                    metadata: {
                         title: title,
                         artist: artist,
-                        description: description,
-                        imageUrl: item.image_url,
-                        heightInches: heightInches,
-                        heightMeters: heightMeters,
-                        widthInches: widthInches,
-                        aspectRatio: aspectRatio,
-                        locationId: locationId,
-                        locationName: locationName,
-                        roomId: roomId,
-                        galleryId: galleryId || 'default',
-                        catalogueId: item.id,
-                        productUrl: item.product_url,
-                        price: item.price,
-                        currency: item.currency
+                        description: description
                     }
-                };
-
-                console.log('Posting artwork event:', eventData);
-                const result = await eventStore.postEvent(eventData);
-                console.log('Catalogue artwork placed:', result);
-
-                // Close dialogs
-                closeCatalogueDetail();
-                closeCatalogue();
-
-                // Add artwork to the scene (loads immediately if in target room, otherwise queued for later)
-                if (typeof roomManager !== 'undefined') {
-                    roomManager.addArtwork({
-                        roomId: roomId,
-                        locationId: locationId,
-                        url: item.image_url,
-                        heightMeters: heightMeters,
-                        eventId: objectId,
-                        metadata: {
-                            title: title,
-                            artist: artist,
-                            description: description
-                        }
-                    });
-                }
-
-                // Show success toast
-                const roomName = ROOM_ID_TO_NAME_MAP[roomId] || roomId;
-                showToast('Artwork Placed', `"${title}" is now displayed at ${locationName}`, 'success');
-
-            } catch (error) {
-                console.error('Failed to place catalogue artwork:', error);
-                const errorMsg = error.message || 'Please check your connection and try again.';
-                showToast('Placement Failed', errorMsg, 'error', 6000);
+                });
             }
+
+            // Close dialogs immediately for snappy UX
+            closeCatalogueDetail();
+            closeCatalogue();
+
+            // Show immediate success toast
+            const roomName = ROOM_ID_TO_NAME_MAP[roomId] || roomId;
+            showToast('Artwork Placed', `"${title}" is now displayed at ${locationName}`, 'success');
+
+            // DEFERRED XANO SYNC: Post to XANO in background so everyone sees the same art
+            // This ensures the artwork is persisted and visible to all users on reload
+            console.log('Posting artwork event to XANO (deferred):', eventData);
+            eventStore.postEvent(eventData).then(result => {
+                console.log('Artwork synced to XANO:', result);
+            }).catch(error => {
+                console.error('Failed to sync artwork to XANO:', error);
+                // Show warning that sync failed - artwork won't persist for others
+                showToast('Sync Warning', 'Artwork displayed locally but failed to save online. Others may not see it until you retry.', 'warning', 8000);
+            });
         }
 
         // Add item to catalogue (for future expansion)
@@ -12466,34 +12467,11 @@
                 return;
             }
 
-            if (currentEditingArtwork.userData.artworkId) {
-                isSavingArtwork = true;
-                try {
-                    await updateArtworkEvent({
-                        id: currentEditingArtwork.userData.artworkId,
-                        title: newMetadata.title,
-                        artist: newMetadata.artist,
-                        description: newMetadata.description,
-                        heightFeet: heightFeet,
-                        gatewayTo: gatewayTo,
-                        displayMode: displayMode,
-                        productUrl: newMetadata.productUrl,
-                        price: newMetadata.price,
-                        currency: newMetadata.currency
-                    });
-                    lastArtworkEditHash = editHash;
-                } catch (error) {
-                    console.error('Failed to save artwork edit:', error);
-                } finally {
-                    isSavingArtwork = false;
-                }
-            }
-
-            // Update local artwork data
+            // OPTIMISTIC UI: Update local artwork data immediately for fast feedback
             currentEditingArtwork.userData.metadata = newMetadata;
             currentEditingArtwork.userData.gatewayTo = gatewayTo;
             currentEditingArtwork.userData.displayMode = displayMode;
-            
+
             if (currentEditingArtwork.userData.placardIndex !== undefined &&
                 placards[currentEditingArtwork.userData.placardIndex]) {
                 const oldPlacard = placards[currentEditingArtwork.userData.placardIndex];
@@ -12511,8 +12489,37 @@
                     }
                 }
             }
-            
+
+            // Store artworkId before closing dialog
+            const artworkIdToUpdate = currentEditingArtwork.userData.artworkId;
+
+            // Close dialog immediately for snappy UX
             cancelEdit();
+
+            // DEFERRED XANO SYNC: Post update to XANO in background so everyone sees the same art
+            if (artworkIdToUpdate) {
+                isSavingArtwork = true;
+                updateArtworkEvent({
+                    id: artworkIdToUpdate,
+                    title: newMetadata.title,
+                    artist: newMetadata.artist,
+                    description: newMetadata.description,
+                    heightFeet: heightFeet,
+                    gatewayTo: gatewayTo,
+                    displayMode: displayMode,
+                    productUrl: newMetadata.productUrl,
+                    price: newMetadata.price,
+                    currency: newMetadata.currency
+                }).then(() => {
+                    lastArtworkEditHash = editHash;
+                    console.log('Artwork edit synced to XANO');
+                }).catch(error => {
+                    console.error('Failed to sync artwork edit to XANO:', error);
+                    showToast('Sync Warning', 'Changes saved locally but failed to save online. Others may not see your changes until you retry.', 'warning', 8000);
+                }).finally(() => {
+                    isSavingArtwork = false;
+                });
+            }
         }
         
         function cancelEdit() {
