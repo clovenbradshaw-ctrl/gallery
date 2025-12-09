@@ -4394,17 +4394,8 @@
                 </div>
                 <div class="collapsible-content">
                     <div class="collapsible-inner">
-                        <div class="upload-tabs">
-                            <button class="upload-tab active" onclick="switchUploadTab('upload')">Upload</button>
-                            <button class="upload-tab" onclick="switchUploadTab('url')">From URL</button>
-                        </div>
-                        <div id="upload-panel" class="upload-panel active">
-                            <input type="file" id="file-input" multiple accept="image/*">
-                            <div id="drop-zone" class="compact-drop-zone">
-                                Drop files or click to browse
-                            </div>
-                        </div>
-                        <div id="url-panel" class="upload-panel">
+                        <!-- URL links only - no file uploads -->
+                        <div id="url-panel" class="upload-panel active">
                             <input type="text" id="image-url-input" class="compact-input" placeholder="https://example.com/image.jpg">
                             <button class="primary-btn purple" onclick="loadArtworkFromURL()" style="padding: 10px;">
                                 Load from URL
@@ -5240,14 +5231,7 @@
         }
 
         function switchUploadTab(tab) {
-            // Update tab buttons
-            document.querySelectorAll('.upload-tab').forEach(btn => btn.classList.remove('active'));
-            event.target.classList.add('active');
-
-            // Update panels
-            document.getElementById('upload-panel').classList.remove('active');
-            document.getElementById('url-panel').classList.remove('active');
-            document.getElementById(tab + '-panel').classList.add('active');
+            // No-op: File upload tabs removed, URL only mode
         }
 
         // Close modals on Escape key
@@ -5362,39 +5346,42 @@
             }
 
             async _doFetchEvents() {
-                return this._retryWithBackoff(async () => {
-                    const response = await fetch(XANO_API_URL);
-                    if (!response.ok) {
-                        const error = new Error(`Failed to fetch events: ${response.status}`);
-                        error.status = response.status;
-                        throw error;
+                // Load default artworks locally - no database fetch
+                // Generate events from DEFAULT_GALLERY_ARTWORKS
+                const defaultEvents = DEFAULT_GALLERY_ARTWORKS.map((artwork, index) => ({
+                    id: index + 1,
+                    event_uid: `default-event-${artwork.id}`,
+                    verb: 'create',
+                    op: 'artwork_upload',
+                    frame: 'classic',
+                    scale: 'medium',
+                    published: new Date().toISOString(),
+                    created_at: new Date().toISOString(),
+                    actor_id: 'system',
+                    object_type: 'artwork',
+                    object_id: artwork.id,
+                    data: {
+                        title: artwork.title,
+                        artist: artwork.artist,
+                        description: artwork.description,
+                        type: 'Image',
+                        imageUrl: artwork.imageUrl,
+                        heightMeters: artwork.heightMeters,
+                        heightInches: artwork.heightInches,
+                        aspectRatio: artwork.aspectRatio,
+                        locationId: artwork.locationId,
+                        roomId: artwork.roomId,
+                        galleryId: artwork.galleryId,
+                        galleryName: `Gallery ${artwork.galleryId.split('-')[1]}`
                     }
-                    const jsonData = await response.json();
+                }));
 
-                    // Handle both array response and wrapped response (e.g., { items: [...] } or { data: [...] })
-                    let fetchedEvents = [];
-                    if (Array.isArray(jsonData)) {
-                        fetchedEvents = jsonData;
-                    } else if (jsonData && typeof jsonData === 'object') {
-                        // Try common wrapper properties
-                        fetchedEvents = jsonData.items || jsonData.data || jsonData.events || jsonData.records || [];
-                        if (!Array.isArray(fetchedEvents)) {
-                            console.warn('Unexpected API response structure:', Object.keys(jsonData));
-                            fetchedEvents = [];
-                        }
-                    }
+                // Validate and normalize events before storing
+                this.events = defaultEvents.map(e => this._normalizeEvent(e)).filter(e => e !== null);
 
-                    // Validate and normalize events before storing
-                    this.events = fetchedEvents.map(e => this._normalizeEvent(e)).filter(e => e !== null);
-
-                    console.log('Fetched events from Xano:', this.events.length);
-                    if (this.events.length > 0) {
-                        const sample = this.events[0];
-                        console.log('Sample event structure:', JSON.stringify(sample, null, 2));
-                    }
-                    this.reconstructState();
-                    return this.events;
-                });
+                console.log('Loaded default artworks locally:', this.events.length);
+                this.reconstructState();
+                return this.events;
             }
 
             // Normalize event data to ensure consistent structure
@@ -5463,7 +5450,7 @@
                 });
             }
 
-            // Post a new event to Xano with retry logic
+            // Handle events locally only - no database upload
             async postEvent(eventData, options = {}) {
                 const { skipDuplicateCheck = false, skipRecentCheck = false } = options;
 
@@ -5499,38 +5486,18 @@
                     data: eventData.data || {}
                 };
 
-                console.log('Posting event to Xano:', event);
+                // Store event locally only - no database upload
+                console.log('Storing event locally (no database upload):', event);
 
-                return this._retryWithBackoff(async () => {
-                    const response = await fetch(XANO_API_URL, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify(event)
-                    });
+                const storedEvent = {
+                    ...event,
+                    id: Date.now(), // Generate local ID
+                    created_at: new Date().toISOString()
+                };
+                this.events.push(storedEvent);
+                this.applyEvent(storedEvent);
 
-                    if (!response.ok) {
-                        const errorText = await response.text();
-                        const error = new Error(`Failed to post event: ${response.status} - ${errorText}`);
-                        error.status = response.status;
-                        throw error;
-                    }
-
-                    const result = await response.json();
-                    console.log('Event posted successfully:', result);
-
-                    // Add to local events with full server response data
-                    const storedEvent = {
-                        ...event,
-                        id: result.id,
-                        created_at: result.created_at || new Date().toISOString()
-                    };
-                    this.events.push(storedEvent);
-                    this.applyEvent(storedEvent);
-
-                    return result;
-                }, 2); // Max 2 retries for POST operations
+                return { id: storedEvent.id, success: true, local: true };
             }
 
             // Reconstruct current state from event history
@@ -5759,49 +5726,27 @@
                 return this.state.artworks[objectId] || null;
             }
 
-            // Delete an event record from Xano database
-            // This permanently removes the event from the database (useful for cleaning up duplicates)
+            // Delete an event record locally only - no database operation
             async deleteEventRecord(eventId) {
                 if (!eventId) {
                     console.error('deleteEventRecord: eventId is required');
                     return { success: false, error: 'eventId is required' };
                 }
 
-                console.log('Deleting event record from Xano:', eventId);
+                console.log('Deleting event record locally (no database):', eventId);
 
-                try {
-                    await this._retryWithBackoff(async () => {
-                        const response = await fetch(`${XANO_API_URL}/${eventId}`, {
-                            method: 'DELETE',
-                            headers: {
-                                'Content-Type': 'application/json'
-                            }
-                        });
-
-                        if (!response.ok) {
-                            const errorText = await response.text();
-                            const error = new Error(`Failed to delete event: ${response.status} - ${errorText}`);
-                            error.status = response.status;
-                            throw error;
-                        }
-                    }, 2); // Max 2 retries for DELETE
-
-                    // Remove from local events array
-                    const eventIndex = this.events.findIndex(e => e.id === eventId);
-                    if (eventIndex !== -1) {
-                        this.events.splice(eventIndex, 1);
-                        console.log('Event removed from local cache');
-                    }
-
-                    // Reconstruct state after deletion
-                    this.reconstructState();
-
-                    console.log('Event record deleted successfully:', eventId);
-                    return { success: true, deletedId: eventId };
-                } catch (error) {
-                    console.error('Failed to delete event record:', error);
-                    return { success: false, error: error.message };
+                // Remove from local events array
+                const eventIndex = this.events.findIndex(e => e.id === eventId);
+                if (eventIndex !== -1) {
+                    this.events.splice(eventIndex, 1);
+                    console.log('Event removed from local state');
                 }
+
+                // Reconstruct state after deletion
+                this.reconstructState();
+
+                console.log('Event record deleted locally:', eventId);
+                return { success: true, deletedId: eventId, local: true };
             }
 
             // Delete multiple event records (for batch cleanup)
@@ -5930,6 +5875,39 @@
             { id: "cat_35", title: "40,000 FT ABOVE BRAZIL", product_url: "https://morningcoffeeartist.myshopify.com/products/untitled-jun21_14-54", price: 0.0, currency: "USD", image_url: "https://morningcoffeeartist.myshopify.com/cdn/shop/files/rn-image_picker_lib_temp_e5de26a4-c68f-4337-8026-069a030df2de.jpg?v=1750442224", artist: "Morning Coffee Artist" },
             { id: "cat_36", title: "3rd Shift", product_url: "https://morningcoffeeartist.myshopify.com/products/3rd-shift", price: 0.0, currency: "USD", image_url: "https://morningcoffeeartist.myshopify.com/cdn/shop/files/rn-image_picker_lib_temp_03618faf-0cad-4262-82f9-1fd51931e2b3.jpg?v=1750442756", artist: "Morning Coffee Artist" }
         ];
+
+        // Default artworks for each gallery (12 per gallery, 8 galleries = 96 artworks)
+        // Uses picsum.photos for placeholder images - URL links only, no file uploads
+        function generateDefaultArtworks() {
+            const artworks = [];
+            const roomIds = ['main-gallery', 'contemporary-wing'];
+
+            for (let galleryNum = 1; galleryNum <= 8; galleryNum++) {
+                const galleryId = `gallery-${galleryNum}`;
+                const roomId = roomIds[(galleryNum - 1) % roomIds.length];
+
+                for (let spotNum = 1; spotNum <= 12; spotNum++) {
+                    // Use unique seed for each artwork to get consistent but varied images
+                    const seed = (galleryNum * 100) + spotNum;
+                    artworks.push({
+                        id: `default-art-${galleryNum}-${spotNum}`,
+                        title: `Artwork ${spotNum}`,
+                        artist: `Gallery ${galleryNum} Artist`,
+                        description: `Default artwork ${spotNum} in Gallery ${galleryNum}`,
+                        imageUrl: `https://picsum.photos/seed/${seed}/800/600`,
+                        locationId: `${roomId}:${spotNum}`,
+                        roomId: roomId,
+                        galleryId: galleryId,
+                        heightMeters: 0.9144, // 36 inches
+                        heightInches: 36,
+                        aspectRatio: 800 / 600
+                    });
+                }
+            }
+            return artworks;
+        }
+
+        const DEFAULT_GALLERY_ARTWORKS = generateDefaultArtworks();
 
         // Load catalogue from localStorage or use defaults
         function loadCatalogue() {
@@ -7970,12 +7948,20 @@
         }
 
         function getDefaultGalleries() {
-            return Object.values(ROOMS).map(room => ({
-                id: room.id,
-                name: room.name,
-                homeRoom: room.id,
-                colorTemperature: room.theme?.colorTemperature || DEFAULT_COLOR_TEMPERATURE
-            }));
+            // Create 8 default galleries with numbered names
+            const galleries = [];
+            const roomIds = Object.keys(ROOMS);
+            for (let i = 1; i <= 8; i++) {
+                // Cycle through available rooms for homeRoom
+                const homeRoom = roomIds[(i - 1) % roomIds.length];
+                galleries.push({
+                    id: `gallery-${i}`,
+                    name: `Gallery ${i}`,
+                    homeRoom: homeRoom,
+                    colorTemperature: ROOMS[homeRoom]?.theme?.colorTemperature || DEFAULT_COLOR_TEMPERATURE
+                });
+            }
+            return galleries;
         }
 
         function loadGalleryState() {
@@ -8345,18 +8331,9 @@
         }
 
         function assignFromUpload() {
-            if (!pendingAssignLocation) return;
-
-            const locationInfo = pendingAssignLocation;
+            // File uploads disabled - use URL links only
+            alert('File uploads are disabled. Please use "Add Artwork" with a URL link instead.');
             closePlaceAssignDialog();
-
-            // Trigger file input and pre-select the location
-            const fileInput = document.getElementById('file-input');
-
-            // Store the pending location for use after file selection
-            window.pendingUploadLocation = locationInfo;
-
-            fileInput.click();
         }
 
         // ==========================================
@@ -10732,18 +10709,9 @@
         }
         
         function handleFiles(files) {
-            if (!isAdmin) return;
-
-            for (let file of files) {
-                if (file.type.startsWith('image/')) {
-                    const reader = new FileReader();
-                    reader.onload = (e) => {
-                        // Show crop dialog before placement
-                        showCropDialog(file, e.target.result, false, null);
-                    };
-                    reader.readAsDataURL(file);
-                }
-            }
+            // File uploads disabled - use URL links only
+            console.log('File uploads are disabled. Please use URL links instead.');
+            return;
         }
 
         function filterPlacementLocations() {
