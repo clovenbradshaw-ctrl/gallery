@@ -4396,21 +4396,14 @@
                 </div>
                 <div class="collapsible-content">
                     <div class="collapsible-inner">
-                        <div class="upload-tabs">
-                            <button class="upload-tab active" onclick="switchUploadTab('upload')">Upload</button>
-                            <button class="upload-tab" onclick="switchUploadTab('url')">From URL</button>
-                        </div>
-                        <div id="upload-panel" class="upload-panel active">
-                            <input type="file" id="file-input" multiple accept="image/*">
-                            <div id="drop-zone" class="compact-drop-zone">
-                                Drop files or click to browse
-                            </div>
-                        </div>
-                        <div id="url-panel" class="upload-panel">
+                        <div id="url-panel" class="upload-panel active">
                             <input type="text" id="image-url-input" class="compact-input" placeholder="https://example.com/image.jpg">
                             <button class="primary-btn purple" onclick="loadArtworkFromURL()" style="padding: 10px;">
-                                Load from URL
+                                Add from URL
                             </button>
+                            <p style="font-size: 12px; color: #888; margin-top: 8px; text-align: center;">
+                                Enter a direct link to an image hosted online
+                            </p>
                         </div>
                     </div>
                 </div>
@@ -5255,17 +5248,6 @@
         function toggleCollapsible(sectionId) {
             const section = document.getElementById(sectionId);
             section.classList.toggle('open');
-        }
-
-        function switchUploadTab(tab) {
-            // Update tab buttons
-            document.querySelectorAll('.upload-tab').forEach(btn => btn.classList.remove('active'));
-            event.target.classList.add('active');
-
-            // Update panels
-            document.getElementById('upload-panel').classList.remove('active');
-            document.getElementById('url-panel').classList.remove('active');
-            document.getElementById(tab + '-panel').classList.add('active');
         }
 
         // Close modals on Escape key
@@ -7527,6 +7509,59 @@
                         rotation: Math.PI / 2,
                         maxWidth: 6,
                         wallLength: 20 * 0.3048
+                    },
+                    // Additional wall spots - left-3
+                    {
+                        id: 'main-gallery:left-3',
+                        baseId: 'left-3',
+                        displayName: 'Left Center Wall',
+                        position: wallSpotPosition(-7.9, 0),
+                        wall: 'left',
+                        rotation: Math.PI / 2,
+                        maxWidth: 6,
+                        wallLength: 20 * 0.3048
+                    },
+                    // Additional wall spots - right-3
+                    {
+                        id: 'main-gallery:right-3',
+                        baseId: 'right-3',
+                        displayName: 'Right Center Wall',
+                        position: wallSpotPosition(7.9, 0),
+                        wall: 'right',
+                        rotation: -Math.PI / 2,
+                        maxWidth: 6,
+                        wallLength: 20 * 0.3048
+                    },
+                    // Front wall - front-1, front-2, front-3
+                    {
+                        id: 'main-gallery:front-1',
+                        baseId: 'front-1',
+                        displayName: 'Front Left Wall',
+                        position: wallSpotPosition(-4, 9.9),
+                        wall: 'front',
+                        rotation: Math.PI,
+                        maxWidth: 5,
+                        wallLength: 16 * 0.3048
+                    },
+                    {
+                        id: 'main-gallery:front-2',
+                        baseId: 'front-2',
+                        displayName: 'Front Center Wall',
+                        position: wallSpotPosition(0, 9.9),
+                        wall: 'front',
+                        rotation: Math.PI,
+                        maxWidth: 5,
+                        wallLength: 16 * 0.3048
+                    },
+                    {
+                        id: 'main-gallery:front-3',
+                        baseId: 'front-3',
+                        displayName: 'Front Right Wall',
+                        position: wallSpotPosition(4, 9.9),
+                        wall: 'front',
+                        rotation: Math.PI,
+                        maxWidth: 5,
+                        wallLength: 16 * 0.3048
                     }
                 ],
                 floors: [],
@@ -7624,6 +7659,59 @@
                         rotation: -Math.PI / 2,
                         maxWidth: 5,
                         wallLength: 16 * 0.3048
+                    },
+                    // Additional wall spots - west-3
+                    {
+                        id: 'contemporary-wing:west-3',
+                        baseId: 'west-3',
+                        displayName: 'Prism Array',
+                        position: wallSpotPosition(-9.9, 0),
+                        wall: 'left',
+                        rotation: Math.PI / 2,
+                        maxWidth: 5,
+                        wallLength: 16 * 0.3048
+                    },
+                    // Additional wall spots - east-3
+                    {
+                        id: 'contemporary-wing:east-3',
+                        baseId: 'east-3',
+                        displayName: 'Digital Canvas',
+                        position: wallSpotPosition(9.9, 0),
+                        wall: 'right',
+                        rotation: -Math.PI / 2,
+                        maxWidth: 5,
+                        wallLength: 16 * 0.3048
+                    },
+                    // South wall (front) - south-1, south-2, south-3
+                    {
+                        id: 'contemporary-wing:south-1',
+                        baseId: 'south-1',
+                        displayName: 'Horizon Line',
+                        position: wallSpotPosition(-5, 7.9),
+                        wall: 'front',
+                        rotation: Math.PI,
+                        maxWidth: 5,
+                        wallLength: 20 * 0.3048
+                    },
+                    {
+                        id: 'contemporary-wing:south-2',
+                        baseId: 'south-2',
+                        displayName: 'Center Stage',
+                        position: wallSpotPosition(0, 7.9),
+                        wall: 'front',
+                        rotation: Math.PI,
+                        maxWidth: 5,
+                        wallLength: 20 * 0.3048
+                    },
+                    {
+                        id: 'contemporary-wing:south-3',
+                        baseId: 'south-3',
+                        displayName: 'Edge Gallery',
+                        position: wallSpotPosition(5, 7.9),
+                        wall: 'front',
+                        rotation: Math.PI,
+                        maxWidth: 5,
+                        wallLength: 20 * 0.3048
                     }
                 ],
                 floors: [],
@@ -7659,7 +7747,12 @@
                         { guid: 'space_004', legacySpotId: 'right-1', name: 'Right Front Wall', wall: 'right', position: 1 },
                         { guid: 'space_005', legacySpotId: 'right-2', name: 'Right Back Wall', wall: 'right', position: 2 },
                         { guid: 'space_006', legacySpotId: 'left-1', name: 'Left Front Wall', wall: 'left', position: 1 },
-                        { guid: 'space_007', legacySpotId: 'left-2', name: 'Left Back Wall', wall: 'left', position: 2 }
+                        { guid: 'space_007', legacySpotId: 'left-2', name: 'Left Back Wall', wall: 'left', position: 2 },
+                        { guid: 'space_008', legacySpotId: 'left-3', name: 'Left Center Wall', wall: 'left', position: 3 },
+                        { guid: 'space_009', legacySpotId: 'right-3', name: 'Right Center Wall', wall: 'right', position: 3 },
+                        { guid: 'space_010', legacySpotId: 'front-1', name: 'Front Left Wall', wall: 'front', position: 1 },
+                        { guid: 'space_011', legacySpotId: 'front-2', name: 'Front Center Wall', wall: 'front', position: 2 },
+                        { guid: 'space_012', legacySpotId: 'front-3', name: 'Front Right Wall', wall: 'front', position: 3 }
                     ]
                 },
                 {
@@ -7675,7 +7768,12 @@
                         { guid: 'space_016', legacySpotId: 'west-1', name: 'Chromatic Stack', wall: 'left', position: 1 },
                         { guid: 'space_017', legacySpotId: 'west-2', name: 'Cascade Wall', wall: 'left', position: 2 },
                         { guid: 'space_018', legacySpotId: 'east-1', name: 'Spectrum Drift', wall: 'right', position: 1 },
-                        { guid: 'space_019', legacySpotId: 'east-2', name: 'Neon Strata', wall: 'right', position: 2 }
+                        { guid: 'space_019', legacySpotId: 'east-2', name: 'Neon Strata', wall: 'right', position: 2 },
+                        { guid: 'space_020', legacySpotId: 'west-3', name: 'Prism Array', wall: 'left', position: 3 },
+                        { guid: 'space_021', legacySpotId: 'east-3', name: 'Digital Canvas', wall: 'right', position: 3 },
+                        { guid: 'space_022', legacySpotId: 'south-1', name: 'Horizon Line', wall: 'front', position: 1 },
+                        { guid: 'space_023', legacySpotId: 'south-2', name: 'Center Stage', wall: 'front', position: 2 },
+                        { guid: 'space_024', legacySpotId: 'south-3', name: 'Edge Gallery', wall: 'front', position: 3 }
                     ]
                 }
             ]
@@ -10940,74 +11038,7 @@
             // Keyboard navigation
             document.addEventListener('keydown', handleViewerKeyDown);
 
-            const fileInput = document.getElementById('file-input');
-            if (fileInput) {
-                fileInput.addEventListener('change', handleFileSelect);
-            }
-
-            const dropZone = document.getElementById('drop-zone');
-            if (dropZone) {
-                const activateDropZone = (event) => {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    dropZone.classList.add('dragover');
-                };
-
-                const deactivateDropZone = (event) => {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    if (!dropZone.contains(event.relatedTarget)) {
-                        dropZone.classList.remove('dragover');
-                    }
-                };
-
-                ['dragenter', 'dragover'].forEach(eventName => {
-                    dropZone.addEventListener(eventName, activateDropZone);
-                });
-
-                ['dragleave', 'dragexit'].forEach(eventName => {
-                    dropZone.addEventListener(eventName, deactivateDropZone);
-                });
-
-                dropZone.addEventListener('drop', (event) => {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    dropZone.classList.remove('dragover');
-
-                    if (!isAdmin) return;
-
-                    const files = event.dataTransfer?.files;
-                    if (files && files.length) {
-                        handleFiles(files);
-                    }
-                });
-
-                dropZone.addEventListener('click', () => {
-                    if (!isAdmin) return;
-                    if (fileInput) {
-                        fileInput.click();
-                    }
-                });
-            }
-        }
-        
-        function handleFileSelect(event) {
-            if (!isAdmin) {
-                event.target.value = '';
-                return;
-            }
-
-            handleFiles(event.target.files);
-            event.target.value = '';
-        }
-        
-        function handleFiles(files) {
-            if (!isAdmin) return;
-
-            // Block local file uploads - they would be converted to base64
-            // Users must provide an image URL instead
-            alert('Local file uploads are not supported. Please use "Add from URL" to add artwork using an image URL (e.g., from a CDN or image hosting service).');
-            return;
+            // File uploads are disabled - only URL-based artwork addition is supported
         }
 
         function filterPlacementLocations() {
