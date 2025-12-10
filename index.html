@@ -5755,7 +5755,9 @@
                     'gateway_to': 'gatewayTo',
                     'current_image_index': 'currentImageIndex',
                     'created_at': 'createdAt',
-                    'updated_at': 'updatedAt'
+                    'updated_at': 'updatedAt',
+                    'crop_data': 'cropData',
+                    'aspect_ratio': 'aspectRatio'
                 };
 
                 const normalized = { ...data };
@@ -9977,7 +9979,10 @@
                             currentImageIndex: artwork.currentImageIndex,
                             // Include spaceId for GUID-based location tracking
                             spaceId: artwork.spaceId,
-                            roomGuid: artwork.roomGuid
+                            roomGuid: artwork.roomGuid,
+                            // Include crop data for display-only cropping via UV mapping
+                            cropData: artwork.cropData,
+                            aspectRatio: artwork.aspectRatio
                         })
                     );
                 }
