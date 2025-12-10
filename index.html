@@ -4609,24 +4609,6 @@
         </div>
 
         <div class="section-divider">
-            <label>Gateway Room (optional):</label>
-            <select id="edit-gateway-select">
-                <option value="">None - Normal Painting</option>
-            </select>
-            <small style="opacity: 0.7; display: block; margin-top: 5px;">When set, clicking this painting transports you to another room</small>
-        </div>
-
-        <div class="section-divider">
-            <label>Display Mode:</label>
-            <select id="edit-display-mode">
-                <option value="single">Single Image</option>
-                <option value="slider">Multiple Images (Slider)</option>
-                <option value="grid">Multiple Images (Grid)</option>
-            </select>
-            <small style="opacity: 0.7; display: block; margin-top: 5px;">Slider mode: Click to cycle through images. Grid mode: Show all images at once.</small>
-        </div>
-
-        <div class="section-divider">
             <label>Room:</label>
             <select id="edit-room-filter" onchange="filterEditLocations()">
                 <option value="">All Rooms</option>
@@ -12966,21 +12948,6 @@
                 imagePreview.style.display = 'none';
             }
 
-            // Populate gateway room dropdown
-            const gatewaySelect = document.getElementById('edit-gateway-select');
-            gatewaySelect.innerHTML = '<option value="">None - Normal Painting</option>';
-            Object.values(ROOMS).forEach(room => {
-                const option = document.createElement('option');
-                option.value = room.id;
-                option.textContent = room.name;
-                gatewaySelect.appendChild(option);
-            });
-            gatewaySelect.value = artworkGroup.userData.gatewayTo || '';
-
-            // Set display mode
-            const displayModeSelect = document.getElementById('edit-display-mode');
-            displayModeSelect.value = artworkGroup.userData.displayMode || 'single';
-
             // Populate room filter dropdown for location selection
             const roomFilter = document.getElementById('edit-room-filter');
             roomFilter.innerHTML = '<option value="">All Rooms</option>';
@@ -13033,9 +13000,9 @@
             const heightInches = parseFloat(document.getElementById('edit-height-input').value);
             const heightFeet = heightInches / 12;
 
-            // Get gateway and display mode settings
-            const gatewayTo = document.getElementById('edit-gateway-select').value;
-            const displayMode = document.getElementById('edit-display-mode').value;
+            // Preserve existing gateway and display mode settings
+            const gatewayTo = currentEditingArtwork.userData.gatewayTo || '';
+            const displayMode = currentEditingArtwork.userData.displayMode || 'single';
 
             // Check if location has changed
             const oldSpotId = currentEditingArtwork.userData.spotId;
