@@ -3458,19 +3458,56 @@
         }
 
         .gallery-order-item.dragging {
-            opacity: 0.5;
+            opacity: 0.4;
+            transform: scale(0.98);
             background: rgba(102, 126, 234, 0.2);
             border-color: rgba(102, 126, 234, 0.5);
+            z-index: 1;
         }
 
-        .gallery-order-item.drag-over {
-            border-color: rgba(102, 126, 234, 0.8);
+        .gallery-order-item.drag-over-above {
+            border-top: 3px solid #667eea;
+            margin-top: -2px;
+            padding-top: 8px;
+        }
+
+        .gallery-order-item.drag-over-below {
+            border-bottom: 3px solid #667eea;
+            margin-bottom: -2px;
+            padding-bottom: 8px;
+        }
+
+        .gallery-order-item.preview-position {
             background: rgba(102, 126, 234, 0.15);
+            border-color: rgba(102, 126, 234, 0.4);
         }
 
         .gallery-order-drag-handle svg {
             width: 16px;
             height: 16px;
+        }
+
+        /* Smooth transitions for reordering */
+        .gallery-order-list {
+            position: relative;
+        }
+
+        .gallery-order-item {
+            transition: transform 0.15s ease-out, opacity 0.15s ease-out,
+                        border-color 0.1s ease, background 0.1s ease,
+                        margin 0.1s ease, padding 0.1s ease;
+        }
+
+        .gallery-order-item.shifting-down {
+            transform: translateY(calc(100% + 8px));
+        }
+
+        .gallery-order-item.shifting-up {
+            transform: translateY(calc(-100% - 8px));
+        }
+
+        .gallery-order-list.is-dragging .gallery-order-item:not(.dragging) {
+            cursor: default;
         }
 
         /* Add Room Dialog */
@@ -8591,88 +8628,261 @@
         }
 
         let draggedGalleryId = null;
+        let draggedElement = null;
+        let currentDropTarget = null;
+        let dropPosition = null; // 'above' or 'below'
+        let previewOrder = null; // Stores the preview order during drag
 
         function handleGalleryDragStart(e) {
             draggedGalleryId = this.dataset.galleryId;
+            draggedElement = this;
             this.classList.add('dragging');
+
+            // Mark the list as dragging for cursor changes
+            const orderList = document.getElementById('gallery-order-list');
+            if (orderList) orderList.classList.add('is-dragging');
+
             e.dataTransfer.effectAllowed = 'move';
             e.dataTransfer.setData('text/plain', this.dataset.galleryId);
+
+            // Initialize preview order
+            previewOrder = getGalleriesInDisplayOrder().map(g => g.id);
+
+            // Use a slight delay to make the drag image appear properly
+            requestAnimationFrame(() => {
+                this.style.opacity = '0.4';
+            });
         }
 
         function handleGalleryDragEnd(e) {
             this.classList.remove('dragging');
+            this.style.opacity = '';
+
+            const orderList = document.getElementById('gallery-order-list');
+            if (orderList) orderList.classList.remove('is-dragging');
+
+            // Clear all drag states
+            clearDragStates();
+
             draggedGalleryId = null;
-            // Remove drag-over class from all items
+            draggedElement = null;
+            currentDropTarget = null;
+            dropPosition = null;
+            previewOrder = null;
+        }
+
+        function clearDragStates() {
             document.querySelectorAll('.gallery-order-item').forEach(item => {
-                item.classList.remove('drag-over');
+                item.classList.remove('drag-over-above', 'drag-over-below', 'preview-position', 'shifting-up', 'shifting-down');
             });
         }
 
         function handleGalleryDragOver(e) {
             e.preventDefault();
             e.dataTransfer.dropEffect = 'move';
+
+            if (this.dataset.galleryId === draggedGalleryId) return;
+
+            // Calculate if we're in the top or bottom half of the element
+            const rect = this.getBoundingClientRect();
+            const midY = rect.top + rect.height / 2;
+            const newDropPosition = e.clientY < midY ? 'above' : 'below';
+
+            // Only update if position changed
+            if (currentDropTarget !== this || dropPosition !== newDropPosition) {
+                clearDragStates();
+                currentDropTarget = this;
+                dropPosition = newDropPosition;
+
+                // Show drop indicator
+                if (newDropPosition === 'above') {
+                    this.classList.add('drag-over-above');
+                } else {
+                    this.classList.add('drag-over-below');
+                }
+
+                // Show live preview of the new order
+                updateDragPreview();
+            }
         }
 
         function handleGalleryDragEnter(e) {
             e.preventDefault();
-            if (this.dataset.galleryId !== draggedGalleryId) {
-                this.classList.add('drag-over');
-            }
         }
 
         function handleGalleryDragLeave(e) {
-            this.classList.remove('drag-over');
+            // Only clear if we're actually leaving this element (not entering a child)
+            const rect = this.getBoundingClientRect();
+            if (e.clientX < rect.left || e.clientX > rect.right ||
+                e.clientY < rect.top || e.clientY > rect.bottom) {
+                this.classList.remove('drag-over-above', 'drag-over-below');
+                if (currentDropTarget === this) {
+                    currentDropTarget = null;
+                    dropPosition = null;
+                }
+            }
         }
 
-        async function handleGalleryDrop(e) {
-            e.preventDefault();
-            this.classList.remove('drag-over');
-
-            const sourceId = e.dataTransfer.getData('text/plain');
-            const targetId = this.dataset.galleryId;
-
-            if (sourceId === targetId || !isAdmin) return;
-
-            await reorderGalleries(sourceId, targetId);
-        }
-
-        async function reorderGalleries(sourceId, targetId) {
-            // Sort galleries by current order
-            const sortedGalleries = [...galleries].sort((a, b) => {
+        function getGalleriesInDisplayOrder() {
+            return [...galleries].sort((a, b) => {
                 const orderA = a.order !== undefined && a.order !== null ? a.order : Infinity;
                 const orderB = b.order !== undefined && b.order !== null ? b.order : Infinity;
                 return orderA - orderB;
             });
+        }
 
-            const sourceIndex = sortedGalleries.findIndex(g => g.id === sourceId);
-            const targetIndex = sortedGalleries.findIndex(g => g.id === targetId);
+        function updateDragPreview() {
+            if (!draggedGalleryId || !currentDropTarget || !dropPosition) return;
 
-            if (sourceIndex < 0 || targetIndex < 0 || sourceIndex === targetIndex) return;
+            const sortedGalleries = getGalleriesInDisplayOrder();
+            const sourceIndex = sortedGalleries.findIndex(g => g.id === draggedGalleryId);
+            const targetId = currentDropTarget.dataset.galleryId;
+            let targetIndex = sortedGalleries.findIndex(g => g.id === targetId);
 
-            // Remove source and insert at target position
-            const [movedGallery] = sortedGalleries.splice(sourceIndex, 1);
-            sortedGalleries.splice(targetIndex, 0, movedGallery);
+            if (sourceIndex < 0 || targetIndex < 0) return;
 
-            // Reassign order values to all galleries
+            // Calculate the new target index based on drop position
+            let newTargetIndex = targetIndex;
+            if (dropPosition === 'below') {
+                newTargetIndex = targetIndex + 1;
+            }
+
+            // Adjust for the removed source item
+            if (sourceIndex < newTargetIndex) {
+                newTargetIndex--;
+            }
+
+            // Don't preview if it's the same position
+            if (sourceIndex === newTargetIndex) {
+                clearDragStates();
+                // Re-apply the drop indicator
+                if (currentDropTarget) {
+                    currentDropTarget.classList.add(dropPosition === 'above' ? 'drag-over-above' : 'drag-over-below');
+                }
+                return;
+            }
+
+            // Create preview order
+            const newOrder = sortedGalleries.map(g => g.id);
+            const [movedId] = newOrder.splice(sourceIndex, 1);
+            newOrder.splice(newTargetIndex, 0, movedId);
+            previewOrder = newOrder;
+
+            // Update the visual preview - reorder DOM elements
+            updateListPreview(newOrder);
+        }
+
+        function updateListPreview(newOrder) {
+            const orderList = document.getElementById('gallery-order-list');
+            if (!orderList) return;
+
+            const items = Array.from(orderList.querySelectorAll('.gallery-order-item'));
+            const itemMap = {};
+            items.forEach(item => {
+                itemMap[item.dataset.galleryId] = item;
+            });
+
+            // Update the order numbers to show the preview
+            newOrder.forEach((galleryId, index) => {
+                const item = itemMap[galleryId];
+                if (item) {
+                    const numberEl = item.querySelector('.gallery-order-number');
+                    if (numberEl) {
+                        numberEl.textContent = index + 1;
+                    }
+                    // Highlight items that would move (but not the dragged one)
+                    if (galleryId !== draggedGalleryId) {
+                        const currentIndex = parseInt(item.dataset.index);
+                        if (currentIndex !== index) {
+                            item.classList.add('preview-position');
+                        } else {
+                            item.classList.remove('preview-position');
+                        }
+                    }
+                }
+            });
+        }
+
+        async function handleGalleryDrop(e) {
+            e.preventDefault();
+
+            const sourceId = e.dataTransfer.getData('text/plain');
+            const targetId = currentDropTarget?.dataset.galleryId || this.dataset.galleryId;
+            const finalDropPosition = dropPosition || 'below';
+
+            // Clear visual states
+            clearDragStates();
+
+            if (sourceId === targetId || !isAdmin) return;
+
+            // Use the preview order if available, otherwise calculate it
+            if (previewOrder && previewOrder.length > 0) {
+                await applyGalleryOrder(previewOrder);
+            } else {
+                await reorderGalleries(sourceId, targetId, finalDropPosition);
+            }
+        }
+
+        async function applyGalleryOrder(newOrder) {
             const updates = [];
-            sortedGalleries.forEach((gallery, index) => {
-                const newOrder = index + 1;
-                if (gallery.order !== newOrder) {
-                    gallery.order = newOrder;
-                    const globalGallery = galleries.find(g => g.id === gallery.id);
-                    if (globalGallery) globalGallery.order = newOrder;
-                    updates.push({ id: gallery.id, order: newOrder });
+
+            // Update all galleries with their new order
+            newOrder.forEach((galleryId, index) => {
+                const newOrderValue = index + 1;
+                const gallery = galleries.find(g => g.id === galleryId);
+                if (gallery && gallery.order !== newOrderValue) {
+                    gallery.order = newOrderValue;
+                    updates.push({ id: galleryId, order: newOrderValue });
                 }
             });
 
-            // Persist all changes
-            for (const update of updates) {
-                await persistGalleryOrder(update.id, update.order);
+            if (updates.length === 0) return;
+
+            // Optimistically update the UI immediately
+            renderGalleryOrderList(getGalleriesInDisplayOrder());
+
+            // Persist all changes in parallel for speed
+            try {
+                await Promise.all(updates.map(update =>
+                    persistGalleryOrder(update.id, update.order)
+                ));
+                showToast('Gallery order updated', 'success');
+            } catch (error) {
+                console.error('Failed to persist gallery order:', error);
+                showToast('Failed to save gallery order', 'error');
+                // Refresh to show actual server state
+                openGalleryMap();
+            }
+        }
+
+        async function reorderGalleries(sourceId, targetId, position = 'below') {
+            const sortedGalleries = getGalleriesInDisplayOrder();
+
+            const sourceIndex = sortedGalleries.findIndex(g => g.id === sourceId);
+            let targetIndex = sortedGalleries.findIndex(g => g.id === targetId);
+
+            if (sourceIndex < 0 || targetIndex < 0) return;
+
+            // Calculate new position based on drop position
+            let newTargetIndex = targetIndex;
+            if (position === 'below') {
+                newTargetIndex = targetIndex + 1;
             }
 
-            // Refresh the gallery map
-            openGalleryMap();
-            showToast('Gallery order updated', 'success');
+            // Adjust for the removed source item
+            if (sourceIndex < newTargetIndex) {
+                newTargetIndex--;
+            }
+
+            if (sourceIndex === newTargetIndex) return;
+
+            // Remove source and insert at new position
+            const [movedGallery] = sortedGalleries.splice(sourceIndex, 1);
+            sortedGalleries.splice(newTargetIndex, 0, movedGallery);
+
+            // Create new order array
+            const newOrder = sortedGalleries.map(g => g.id);
+            await applyGalleryOrder(newOrder);
         }
 
         async function moveGalleryUp(galleryId) {
