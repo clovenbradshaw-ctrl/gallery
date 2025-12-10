@@ -11486,6 +11486,11 @@
             editArtworkMesh: null
         };
 
+        // Pending crop data - stored when user applies crop from edit dialog
+        // Only saved when user clicks "Save Changes" in edit dialog
+        let pendingCropData = null;
+        let pendingCropPreviewUrl = null;
+
         function showCropDialog(file, imageDataUrl, fromEdit = false, artworkMesh = null) {
             const dialog = document.getElementById('crop-dialog');
             const canvas = document.getElementById('crop-canvas');
@@ -11801,8 +11806,31 @@
             dialog.classList.remove('active');
 
             if (cropState.isFromEdit && cropState.editArtworkMesh) {
-                // Update existing artwork with crop parameters (display-only cropping)
-                updateArtworkWithCropData(cropState.editArtworkMesh, cropData, aspectRatio);
+                // Store pending crop data - will be saved when user clicks "Save Changes"
+                pendingCropData = {
+                    cropData: cropData,
+                    aspectRatio: aspectRatio
+                };
+
+                // Generate a preview of the cropped image
+                const previewCanvas = document.createElement('canvas');
+                previewCanvas.width = srcW;
+                previewCanvas.height = srcH;
+                const previewCtx = previewCanvas.getContext('2d');
+                previewCtx.drawImage(cropState.image, srcX, srcY, srcW, srcH, 0, 0, srcW, srcH);
+                pendingCropPreviewUrl = previewCanvas.toDataURL('image/jpeg', 0.9);
+
+                // Update the preview image in edit dialog to show cropped version
+                const previewImg = document.getElementById('edit-preview-img');
+                if (previewImg) {
+                    previewImg.src = pendingCropPreviewUrl;
+                }
+
+                // Re-open the edit dialog
+                document.getElementById('edit-dialog').classList.add('active');
+
+                // Show a toast to indicate crop is pending
+                showToast('Crop Applied', 'Click "Save Changes" to save the crop', 'info');
             } else {
                 // Proceed to placement dialog with crop data
                 showPlacementDialog(cropState.file, 'image', aspectRatio, cropState.image.src, cropData);
@@ -11886,6 +11914,58 @@
             document.getElementById('edit-dialog').classList.remove('active');
 
             console.log('Artwork updated with crop data (display-only cropping)');
+        }
+
+        // Apply pending crop to artwork mesh (visual only, no database save)
+        // Called from saveArtworkEdit() when user has pending crop data
+        function applyPendingCropToArtwork(artworkMesh, cropData, aspectRatio) {
+            // Calculate new dimensions based on the new aspect ratio
+            const userData = artworkMesh.userData;
+            const heightFeet = userData.heightFeet || userData.metadata?.heightFeet || 3;
+            const heightMeters = heightFeet * 0.3048;
+            const widthMeters = heightMeters * aspectRatio;
+
+            // Update the frame (children[0]) geometry
+            const frame = artworkMesh.children[0];
+            if (frame && frame.geometry) {
+                frame.geometry.dispose();
+                frame.geometry = new THREE.BoxGeometry(widthMeters + 0.1, heightMeters + 0.1, 0.05);
+            }
+
+            // Find the painted surface in the artwork mesh and update UV coordinates for cropping
+            artworkMesh.traverse((child) => {
+                if (child.isMesh && child.material && child.material.map) {
+                    // Update the plane geometry
+                    if (child.geometry) {
+                        child.geometry.dispose();
+                        child.geometry = new THREE.PlaneGeometry(widthMeters, heightMeters);
+                    }
+
+                    // Apply crop via UV mapping
+                    const uvAttribute = child.geometry.attributes.uv;
+                    const uvArray = uvAttribute.array;
+
+                    const u0 = cropData.x;
+                    const u1 = cropData.x + cropData.width;
+                    const v0 = 1 - (cropData.y + cropData.height);
+                    const v1 = 1 - cropData.y;
+
+                    uvArray[0] = u0; uvArray[1] = v1;
+                    uvArray[2] = u1; uvArray[3] = v1;
+                    uvArray[4] = u0; uvArray[5] = v0;
+                    uvArray[6] = u1; uvArray[7] = v0;
+
+                    uvAttribute.needsUpdate = true;
+                    child.material.needsUpdate = true;
+                }
+            });
+
+            // Update stored data
+            artworkMesh.userData.aspectRatio = aspectRatio;
+            artworkMesh.userData.cropData = cropData;
+            artworkMesh.userData.width = widthMeters;
+
+            console.log('Pending crop applied to artwork mesh');
         }
         // =========================================
         // END CROP FUNCTIONALITY
@@ -13013,7 +13093,8 @@
                 heightFeet,
                 gatewayTo,
                 displayMode,
-                spotId: newSpotId
+                spotId: newSpotId,
+                cropData: pendingCropData ? pendingCropData.cropData : null
             });
 
             // Skip if this is the exact same edit as the last one
@@ -13027,6 +13108,17 @@
             currentEditingArtwork.userData.metadata = newMetadata;
             currentEditingArtwork.userData.gatewayTo = gatewayTo;
             currentEditingArtwork.userData.displayMode = displayMode;
+
+            // Handle pending crop data if any
+            let cropDataToSave = null;
+            let cropAspectRatio = null;
+            if (pendingCropData) {
+                cropDataToSave = pendingCropData.cropData;
+                cropAspectRatio = pendingCropData.aspectRatio;
+
+                // Apply crop visually to the artwork mesh
+                applyPendingCropToArtwork(currentEditingArtwork, cropDataToSave, cropAspectRatio);
+            }
 
             // Handle location change
             let newSpot = null;
@@ -13138,6 +13230,12 @@
                     updateData.currentlyPlaced = true;
                 }
 
+                // Include crop data if applied
+                if (cropDataToSave) {
+                    updateData.cropData = cropDataToSave;
+                    updateData.aspectRatio = cropAspectRatio;
+                }
+
                 updateArtworkEvent(updateData).then(() => {
                     lastArtworkEditHash = editHash;
                     console.log('Artwork edit synced to XANO');
@@ -13156,6 +13254,9 @@
         function cancelEdit() {
             document.getElementById('edit-dialog').classList.remove('active');
             currentEditingArtwork = null;
+            // Clear pending crop data
+            pendingCropData = null;
+            pendingCropPreviewUrl = null;
         }
 
         // Remove artwork from its location (but keep it in catalogue)
