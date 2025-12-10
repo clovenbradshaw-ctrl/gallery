@@ -7504,38 +7504,7 @@
                         wallLength: 20 * 0.3048
                     }
                 ],
-                floors: [
-                    {
-                        id: 'main-gallery:floor-1',
-                        baseId: 'floor-1',
-                        displayName: 'Front Left',
-                        position: { x: -3, y: 0, z: 6 }
-                    },
-                    {
-                        id: 'main-gallery:floor-2',
-                        baseId: 'floor-2',
-                        displayName: 'Front Center',
-                        position: { x: 0, y: 0, z: 6 }
-                    },
-                    {
-                        id: 'main-gallery:floor-3',
-                        baseId: 'floor-3',
-                        displayName: 'Front Right',
-                        position: { x: 3, y: 0, z: 6 }
-                    },
-                    {
-                        id: 'main-gallery:floor-5',
-                        baseId: 'floor-5',
-                        displayName: 'Rear Right',
-                        position: { x: 3, y: 0, z: -6 }
-                    },
-                    {
-                        id: 'main-gallery:floor-center',
-                        baseId: 'floor-center',
-                        displayName: 'Center Stage',
-                        position: { x: 0, y: 0, z: 0 }
-                    }
-                ],
+                floors: [],
                 doors: [
                     {
                         id: 'door-to-contemporary',
@@ -7632,38 +7601,7 @@
                         wallLength: 16 * 0.3048
                     }
                 ],
-                floors: [
-                    {
-                        id: 'contemporary-wing:floor-1',
-                        baseId: 'floor-1',
-                        displayName: 'Atrium Plinth',
-                        position: { x: -4, y: 0, z: -4 }
-                    },
-                    {
-                        id: 'contemporary-wing:floor-2',
-                        baseId: 'floor-2',
-                        displayName: 'Reflective Stage',
-                        position: { x: 0, y: 0, z: -4 }
-                    },
-                    {
-                        id: 'contemporary-wing:floor-3',
-                        baseId: 'floor-3',
-                        displayName: 'Aurora Base',
-                        position: { x: 4, y: 0, z: -4 }
-                    },
-                    {
-                        id: 'contemporary-wing:floor-4',
-                        baseId: 'floor-4',
-                        displayName: 'Sculpture Garden',
-                        position: { x: -4, y: 0, z: 4 }
-                    },
-                    {
-                        id: 'contemporary-wing:floor-5',
-                        baseId: 'floor-5',
-                        displayName: 'Light Pool',
-                        position: { x: 4, y: 0, z: 4 }
-                    }
-                ],
+                floors: [],
                 doors: [
                     {
                         id: 'door-to-main',
@@ -7696,13 +7634,7 @@
                         { guid: 'space_004', legacySpotId: 'right-1', name: 'Right Front Wall', wall: 'right', position: 1 },
                         { guid: 'space_005', legacySpotId: 'right-2', name: 'Right Back Wall', wall: 'right', position: 2 },
                         { guid: 'space_006', legacySpotId: 'left-1', name: 'Left Front Wall', wall: 'left', position: 1 },
-                        { guid: 'space_007', legacySpotId: 'left-2', name: 'Left Back Wall', wall: 'left', position: 2 },
-                        // Floor spots
-                        { guid: 'space_008', legacySpotId: 'floor-1', name: 'Front Left', wall: 'floor', position: 1 },
-                        { guid: 'space_009', legacySpotId: 'floor-2', name: 'Front Center', wall: 'floor', position: 2 },
-                        { guid: 'space_010', legacySpotId: 'floor-3', name: 'Front Right', wall: 'floor', position: 3 },
-                        { guid: 'space_011', legacySpotId: 'floor-5', name: 'Rear Right', wall: 'floor', position: 5 },
-                        { guid: 'space_012', legacySpotId: 'floor-center', name: 'Center Stage', wall: 'floor', position: 4 }
+                        { guid: 'space_007', legacySpotId: 'left-2', name: 'Left Back Wall', wall: 'left', position: 2 }
                     ]
                 },
                 {
@@ -7718,13 +7650,7 @@
                         { guid: 'space_016', legacySpotId: 'west-1', name: 'Chromatic Stack', wall: 'left', position: 1 },
                         { guid: 'space_017', legacySpotId: 'west-2', name: 'Cascade Wall', wall: 'left', position: 2 },
                         { guid: 'space_018', legacySpotId: 'east-1', name: 'Spectrum Drift', wall: 'right', position: 1 },
-                        { guid: 'space_019', legacySpotId: 'east-2', name: 'Neon Strata', wall: 'right', position: 2 },
-                        // Floor spots
-                        { guid: 'space_020', legacySpotId: 'floor-1', name: 'Atrium Plinth', wall: 'floor', position: 1 },
-                        { guid: 'space_021', legacySpotId: 'floor-2', name: 'Reflective Stage', wall: 'floor', position: 2 },
-                        { guid: 'space_022', legacySpotId: 'floor-3', name: 'Aurora Base', wall: 'floor', position: 3 },
-                        { guid: 'space_023', legacySpotId: 'floor-4', name: 'Sculpture Garden', wall: 'floor', position: 4 },
-                        { guid: 'space_024', legacySpotId: 'floor-5', name: 'Light Pool', wall: 'floor', position: 5 }
+                        { guid: 'space_019', legacySpotId: 'east-2', name: 'Neon Strata', wall: 'right', position: 2 }
                     ]
                 }
             ]
@@ -7972,7 +7898,6 @@
         let vrSession = null;
         let artQueue = [];
         let wallSpots = [];
-        let floorSpots = [];
         let currentPendingArt = null;
         let viewMode = 'normal';
         let placards = [];
@@ -8968,10 +8893,9 @@
                     roomGroup.visible = true;
                 }
 
-                const spots = this.roomSpots.get(roomId) || { wallSpots: [], floorSpots: [] };
+                const spots = this.roomSpots.get(roomId) || { wallSpots: [] };
                 wallSpots = spots.wallSpots;
-                floorSpots = spots.floorSpots;
-                console.log('[loadRoom] Spots loaded - Walls:', wallSpots.length, wallSpots.map(s => s.userData.id), 'Floors:', floorSpots.length, floorSpots.map(s => s.userData.id));
+                console.log('[loadRoom] Spots loaded - Walls:', wallSpots.length, wallSpots.map(s => s.userData.id));
 
                 this.activeDoors = this.doorMeshes.get(roomId) || [];
                 this.currentRoom = roomId;
@@ -9105,7 +9029,6 @@
 
             createRoomSpots(roomGroup, roomConfig) {
                 const wallSpotsForRoom = [];
-                const floorSpotsForRoom = [];
 
                 roomConfig.walls.forEach(spot => {
                     const spotMesh = new THREE.Mesh(
@@ -9132,39 +9055,12 @@
                     roomGroup.add(spotMesh);
                 });
 
-                // Create floor spots
-                if (roomConfig.floors && roomConfig.floors.length > 0) {
-                    roomConfig.floors.forEach(spot => {
-                        const spotMesh = new THREE.Mesh(
-                            new THREE.CylinderGeometry(0.8, 0.8, 0.05, 16),
-                            new THREE.MeshStandardMaterial({
-                                color: 0x667eea,
-                                emissive: 0x667eea,
-                                emissiveIntensity: 0.2,
-                                transparent: true,
-                                opacity: 0.3
-                            })
-                        );
-                        spotMesh.position.set(spot.position.x, 0.03, spot.position.z);
-                        spotMesh.name = 'floor-spot';
-                        spotMesh.visible = false;
-                        spotMesh.userData = {
-                            ...spot,
-                            roomId: roomConfig.id,
-                            occupied: false
-                        };
-                        floorSpotsForRoom.push(spotMesh);
-                        roomGroup.add(spotMesh);
-                    });
-                }
-
-                return { wallSpots: wallSpotsForRoom, floorSpots: floorSpotsForRoom };
+                return { wallSpots: wallSpotsForRoom };
             }
 
             createRoomLighting(roomGroup, roomConfig, spots) {
                 const temperature = clampColorTemperature(roomConfig.theme.colorTemperature || DEFAULT_COLOR_TEMPERATURE);
                 const wallLightColor = getMotivatedLightHex(temperature, 0.22);
-                const floorLightColor = getMotivatedLightHex(Math.min(MAX_COLOR_TEMPERATURE, temperature + 200), 0.14);
 
                 const trackMaterial = new THREE.MeshStandardMaterial({
                     color: temperature >= 3800 ? 0x4f6ea8 : 0x4a4a4a,
@@ -9231,19 +9127,6 @@
                     roomGroup.add(spotLight.target);
                     registerGalleryLight(spotLight, 'wall');
                 });
-
-                spots.floorSpots.forEach(spot => {
-                    const spotLight = new THREE.SpotLight(floorLightColor, 0.35);
-                    spotLight.position.set(spot.position.x, 3.5, spot.position.z);
-                    spotLight.target.position.copy(spot.position);
-                    spotLight.angle = Math.PI / 6;
-                    spotLight.penumbra = 0.6;
-                    spotLight.distance = 6;
-                    spotLight.decay = 2;
-                    roomGroup.add(spotLight);
-                    roomGroup.add(spotLight.target);
-                    registerGalleryLight(spotLight, 'floor');
-                });
             }
 
             addRoomDecor(roomGroup, roomConfig) {
@@ -9302,11 +9185,8 @@
                         continue;
                     }
 
-                    // FIX: Check both wall spots AND floor spots (was only checking wallSpots)
+                    // Only wall spots are supported
                     let spot = wallSpots.find(s => s.userData.id === entry.locationId);
-                    if (!spot) {
-                        spot = floorSpots.find(s => s.userData.id === entry.locationId);
-                    }
                     if (!spot) {
                         remaining.push(entry);
                         continue;
@@ -9339,20 +9219,15 @@
                 });
 
                 if (entry.roomId === this.currentRoom) {
-                    // FIX: Check both wall spots AND floor spots (was only checking wallSpots)
+                    // Only wall spots are supported
                     let spot = wallSpots.find(s => s.userData.id === entry.locationId);
-                    let spotType = 'wall';
-                    if (!spot) {
-                        spot = floorSpots.find(s => s.userData.id === entry.locationId);
-                        spotType = 'floor';
-                    }
                     if (spot) {
-                        console.log(`[addArtwork] Found ${spotType} spot, loading immediately:`, entry.locationId);
+                        console.log('[addArtwork] Found wall spot, loading immediately:', entry.locationId);
                         await loadImageFromURL(entry.url, entry.locationId, entry.heightMeters, entry.metadata, artworkId, entry);
                         this.loadedArtworkIds.add(artworkId);
                         return;
                     } else {
-                        console.warn('[addArtwork] Spot not found for locationId:', entry.locationId, 'Available walls:', wallSpots.map(s => s.userData.id), 'floors:', floorSpots.map(s => s.userData.id));
+                        console.warn('[addArtwork] Spot not found for locationId:', entry.locationId, 'Available walls:', wallSpots.map(s => s.userData.id));
                     }
                 } else {
                     console.log('[addArtwork] Artwork is for different room:', entry.roomId, 'current:', this.currentRoom);
@@ -9896,18 +9771,11 @@
         const loadArtworksFromAirtable = loadArtworksFromEvents;
         
         async function loadImageFromURL(url, locationId, height, metadata, artworkId, artworkData = null) {
-            // Check for wall spot first
+            // Only wall spots are supported
             let spot = wallSpots.find(s => s.userData.id === locationId);
-            let isFloorPlacement = false;
-
-            // If not found in wall spots, check floor spots
-            if (!spot) {
-                spot = floorSpots.find(s => s.userData.id === locationId);
-                isFloorPlacement = true;
-            }
 
             if (!spot) {
-                console.warn(`[loadImageFromURL] Spot not found for locationId: "${locationId}". Available wall spots:`, wallSpots.map(s => s.userData.id), 'Floor spots:', floorSpots.map(s => s.userData.id));
+                console.warn(`[loadImageFromURL] Spot not found for locationId: "${locationId}". Available wall spots:`, wallSpots.map(s => s.userData.id));
                 return;
             }
             if (spot.userData.occupied) {
@@ -9940,13 +9808,8 @@
                         try {
                             const scaledHeight = height * ARTWORK_SCALE_FACTOR;
                             const scaledWidth = scaledHeight * aspectRatio;
-                            if (isFloorPlacement) {
-                                createFloorArtworkMesh(texture, metadata.title || 'Untitled', spot,
-                                    { width: scaledWidth, height: scaledHeight }, metadata, url, artworkId, artworkData);
-                            } else {
-                                createArtworkMesh(texture, metadata.title || 'Untitled', spot,
-                                    { width: scaledWidth, height: scaledHeight }, metadata, url, artworkId, artworkData);
-                            }
+                            createArtworkMesh(texture, metadata.title || 'Untitled', spot,
+                                { width: scaledWidth, height: scaledHeight }, metadata, url, artworkId, artworkData);
                         } catch (placementError) {
                             console.error('Failed to place artwork from URL:', placementError);
                         } finally {
@@ -9968,89 +9831,6 @@
             });
         }
 
-        // Create artwork on floor with easel
-        function createFloorArtworkMesh(texture, name, spot, size, metadata, imageUrl, artworkId, artworkData) {
-            const parentGroup = spot.parent || scene;
-            const { width, height } = size;
-
-            // Create easel group
-            const easelGroup = new THREE.Group();
-            easelGroup.name = 'floor-artwork';
-
-            // Create easel legs
-            const legMaterial = new THREE.MeshStandardMaterial({ color: 0x4a3728, roughness: 0.8, metalness: 0.1 });
-            const legGeometry = new THREE.CylinderGeometry(0.02, 0.02, 1.5, 8);
-
-            // Front legs
-            const leftLeg = new THREE.Mesh(legGeometry, legMaterial);
-            leftLeg.position.set(-0.15, 0.75, 0.1);
-            leftLeg.rotation.x = -Math.PI * 0.1;
-            easelGroup.add(leftLeg);
-
-            const rightLeg = new THREE.Mesh(legGeometry, legMaterial);
-            rightLeg.position.set(0.15, 0.75, 0.1);
-            rightLeg.rotation.x = -Math.PI * 0.1;
-            easelGroup.add(rightLeg);
-
-            // Back leg
-            const backLeg = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 1.4, 8), legMaterial);
-            backLeg.position.set(0, 0.7, -0.25);
-            backLeg.rotation.x = Math.PI * 0.15;
-            easelGroup.add(backLeg);
-
-            // Crossbar
-            const crossbar = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.03, 0.03), legMaterial);
-            crossbar.position.set(0, 1.0, 0.05);
-            easelGroup.add(crossbar);
-
-            // Create artwork canvas/frame
-            const canvasGeometry = new THREE.PlaneGeometry(width * 0.8, height * 0.8);
-            const canvasMaterial = new THREE.MeshStandardMaterial({
-                map: texture,
-                side: THREE.FrontSide,
-                roughness: 0.3
-            });
-            const canvas = new THREE.Mesh(canvasGeometry, canvasMaterial);
-            canvas.position.set(0, 1.2, 0.08);
-            canvas.rotation.x = -Math.PI * 0.08; // Slight tilt back
-            canvas.castShadow = true;
-            easelGroup.add(canvas);
-
-            // Set easel position at floor spot
-            easelGroup.position.copy(spot.position);
-            easelGroup.position.y = 0;
-
-            // Store metadata
-            easelGroup.userData = {
-                name: name,
-                spotId: spot.userData.id,
-                artworkId: artworkId,
-                metadata: metadata,
-                imageUrl: imageUrl,
-                isFloorArtwork: true,
-                gatewayTo: artworkData?.gatewayTo,
-                displayMode: artworkData?.displayMode,
-                images: artworkData?.images,
-                currentImageIndex: artworkData?.currentImageIndex || 0
-            };
-
-            artworks.push(easelGroup);
-            parentGroup.add(easelGroup);
-
-            // Create placard for floor artwork
-            const placard = createPlacard(metadata, spot.position, 0, true, width * 0.8, height * 0.8, parentGroup);
-            if (placard) {
-                easelGroup.userData.placardIndex = placards.indexOf(placard);
-            }
-
-            // Mark spot as occupied
-            spot.userData.occupied = true;
-            spot.material.color.setHex(0xff6b6b);
-            spot.material.emissive.setHex(0xff6b6b);
-
-            updateSpotCounters();
-        }
-        
         function generateArtworkId(title) {
             const base = (title || 'artwork').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
             const slug = base || 'artwork';
@@ -10435,59 +10215,41 @@
             }
         }
 
-        function createPedestal(position, type, parent = scene) {
-            const pedestalGeometry = type === 'large' ?
-                new THREE.CylinderGeometry(1, 1, 0.8, 32) :
-                new THREE.CylinderGeometry(0.6, 0.6, 0.8, 32);
-
-            const pedestal = new THREE.Mesh(
-                pedestalGeometry,
-                new THREE.MeshStandardMaterial({ color: 0xe0e0e0, roughness: 0.3, metalness: 0.2 })
-            );
-            pedestal.position.copy(position);
-            pedestal.position.y = 0.4;
-            pedestal.castShadow = true;
-            pedestal.receiveShadow = true;
-            (parent || scene).add(pedestal);
-
-            return pedestal;
-        }
-
-        function createPlacard(metadata, position, rotation, isFloor = false, artworkWidth = 0, artworkHeight = 0, parent = scene) {
+        function createPlacard(metadata, position, rotation, artworkWidth = 0, artworkHeight = 0, parent = scene) {
             if (!metadata.title && !metadata.artist && !metadata.description) {
                 return null;
             }
-            
+
             const placardGroup = new THREE.Group();
-            
+
             const placardGeometry = new THREE.BoxGeometry(0.4, 0.25, 0.02);
             const placardMaterial = new THREE.MeshStandardMaterial({ color: 0xf0f0f0, roughness: 0.8, metalness: 0.1 });
             const placard = new THREE.Mesh(placardGeometry, placardMaterial);
             placardGroup.add(placard);
-            
+
             const canvas = document.createElement('canvas');
             canvas.width = 256;
             canvas.height = 160;
             const context = canvas.getContext('2d');
-            
+
             context.fillStyle = '#f0f0f0';
             context.fillRect(0, 0, canvas.width, canvas.height);
-            
+
             context.fillStyle = '#2a2a2a';
             context.font = 'bold 20px Arial';
             context.fillText(metadata.title || '', 10, 30);
-            
+
             if (metadata.artist) {
                 context.font = '16px Arial';
                 context.fillText(metadata.artist, 10, 55);
             }
-            
+
             if (metadata.description) {
                 context.font = '12px Arial';
                 const words = metadata.description.split(' ');
                 let line = '';
                 let y = 85;
-                
+
                 for (let word of words) {
                     const testLine = line + word + ' ';
                     const metrics = context.measureText(testLine);
@@ -10502,35 +10264,31 @@
                 }
                 if (y <= 150) context.fillText(line, 10, y);
             }
-            
+
             const textTexture = new THREE.CanvasTexture(canvas);
             const textMaterial = new THREE.MeshBasicMaterial({ map: textTexture });
             const textMesh = new THREE.Mesh(new THREE.PlaneGeometry(0.38, 0.23), textMaterial);
             textMesh.position.z = 0.011;
             placardGroup.add(textMesh);
-            
+
             placardGroup.position.copy(position);
             placardGroup.rotation.y = rotation;
 
-            if (isFloor) {
-                placardGroup.position.y = 0.9;
-            } else {
-                // Position placard to the right side of the artwork (like real galleries)
-                const placardWidth = 0.4;
-                const safeGap = 0.15; // Gap between artwork edge and placard
+            // Position placard to the right side of the artwork (like real galleries)
+            const placardWidth = 0.4;
+            const safeGap = 0.15; // Gap between artwork edge and placard
 
-                // Horizontal offset: place placard to the right of artwork with safe gap
-                const horizontalOffset = (artworkWidth / 2) + (placardWidth / 2) + safeGap;
+            // Horizontal offset: place placard to the right of artwork with safe gap
+            const horizontalOffset = (artworkWidth / 2) + (placardWidth / 2) + safeGap;
 
-                // Vertical offset: align placard center with artwork center
-                // This keeps it at a comfortable reading height relative to the art
-                const verticalOffset = 0;
+            // Vertical offset: align placard center with artwork center
+            // This keeps it at a comfortable reading height relative to the art
+            const verticalOffset = 0;
 
-                const offset = new THREE.Vector3(horizontalOffset, verticalOffset, 0.05);
-                offset.applyEuler(new THREE.Euler(0, rotation, 0));
-                placardGroup.position.add(offset);
-            }
-            
+            const offset = new THREE.Vector3(horizontalOffset, verticalOffset, 0.05);
+            offset.applyEuler(new THREE.Euler(0, rotation, 0));
+            placardGroup.position.add(offset);
+
             placards.push(placardGroup);
             (parent || scene).add(placardGroup);
 
@@ -11796,14 +11554,8 @@
                 };
                 const fileName = title; // Use title as filename
                 loadImageArtwork(artData, selectedLocation, heightMeters, metadata, heightFeet, fileName);
-            } else if (currentPendingArt.type === '3d') {
-                if (!currentPendingArt.file) {
-                    console.warn('No 3D file available for placement');
-                } else {
-                    load3DModel(currentPendingArt.file, selectedLocation, heightMeters, metadata);
-                }
             } else {
-                console.warn('Unsupported artwork type:', currentPendingArt.type);
+                console.warn('Unsupported artwork type (only wall art is supported):', currentPendingArt.type);
             }
 
             document.getElementById('placement-dialog').classList.remove('active');
@@ -12068,7 +11820,7 @@
             artworks.push(artworkGroup);
             parentGroup.add(artworkGroup);
 
-            const placard = createPlacard(metadata, spot.position, spot.userData.rotation, false, width, height, parentGroup);
+            const placard = createPlacard(metadata, spot.position, spot.userData.rotation, width, height, parentGroup);
             if (placard) {
                 artworkGroup.userData.placardIndex = placards.indexOf(placard);
             }
@@ -12077,103 +11829,6 @@
             spot.userData.currentWidth = width;
             spot.material.color.setHex(0xff6b6b);
             spot.material.emissive.setHex(0xff6b6b);
-            
-            updateSpotCounters();
-        }
-        
-        function load3DModel(file, locationId, size, metadata) {
-            const reader = new FileReader();
-            const extension = file.name.split('.').pop().toLowerCase();
-            
-            reader.onload = (e) => {
-                const floorSpot = floorSpots.find(s => s.userData.id === locationId);
-                if (!floorSpot || floorSpot.userData.occupied) return;
-                
-                const arrayBuffer = e.target.result;
-                let loader;
-                
-                switch(extension) {
-                    case 'obj':
-                        loader = new THREE.OBJLoader();
-                        const contents = new TextDecoder().decode(arrayBuffer);
-                        const object = loader.parse(contents);
-                        process3DModel(object, file.name, floorSpot, size, metadata);
-                        break;
-                    case 'gltf':
-                    case 'glb':
-                        loader = new THREE.GLTFLoader();
-                        loader.parse(arrayBuffer, '', (gltf) => {
-                            process3DModel(gltf.scene, file.name, floorSpot, size, metadata);
-                        });
-                        break;
-                    case 'fbx':
-                        loader = new THREE.FBXLoader();
-                        const fbxObject = loader.parse(arrayBuffer);
-                        process3DModel(fbxObject, file.name, floorSpot, size, metadata);
-                        break;
-                    case 'stl':
-                        loader = new THREE.STLLoader();
-                        const geometry = loader.parse(arrayBuffer);
-                        const material = new THREE.MeshStandardMaterial({ color: 0x888888, roughness: 0.5, metalness: 0.3 });
-                        const mesh = new THREE.Mesh(geometry, material);
-                        process3DModel(mesh, file.name, floorSpot, size, metadata);
-                        break;
-                }
-                
-                updateArtQueue(file.name, null, 'Placed as 3D sculpture');
-            };
-            
-            reader.readAsArrayBuffer(file);
-        }
-        
-        function process3DModel(object, name, spot, size, metadata) {
-            const parentGroup = spot.parent || scene;
-            const pedestal = createPedestal(spot.position, spot.userData.type, parentGroup);
-            spot.userData.pedestal = pedestal;
-            
-            const box = new THREE.Box3().setFromObject(object);
-            const boxSize = box.getSize(new THREE.Vector3());
-            const center = box.getCenter(new THREE.Vector3());
-            
-            const maxDimension = Math.max(boxSize.x, boxSize.y, boxSize.z);
-            const scale = size / maxDimension;
-            object.scale.multiplyScalar(scale);
-            
-            object.position.sub(center.multiplyScalar(scale));
-            
-            const modelGroup = new THREE.Group();
-            modelGroup.add(object);
-            modelGroup.name = '3d-model';
-            modelGroup.userData = { 
-                name: name, 
-                spotId: spot.userData.id,
-                metadata: metadata
-            };
-            
-            modelGroup.position.copy(spot.position);
-            modelGroup.position.y = 0.85;
-            
-            artworks.push(modelGroup);
-            parentGroup.add(modelGroup);
-
-            const placard = createPlacard(metadata, spot.position, 0, true, 0, 0, parentGroup);
-            if (placard) {
-                modelGroup.userData.placardIndex = placards.indexOf(placard);
-            }
-            
-            spot.userData.occupied = true;
-            spot.material.color.setHex(0xff6b6b);
-            spot.material.emissive.setHex(0xff6b6b);
-            
-            object.traverse((child) => {
-                if (child instanceof THREE.Mesh) {
-                    child.castShadow = true;
-                    child.receiveShadow = true;
-                    if (!child.material) {
-                        child.material = new THREE.MeshStandardMaterial({ color: 0x888888, roughness: 0.5, metalness: 0.3 });
-                    }
-                }
-            });
             
             updateSpotCounters();
         }
@@ -12360,27 +12015,12 @@
                     }
                     
                     const wallSpot = wallSpots.find(s => s.userData.id === artworkGroup.userData.spotId);
-                    const floorSpot = floorSpots.find(s => s.userData.id === artworkGroup.userData.spotId);
-                    
+
                     if (wallSpot) {
                         wallSpot.userData.occupied = false;
                         wallSpot.userData.currentWidth = 0;
                         wallSpot.material.color.setHex(0x667eea);
                         wallSpot.material.emissive.setHex(0x667eea);
-                    }
-                    
-                    if (floorSpot) {
-                        floorSpot.userData.occupied = false;
-                        floorSpot.material.color.setHex(0x667eea);
-                        floorSpot.material.emissive.setHex(0x667eea);
-
-                        if (floorSpot.userData.pedestal) {
-                            const pedestalParent = floorSpot.userData.pedestal.parent;
-                            if (pedestalParent) {
-                                pedestalParent.remove(floorSpot.userData.pedestal);
-                            }
-                            floorSpot.userData.pedestal = null;
-                        }
                     }
 
                     if (artworkGroup.userData.placardIndex !== undefined &&
@@ -12496,7 +12136,7 @@
 
             // Check for wall spot clicks (admin only, spots mode)
             if (isAdmin && viewMode === 'spots') {
-                const visibleSpots = [...wallSpots, ...floorSpots].filter(s => s.visible);
+                const visibleSpots = wallSpots.filter(s => s.visible);
                 const spotIntersects = raycaster.intersectObjects(visibleSpots, false);
 
                 if (spotIntersects.length > 0) {
@@ -12629,7 +12269,7 @@
             artworks.push(gridGroup);
             parentGroup.add(gridGroup);
 
-            const placard = createPlacard(metadata, spot.position, spot.userData.rotation, false, gridWidth, gridHeight, parentGroup);
+            const placard = createPlacard(metadata, spot.position, spot.userData.rotation, gridWidth, gridHeight, parentGroup);
             if (placard) {
                 gridGroup.userData.placardIndex = placards.indexOf(placard);
             }
@@ -12828,7 +12468,7 @@
                 if (spot) {
                     const artworkWidth = currentEditingArtwork.userData.width;
                     const artworkHeight = currentEditingArtwork.children[1].geometry.parameters.height;
-                    const newPlacard = createPlacard(newMetadata, spot.position, spot.userData.rotation, false, artworkWidth, artworkHeight, spot.parent || scene);
+                    const newPlacard = createPlacard(newMetadata, spot.position, spot.userData.rotation, artworkWidth, artworkHeight, spot.parent || scene);
                     if (newPlacard) {
                         placards[currentEditingArtwork.userData.placardIndex] = newPlacard;
                     }
