@@ -4358,10 +4358,13 @@
 
         <!-- Admin Section -->
         <div id="admin-section" style="display: none;">
-            <!-- Wall Spots Badge -->
-            <div class="wall-spots-badge">
-                <span>Wall Spots:</span>
-                <span id="wall-spots" class="count spot-available">0/12</span>
+            <!-- Admin Header with Logout -->
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <div class="wall-spots-badge" style="margin-bottom: 0;">
+                    <span>Wall Spots:</span>
+                    <span id="wall-spots" class="count spot-available">0/12</span>
+                </div>
+                <button onclick="adminLogout()" style="background: none; border: none; color: #888; cursor: pointer; font-size: 12px; padding: 5px 10px;" onmouseover="this.style.color='#ff6b6b'" onmouseout="this.style.color='#888'">Logout</button>
             </div>
 
             <!-- Primary Actions -->
@@ -5157,6 +5160,7 @@
         let escapeCount = 0;
         let escapeTimer = null;
         const ADMIN_PASSWORD = 'password';
+        const ADMIN_STATE_KEY = 'vr-gallery:admin-state';
 
         const DEFAULT_EYE_LEVEL_METERS = 1.47; // 58 inches for comfortable viewing
         const ARTWORK_SCALE_FACTOR = 2;
@@ -9529,9 +9533,10 @@
         function checkAdminPassword() {
             const password = document.getElementById('admin-password').value;
             const errorDiv = document.getElementById('auth-error');
-            
+
             if (password === ADMIN_PASSWORD) {
                 isAdmin = true;
+                localStorage.setItem(ADMIN_STATE_KEY, 'true');
                 closeAdminAuth();
                 showAdminView();
                 errorDiv.textContent = '';
@@ -9549,12 +9554,28 @@
             console.log('=== ADMIN MODE ACTIVATED ===');
             isAdmin = true;
             console.log('isAdmin set to:', isAdmin);
-            
+
             document.getElementById('admin-section').style.display = 'block';
             document.getElementById('public-section').style.display = 'none';
             loadArtworksFromAirtable();
         }
-        
+
+        function restoreAdminState() {
+            const savedState = localStorage.getItem(ADMIN_STATE_KEY);
+            if (savedState === 'true') {
+                console.log('Restoring admin state from localStorage');
+                showAdminView();
+            }
+        }
+
+        function adminLogout() {
+            isAdmin = false;
+            localStorage.removeItem(ADMIN_STATE_KEY);
+            document.getElementById('admin-section').style.display = 'none';
+            document.getElementById('public-section').style.display = 'block';
+            console.log('Admin logged out');
+        }
+
         // Helper function to normalize locationId to always include room prefix
         function normalizeLocationId(locationId, roomId, fallbackRoomId = 'main-gallery') {
             if (!locationId) return null;
@@ -13981,6 +14002,7 @@
         window.addEventListener('load', () => {
             initCalled = true;
             init();
+            restoreAdminState();
         });
 
         // Fallback: If init hasn't been called after 10 seconds, show error
