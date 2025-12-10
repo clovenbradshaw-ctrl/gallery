@@ -8049,14 +8049,15 @@
                     }
                 });
 
-                // Third: Add default galleries for any slots not yet used
-                const defaultGalleries = getDefaultGalleries();
-                defaultGalleries.forEach(defaultGallery => {
-                    if (!usedIds.has(defaultGallery.id)) {
+                // Third: Only add default galleries as fallback if NO galleries came from API
+                // This prevents the 8 default galleries from being added alongside API galleries
+                if (mergedGalleries.length === 0) {
+                    const defaultGalleries = getDefaultGalleries();
+                    defaultGalleries.forEach(defaultGallery => {
                         mergedGalleries.push(defaultGallery);
                         usedIds.add(defaultGallery.id);
-                    }
-                });
+                    });
+                }
 
                 // Update the global galleries array if we have any galleries
                 if (mergedGalleries.length > 0) {
