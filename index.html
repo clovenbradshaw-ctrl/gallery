@@ -9323,10 +9323,15 @@
             }
 
             centerCameraInRoom(roomConfig) {
-                // Position camera near the front of the room
-                const startZ = roomConfig.position.z + roomConfig.dimensions.depth / 2 - 2;
+                // Add subtle random variation to camera position for each transition
+                // This gives the feeling that things have changed when entering a room
+                const positionVariation = (Math.random() - 0.5) * 1.5; // -0.75 to +0.75 meters sideways
+                const depthVariation = (Math.random() - 0.5) * 0.8; // -0.4 to +0.4 meters depth
+
+                // Position camera near the front of the room with slight variation
+                const startZ = roomConfig.position.z + roomConfig.dimensions.depth / 2 - 2 + depthVariation;
                 camera.position.set(
-                    roomConfig.position.x,
+                    roomConfig.position.x + positionVariation,
                     DEFAULT_EYE_LEVEL_METERS,
                     startZ
                 );
@@ -9342,9 +9347,12 @@
                     roomCenter.z - camera.position.z
                 );
 
-                // Set camera rotation to face the room center
+                // Add subtle rotation offset (3-8 degrees in either direction)
+                const rotationVariation = (Math.random() - 0.5) * 0.14; // ~4 degrees in radians
+
+                // Set camera rotation to face the room center with slight variation
                 camera.rotation.set(0, 0, 0);
-                camera.rotation.y = Math.atan2(-directionToCenter.x, -directionToCenter.y);
+                camera.rotation.y = Math.atan2(-directionToCenter.x, -directionToCenter.y) + rotationVariation;
             }
 
             createRoomGroup(roomConfig) {
@@ -9733,6 +9741,23 @@
             }
 
             fadeTransition(callback) {
+                // Cancel any ongoing transition and cleanup
+                if (this.transitionOverlay && this.transitionOverlay.parentElement) {
+                    this.transitionOverlay.parentElement.removeChild(this.transitionOverlay);
+                }
+                if (this.transitionAnimationId) {
+                    cancelAnimationFrame(this.transitionAnimationId);
+                }
+                if (this.transitionTimeoutId) {
+                    clearTimeout(this.transitionTimeoutId);
+                }
+                if (this.overlayRemovalTimeoutId) {
+                    clearTimeout(this.overlayRemovalTimeoutId);
+                }
+
+                // Always restore to full brightness (1) regardless of current state
+                const targetLightFactor = 1;
+
                 // Set transition flag to prevent artwork loads during transition
                 isRoomTransitioning = true;
 
@@ -9750,11 +9775,13 @@
                     pointer-events: none;
                 `;
                 document.body.appendChild(overlay);
+                this.transitionOverlay = overlay;
 
                 // Immersive room light dimming effect - complete blackout
                 const dimDuration = 700; // ms - longer for more cinematic effect
                 const dimStartTime = performance.now();
-                const initialLightFactor = currentLightFactor;
+                // Capture current factor but ensure we dim from at least some brightness
+                const startingLightFactor = Math.max(currentLightFactor, 0.5);
 
                 const animateDimDown = (timestamp) => {
                     const elapsed = timestamp - dimStartTime;
@@ -9762,20 +9789,20 @@
                     // Smooth cubic ease-out for cinematic dimming
                     const easeProgress = 1 - Math.pow(1 - progress, 3);
                     // Dim to 0% for complete blackout (immersive effect)
-                    const newFactor = initialLightFactor * (1 - easeProgress);
+                    const newFactor = startingLightFactor * (1 - easeProgress);
                     setGalleryLightFactor(newFactor);
 
                     if (progress < 1) {
-                        requestAnimationFrame(animateDimDown);
+                        this.transitionAnimationId = requestAnimationFrame(animateDimDown);
                     }
                 };
 
                 requestAnimationFrame(() => {
                     overlay.style.opacity = '1';
-                    requestAnimationFrame(animateDimDown);
+                    this.transitionAnimationId = requestAnimationFrame(animateDimDown);
                 });
 
-                setTimeout(async () => {
+                this.transitionTimeoutId = setTimeout(async () => {
                     // Ensure lights are completely off before room change
                     setGalleryLightFactor(0);
 
@@ -9784,7 +9811,7 @@
                     // Brief pause in darkness for immersive effect
                     await new Promise(resolve => setTimeout(resolve, 150));
 
-                    // Animate lights brightening back up
+                    // Animate lights brightening back up to full brightness
                     const brightenDuration = 800; // ms - slightly longer for dramatic reveal
                     const brightenStartTime = performance.now();
                     const animateBrightenUp = (timestamp) => {
@@ -9792,26 +9819,29 @@
                         const progress = Math.min(elapsed / brightenDuration, 1);
                         // Smooth cubic ease-in for gradual reveal
                         const easeProgress = progress * progress * progress;
-                        const newFactor = easeProgress * initialLightFactor;
+                        const newFactor = easeProgress * targetLightFactor;
                         setGalleryLightFactor(newFactor);
 
                         if (progress < 1) {
-                            requestAnimationFrame(animateBrightenUp);
+                            this.transitionAnimationId = requestAnimationFrame(animateBrightenUp);
                         } else {
-                            // Ensure we end at exactly the initial factor
-                            setGalleryLightFactor(initialLightFactor);
+                            // Ensure we end at exactly full brightness
+                            setGalleryLightFactor(targetLightFactor);
                             // Clear transition flag after lights are fully restored
                             isRoomTransitioning = false;
+                            this.transitionAnimationId = null;
                         }
                     };
 
                     overlay.style.opacity = '0';
-                    requestAnimationFrame(animateBrightenUp);
+                    this.transitionAnimationId = requestAnimationFrame(animateBrightenUp);
 
-                    setTimeout(() => {
+                    this.overlayRemovalTimeoutId = setTimeout(() => {
                         if (overlay.parentElement) {
                             overlay.parentElement.removeChild(overlay);
                         }
+                        this.transitionOverlay = null;
+                        this.overlayRemovalTimeoutId = null;
                     }, 850);
                 }, 750);
             }
