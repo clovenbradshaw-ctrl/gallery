@@ -4535,9 +4535,9 @@
         </div>
 
         <div class="section-divider">
-            <label>Room:</label>
+            <label>Gallery:</label>
             <select id="placement-room-filter" onchange="filterPlacementLocations()">
-                <option value="">All Rooms</option>
+                <option value="">All Galleries</option>
             </select>
         </div>
 
@@ -4850,9 +4850,9 @@
                 <div class="space-assignment-content" id="space-assignment-content">
                     <div class="space-selectors">
                         <div class="selector-group">
-                            <label for="viewer-room-selector">Room</label>
+                            <label for="viewer-room-selector">Gallery</label>
                             <select class="space-selector" id="viewer-room-selector" onchange="onViewerRoomChange()">
-                                <option value="">Select a room...</option>
+                                <option value="">Select a gallery...</option>
                             </select>
                         </div>
                         <div class="selector-group">
@@ -4889,7 +4889,7 @@
                     <option value="placed">Placed</option>
                 </select>
                 <select class="catalogue-room-filter" id="catalogue-room-filter" onchange="filterCatalogue()">
-                    <option value="all">All Rooms</option>
+                    <option value="all">All Galleries</option>
                 </select>
                 <div class="catalogue-view-toggle">
                     <button class="view-toggle-btn active" id="card-view-btn" onclick="setCatalogueView('card')" title="Card View">
@@ -4967,7 +4967,7 @@
                     <div id="catalogue-room-picker" style="display: none;">
                         <label>Room</label>
                         <select id="catalogue-room-tag" onchange="onCatalogueRoomTagChange()">
-                            <option value="">No room</option>
+                            <option value="">No gallery</option>
                         </select>
                     </div>
                     <div id="catalogue-location-picker">
@@ -4996,7 +4996,7 @@
             </div>
             <div class="event-history-controls">
                 <select class="event-history-filter" id="event-history-room-filter" onchange="filterEventHistory()">
-                    <option value="all">All Rooms</option>
+                    <option value="all">All Galleries</option>
                 </select>
                 <select class="event-history-filter" id="event-history-type-filter" onchange="filterEventHistory()" style="display: none;">
                     <option value="all">All Types</option>
@@ -6150,7 +6150,7 @@
             const roomFilter = document.getElementById('catalogue-room-filter');
             if (!roomFilter) return;
 
-            let options = '<option value="all">All Rooms</option>';
+            let options = '<option value="all">All Galleries</option>';
             options += '<option value="untagged">Untagged</option>';
 
             Object.values(ROOMS).forEach(room => {
@@ -6264,7 +6264,7 @@
                 const roomName = getRoomNameById(item.roomTag);
                 const roomTagHtml = roomName
                     ? `<span class="room-tag-badge">${roomName}</span>`
-                    : `<span class="room-tag-badge untagged">No room</span>`;
+                    : `<span class="room-tag-badge untagged">No gallery</span>`;
 
                 return `
                     <div class="catalogue-item ${isPlaced ? 'placed' : ''}" onclick="openCatalogueDetail('${item.id}')">
@@ -6334,7 +6334,7 @@
                         <div class="row-price">${priceDisplay}</div>
                         <div class="row-room-tag">
                             <select class="inline-edit-select" onchange="updateCatalogueItem('${item.id}', 'roomTag', this.value)" onclick="event.stopPropagation()">
-                                <option value="">No room</option>
+                                <option value="">No gallery</option>
                                 ${Object.values(ROOMS).map(room =>
                                     `<option value="${room.id}" ${item.roomTag === room.id ? 'selected' : ''}>${room.name}</option>`
                                 ).join('')}
@@ -6400,7 +6400,7 @@
 
             // Populate room tag dropdown
             const roomTagSelect = document.getElementById('catalogue-room-tag');
-            roomTagSelect.innerHTML = '<option value="">No room</option>' +
+            roomTagSelect.innerHTML = '<option value="">No gallery</option>' +
                 Object.values(ROOMS).map(room =>
                     `<option value="${room.id}" ${item.roomTag === room.id ? 'selected' : ''}>${room.name}</option>`
                 ).join('');
@@ -6551,7 +6551,7 @@
         // Populate room filter options
         function populateEventHistoryFilters() {
             const roomFilter = document.getElementById('event-history-room-filter');
-            roomFilter.innerHTML = '<option value="all">All Rooms</option>';
+            roomFilter.innerHTML = '<option value="all">All Galleries</option>';
 
             Object.values(ROOMS).forEach(room => {
                 const option = document.createElement('option');
@@ -6626,7 +6626,7 @@
             }
 
             listEl.innerHTML = placements.map(placement => {
-                const roomName = ROOM_ID_TO_NAME_MAP[placement.roomId] || placement.roomId || 'Unknown Room';
+                const roomName = ROOM_ID_TO_NAME_MAP[placement.roomId] || placement.roomId || 'Unknown Gallery';
                 const locationName = placement.locationName || LOCATION_ID_TO_NAME_MAP[placement.locationId] || placement.locationId || 'Unknown Location';
 
                 // Format date
@@ -7707,11 +7707,11 @@
         /**
          * Get the room name for a given space GUID
          * @param {string} spaceGuid - The space GUID
-         * @returns {string} The room name or 'Unknown Room'
+         * @returns {string} The gallery name or 'Unknown Gallery'
          */
         function getRoomNameBySpaceId(spaceGuid) {
             const space = findSpaceById(spaceGuid);
-            return space ? space.roomName : 'Unknown Room';
+            return space ? space.roomName : 'Unknown Gallery';
         }
 
         /**
@@ -7784,7 +7784,7 @@
          * @param {string} selectedGuid - Optional GUID to pre-select
          */
         function populateRoomSelector(selectElement, selectedGuid = null) {
-            selectElement.innerHTML = '<option value="">Select a room...</option>';
+            selectElement.innerHTML = '<option value="">Select a gallery...</option>';
             ROOMS_CONFIG.rooms.forEach(room => {
                 const option = document.createElement('option');
                 option.value = room.guid;
@@ -11072,7 +11072,7 @@
             // Populate room filter dropdown, defaulting to current room
             const roomFilter = document.getElementById('placement-room-filter');
             const currentRoomId = roomManager?.currentRoom || '';
-            roomFilter.innerHTML = '<option value="">All Rooms</option>' +
+            roomFilter.innerHTML = '<option value="">All Galleries</option>' +
                 Object.values(ROOMS).map(room =>
                     `<option value="${room.id}"${room.id === currentRoomId ? ' selected' : ''}>${room.name}</option>`
                 ).join('');
