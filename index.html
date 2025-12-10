@@ -3456,6 +3456,105 @@
             box-shadow: 0 6px 20px rgba(74, 222, 128, 0.4);
         }
 
+        /* Gallery Order Controls */
+        .gallery-order-section {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .gallery-order-title {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 0.9em;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .gallery-order-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .gallery-order-item {
+            display: flex;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 10px 12px;
+            transition: all 0.2s;
+        }
+
+        .gallery-order-item:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .gallery-order-item.current {
+            border-color: rgba(74, 222, 128, 0.5);
+            background: rgba(74, 222, 128, 0.1);
+        }
+
+        .gallery-order-number {
+            min-width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(102, 126, 234, 0.2);
+            color: #667eea;
+            border-radius: 50%;
+            font-size: 0.8em;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+
+        .gallery-order-name {
+            flex: 1;
+            color: white;
+            font-size: 0.95em;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .gallery-order-buttons {
+            display: flex;
+            gap: 4px;
+            margin-left: 10px;
+        }
+
+        .gallery-order-btn {
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            border-radius: 6px;
+            color: rgba(255, 255, 255, 0.7);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .gallery-order-btn:hover:not(:disabled) {
+            background: rgba(102, 126, 234, 0.3);
+            color: white;
+        }
+
+        .gallery-order-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        .gallery-order-btn svg {
+            width: 14px;
+            height: 14px;
+        }
+
         /* Add Room Dialog */
         #add-room-dialog {
             position: fixed;
@@ -4677,7 +4776,11 @@
                 <span class="legend-item"><span class="legend-dot"></span> Other Galleries</span>
             </div>
             <div id="gallery-map-admin-section" class="gallery-map-admin-section" style="display: none;">
-                <div class="gallery-map-admin-title">Room Management</div>
+                <div class="gallery-order-section" id="gallery-order-section">
+                    <div class="gallery-order-title">Gallery Layout Order</div>
+                    <div class="gallery-order-list" id="gallery-order-list"></div>
+                </div>
+                <div class="gallery-map-admin-title" style="margin-top: 20px;">Room Management</div>
                 <button class="add-room-btn" onclick="openAddRoomDialog()">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
                         <path d="M12 5v14M5 12h14"/>
@@ -8184,7 +8287,8 @@
                     mergedGalleries.push({
                         id: gallery.id,
                         name: gallery.name || `Gallery ${gallery.id}`,
-                        colorTemperature: gallery.colorTemperature || DEFAULT_COLOR_TEMPERATURE
+                        colorTemperature: gallery.colorTemperature || DEFAULT_COLOR_TEMPERATURE,
+                        order: gallery.order !== undefined ? gallery.order : null
                     });
                     usedIds.add(gallery.id);
                 });
@@ -8195,13 +8299,31 @@
                         mergedGalleries.push({
                             id: galleryId,
                             name: `Gallery ${galleryId}`,
-                            colorTemperature: DEFAULT_COLOR_TEMPERATURE
+                            colorTemperature: DEFAULT_COLOR_TEMPERATURE,
+                            order: null
                         });
                         usedIds.add(galleryId);
                     }
                 });
 
                 // No default galleries fallback - only user-defined galleries are shown
+
+                // Sort galleries by order (nulls go to end, then by name)
+                mergedGalleries.sort((a, b) => {
+                    if (a.order !== null && b.order !== null) {
+                        return a.order - b.order;
+                    }
+                    if (a.order !== null) return -1;
+                    if (b.order !== null) return 1;
+                    return (a.name || '').localeCompare(b.name || '');
+                });
+
+                // Assign default order values to any galleries without them
+                mergedGalleries.forEach((gallery, index) => {
+                    if (gallery.order === null) {
+                        gallery.order = index;
+                    }
+                });
 
                 // Update the global galleries array (can be empty if no user galleries exist)
                 galleries = mergedGalleries;
@@ -8282,10 +8404,19 @@
 
             // Create the gallery
             const id = generateGUID();
+
+            // Calculate order as max existing order + 1
+            const maxOrder = galleries.reduce((max, g) => {
+                const order = g.order !== undefined && g.order !== null ? g.order : -1;
+                return Math.max(max, order);
+            }, -1);
+            const order = maxOrder + 1;
+
             const newGallery = {
                 id,
                 name: galleryName.trim(),
-                colorTemperature: DEFAULT_COLOR_TEMPERATURE
+                colorTemperature: DEFAULT_COLOR_TEMPERATURE,
+                order
             };
 
             galleries.push(newGallery);
@@ -8300,7 +8431,8 @@
                     object_id: id,
                     data: {
                         name: galleryName.trim(),
-                        colorTemperature: DEFAULT_COLOR_TEMPERATURE
+                        colorTemperature: DEFAULT_COLOR_TEMPERATURE,
+                        order: order
                     }
                 });
             }
@@ -8371,10 +8503,18 @@
             const id = generateGUID();
             const colorTemperature = getActiveGallery()?.colorTemperature || DEFAULT_COLOR_TEMPERATURE;
 
+            // Calculate order as max existing order + 1
+            const maxOrder = galleries.reduce((max, g) => {
+                const order = g.order !== undefined && g.order !== null ? g.order : -1;
+                return Math.max(max, order);
+            }, -1);
+            const order = maxOrder + 1;
+
             const newGallery = {
                 id,
                 name,
-                colorTemperature
+                colorTemperature,
+                order
             };
 
             galleries.push(newGallery);
@@ -8392,7 +8532,8 @@
                     object_id: id,
                     data: {
                         name: name,
-                        colorTemperature: colorTemperature
+                        colorTemperature: colorTemperature,
+                        order: order
                     }
                 });
             }
@@ -8507,11 +8648,18 @@
             const grid = document.getElementById('gallery-map-grid');
             if (!overlay || !grid) return;
 
+            // Sort galleries by order before displaying
+            const sortedGalleries = [...galleries].sort((a, b) => {
+                const orderA = a.order !== undefined && a.order !== null ? a.order : Infinity;
+                const orderB = b.order !== undefined && b.order !== null ? b.order : Infinity;
+                return orderA - orderB;
+            });
+
             // Populate the gallery grid
             grid.innerHTML = '';
             const activeGallery = getActiveGallery();
 
-            galleries.forEach(gallery => {
+            sortedGalleries.forEach(gallery => {
                 const item = document.createElement('div');
                 item.className = 'gallery-map-item';
                 if (gallery.id === activeGallery?.id) {
@@ -8540,6 +8688,9 @@
             const adminSection = document.getElementById('gallery-map-admin-section');
             if (adminSection) {
                 adminSection.style.display = isAdmin ? 'block' : 'none';
+                if (isAdmin) {
+                    renderGalleryOrderList(sortedGalleries);
+                }
             }
 
             // Close on escape key
@@ -8550,6 +8701,136 @@
                 }
             };
             document.addEventListener('keydown', handleEscape);
+        }
+
+        function renderGalleryOrderList(sortedGalleries) {
+            const orderList = document.getElementById('gallery-order-list');
+            if (!orderList) return;
+
+            orderList.innerHTML = '';
+            const activeGallery = getActiveGallery();
+
+            sortedGalleries.forEach((gallery, index) => {
+                const item = document.createElement('div');
+                item.className = 'gallery-order-item';
+                if (gallery.id === activeGallery?.id) {
+                    item.classList.add('current');
+                }
+
+                const isFirst = index === 0;
+                const isLast = index === sortedGalleries.length - 1;
+
+                item.innerHTML = `
+                    <div class="gallery-order-number">${index + 1}</div>
+                    <div class="gallery-order-name">${escapeHtml(gallery.name)}</div>
+                    <div class="gallery-order-buttons">
+                        <button class="gallery-order-btn" onclick="moveGalleryUp('${gallery.id}')" ${isFirst ? 'disabled' : ''} title="Move up">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M18 15l-6-6-6 6"/>
+                            </svg>
+                        </button>
+                        <button class="gallery-order-btn" onclick="moveGalleryDown('${gallery.id}')" ${isLast ? 'disabled' : ''} title="Move down">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M6 9l6 6 6-6"/>
+                            </svg>
+                        </button>
+                    </div>
+                `;
+
+                orderList.appendChild(item);
+            });
+        }
+
+        async function moveGalleryUp(galleryId) {
+            if (!isAdmin) return;
+
+            // Sort galleries by current order
+            const sortedGalleries = [...galleries].sort((a, b) => {
+                const orderA = a.order !== undefined && a.order !== null ? a.order : Infinity;
+                const orderB = b.order !== undefined && b.order !== null ? b.order : Infinity;
+                return orderA - orderB;
+            });
+
+            const currentIndex = sortedGalleries.findIndex(g => g.id === galleryId);
+            if (currentIndex <= 0) return; // Already at top or not found
+
+            // Swap with the gallery above
+            const galleryToMove = sortedGalleries[currentIndex];
+            const galleryAbove = sortedGalleries[currentIndex - 1];
+
+            // Swap orders
+            const tempOrder = galleryToMove.order;
+            galleryToMove.order = galleryAbove.order;
+            galleryAbove.order = tempOrder;
+
+            // Update the global galleries array
+            const galleryToMoveGlobal = galleries.find(g => g.id === galleryId);
+            const galleryAboveGlobal = galleries.find(g => g.id === galleryAbove.id);
+            if (galleryToMoveGlobal) galleryToMoveGlobal.order = galleryToMove.order;
+            if (galleryAboveGlobal) galleryAboveGlobal.order = galleryAbove.order;
+
+            // Persist both gallery order changes
+            await persistGalleryOrder(galleryToMove.id, galleryToMove.order);
+            await persistGalleryOrder(galleryAbove.id, galleryAbove.order);
+
+            // Refresh the gallery map
+            openGalleryMap();
+            showToast('Gallery order updated', 'success');
+        }
+
+        async function moveGalleryDown(galleryId) {
+            if (!isAdmin) return;
+
+            // Sort galleries by current order
+            const sortedGalleries = [...galleries].sort((a, b) => {
+                const orderA = a.order !== undefined && a.order !== null ? a.order : Infinity;
+                const orderB = b.order !== undefined && b.order !== null ? b.order : Infinity;
+                return orderA - orderB;
+            });
+
+            const currentIndex = sortedGalleries.findIndex(g => g.id === galleryId);
+            if (currentIndex < 0 || currentIndex >= sortedGalleries.length - 1) return; // Already at bottom or not found
+
+            // Swap with the gallery below
+            const galleryToMove = sortedGalleries[currentIndex];
+            const galleryBelow = sortedGalleries[currentIndex + 1];
+
+            // Swap orders
+            const tempOrder = galleryToMove.order;
+            galleryToMove.order = galleryBelow.order;
+            galleryBelow.order = tempOrder;
+
+            // Update the global galleries array
+            const galleryToMoveGlobal = galleries.find(g => g.id === galleryId);
+            const galleryBelowGlobal = galleries.find(g => g.id === galleryBelow.id);
+            if (galleryToMoveGlobal) galleryToMoveGlobal.order = galleryToMove.order;
+            if (galleryBelowGlobal) galleryBelowGlobal.order = galleryBelow.order;
+
+            // Persist both gallery order changes
+            await persistGalleryOrder(galleryToMove.id, galleryToMove.order);
+            await persistGalleryOrder(galleryBelow.id, galleryBelow.order);
+
+            // Refresh the gallery map
+            openGalleryMap();
+            showToast('Gallery order updated', 'success');
+        }
+
+        async function persistGalleryOrder(galleryId, newOrder) {
+            if (!eventStore) return;
+
+            try {
+                await eventStore.postEvent({
+                    verb: 'update',
+                    op: 'gallery_reorder',
+                    object_type: 'gallery',
+                    object_id: galleryId,
+                    data: {
+                        order: newOrder
+                    }
+                });
+            } catch (error) {
+                console.error('Failed to persist gallery order:', error);
+            }
         }
 
         function closeGalleryMap() {
