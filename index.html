@@ -5626,18 +5626,52 @@
                 }
             }
 
+            // Normalize snake_case field names to camelCase for artwork data
+            _normalizeArtworkData(data) {
+                if (!data || typeof data !== 'object') return data;
+
+                const fieldMap = {
+                    'image_url': 'imageUrl',
+                    'gallery_id': 'galleryId',
+                    'location_id': 'locationId',
+                    'location_name': 'locationName',
+                    'room_id': 'roomId',
+                    'space_id': 'spaceId',
+                    'room_guid': 'roomGuid',
+                    'product_url': 'productUrl',
+                    'height_meters': 'heightMeters',
+                    'height_inches': 'heightInches',
+                    'display_mode': 'displayMode',
+                    'gateway_to': 'gatewayTo',
+                    'current_image_index': 'currentImageIndex',
+                    'created_at': 'createdAt',
+                    'updated_at': 'updatedAt'
+                };
+
+                const normalized = { ...data };
+                for (const [snakeCase, camelCase] of Object.entries(fieldMap)) {
+                    if (data[snakeCase] !== undefined && data[camelCase] === undefined) {
+                        normalized[camelCase] = data[snakeCase];
+                    }
+                }
+                return normalized;
+            }
+
             applyArtworkEvent(verb, object_id, data, event) {
+                // Normalize field names from snake_case to camelCase
+                const normalizedData = this._normalizeArtworkData(data);
+
                 switch (verb) {
                     case 'create':
                         this.state.artworks[object_id] = {
                             id: object_id,
-                            ...data,
-                            frame: event.frame || data.frame || 'classic',
-                            scale: event.scale || data.scale || '1',
+                            ...normalizedData,
+                            frame: event.frame || normalizedData.frame || 'classic',
+                            scale: event.scale || normalizedData.scale || '1',
                             placed: true,
                             // Capture spaceId if provided (GUID-based location)
-                            spaceId: data.spaceId || null,
-                            roomGuid: data.roomGuid || null,
+                            spaceId: normalizedData.spaceId || null,
+                            roomGuid: normalizedData.roomGuid || null,
                             created_at: event.created_at || event.published
                         };
                         break;
@@ -5645,12 +5679,12 @@
                         if (this.state.artworks[object_id]) {
                             this.state.artworks[object_id] = {
                                 ...this.state.artworks[object_id],
-                                ...data,
+                                ...normalizedData,
                                 frame: event.frame || this.state.artworks[object_id].frame,
                                 scale: event.scale || this.state.artworks[object_id].scale,
                                 // Update spaceId if provided
-                                spaceId: data.spaceId !== undefined ? data.spaceId : this.state.artworks[object_id].spaceId,
-                                roomGuid: data.roomGuid !== undefined ? data.roomGuid : this.state.artworks[object_id].roomGuid,
+                                spaceId: normalizedData.spaceId !== undefined ? normalizedData.spaceId : this.state.artworks[object_id].spaceId,
+                                roomGuid: normalizedData.roomGuid !== undefined ? normalizedData.roomGuid : this.state.artworks[object_id].roomGuid,
                                 updated_at: event.created_at || event.published
                             };
                         }
@@ -5664,15 +5698,15 @@
                     case 'place':
                         if (this.state.artworks[object_id]) {
                             this.state.artworks[object_id].placed = true;
-                            this.state.artworks[object_id].location = data.location;
-                            this.state.artworks[object_id].locationName = data.locationName;
-                            this.state.artworks[object_id].roomId = data.roomId;
+                            this.state.artworks[object_id].location = normalizedData.location;
+                            this.state.artworks[object_id].locationName = normalizedData.locationName;
+                            this.state.artworks[object_id].roomId = normalizedData.roomId;
                             // Also capture spaceId if provided during place
-                            if (data.spaceId) {
-                                this.state.artworks[object_id].spaceId = data.spaceId;
+                            if (normalizedData.spaceId) {
+                                this.state.artworks[object_id].spaceId = normalizedData.spaceId;
                             }
-                            if (data.roomGuid) {
-                                this.state.artworks[object_id].roomGuid = data.roomGuid;
+                            if (normalizedData.roomGuid) {
+                                this.state.artworks[object_id].roomGuid = normalizedData.roomGuid;
                             }
                         }
                         break;
