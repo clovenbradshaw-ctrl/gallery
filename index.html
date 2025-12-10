@@ -11779,14 +11779,65 @@
             cancelCrop();
         }
 
+        // Resize artwork mesh when height is edited
+        // heightFeet is the unscaled height in feet that the user specified
+        function resizeArtworkMesh(artworkMesh, heightFeet) {
+            const aspectRatio = artworkMesh.userData.aspectRatio ||
+                               (artworkMesh.userData.width / artworkMesh.userData.height) || 1;
+
+            // Calculate scaled dimensions for rendering (apply ARTWORK_SCALE_FACTOR)
+            const heightMeters = heightFeet * 0.3048 * ARTWORK_SCALE_FACTOR;
+            const widthMeters = heightMeters * aspectRatio;
+
+            // Update the frame (children[0]) geometry
+            const frame = artworkMesh.children[0];
+            if (frame && frame.geometry) {
+                frame.geometry.dispose();
+                frame.geometry = new THREE.BoxGeometry(widthMeters + 0.1, heightMeters + 0.1, 0.05);
+            }
+
+            // Update the art plane (children[1]) geometry
+            artworkMesh.traverse((child) => {
+                if (child.isMesh && child.material && child.material.map) {
+                    if (child.geometry) {
+                        // Preserve crop UV data if present
+                        const oldUvArray = child.geometry.attributes.uv ?
+                                          [...child.geometry.attributes.uv.array] : null;
+
+                        child.geometry.dispose();
+                        child.geometry = new THREE.PlaneGeometry(widthMeters, heightMeters);
+
+                        // Restore crop UV data if it existed
+                        if (oldUvArray && artworkMesh.userData.cropData) {
+                            const uvAttribute = child.geometry.attributes.uv;
+                            for (let i = 0; i < oldUvArray.length; i++) {
+                                uvAttribute.array[i] = oldUvArray[i];
+                            }
+                            uvAttribute.needsUpdate = true;
+                        }
+                    }
+                    child.material.needsUpdate = true;
+                }
+            });
+
+            // Update stored dimensions
+            artworkMesh.userData.width = widthMeters;
+            artworkMesh.userData.height = heightMeters;
+            artworkMesh.userData.heightFeet = heightFeet;
+            artworkMesh.userData.aspectRatio = aspectRatio;
+
+            console.log(`Artwork resized: ${heightFeet}ft (${heightFeet * 12} inches) -> ${heightMeters.toFixed(3)}m scaled`);
+        }
+
         function updateArtworkWithCropData(artworkMesh, cropData, aspectRatio) {
             // Get the original image URL (we're not changing the URL, just the crop)
             const imageUrl = artworkMesh.userData.imageUrl;
 
             // Calculate new dimensions based on the new aspect ratio
+            // Apply ARTWORK_SCALE_FACTOR for consistent rendering
             const userData = artworkMesh.userData;
             const heightFeet = userData.heightFeet || userData.metadata?.heightFeet || 3;
-            const heightMeters = heightFeet * 0.3048;
+            const heightMeters = heightFeet * 0.3048 * ARTWORK_SCALE_FACTOR;
             const widthMeters = heightMeters * aspectRatio;
 
             // Update the frame (children[0]) geometry
@@ -11837,6 +11888,7 @@
             artworkMesh.userData.aspectRatio = aspectRatio;
             artworkMesh.userData.cropData = cropData;
             artworkMesh.userData.width = widthMeters;
+            artworkMesh.userData.height = heightMeters;
 
             // Update the event in storage if admin
             if (isAdmin && (artworkMesh.userData.artworkId || artworkMesh.userData.eventId)) {
@@ -11859,9 +11911,10 @@
         // Called from saveArtworkEdit() when user has pending crop data
         function applyPendingCropToArtwork(artworkMesh, cropData, aspectRatio) {
             // Calculate new dimensions based on the new aspect ratio
+            // Apply ARTWORK_SCALE_FACTOR for consistent rendering
             const userData = artworkMesh.userData;
             const heightFeet = userData.heightFeet || userData.metadata?.heightFeet || 3;
-            const heightMeters = heightFeet * 0.3048;
+            const heightMeters = heightFeet * 0.3048 * ARTWORK_SCALE_FACTOR;
             const widthMeters = heightMeters * aspectRatio;
 
             // Update the frame (children[0]) geometry
@@ -11903,6 +11956,7 @@
             artworkMesh.userData.aspectRatio = aspectRatio;
             artworkMesh.userData.cropData = cropData;
             artworkMesh.userData.width = widthMeters;
+            artworkMesh.userData.height = heightMeters;
 
             console.log('Pending crop applied to artwork mesh');
         }
@@ -12359,10 +12413,21 @@
             artworkGroup.add(frame);
             artworkGroup.add(art);
             artworkGroup.name = 'artwork';
+            // Calculate original unscaled heightFeet for edit dialogs
+            // The dimensions passed here are already scaled by ARTWORK_SCALE_FACTOR
+            const unscaledHeightMeters = height / ARTWORK_SCALE_FACTOR;
+            const storedHeightFeet = artworkData?.heightFeet ||
+                                     (artworkData?.heightMeters ? artworkData.heightMeters / 0.3048 : null) ||
+                                     (artworkData?.heightInches ? artworkData.heightInches / 12 : null) ||
+                                     (unscaledHeightMeters / 0.3048);
+
             artworkGroup.userData = {
                 name: name,
                 spotId: spot.userData.id,
                 width: width,
+                height: height,  // Scaled height for rendering
+                heightFeet: storedHeightFeet,  // Original unscaled height in feet for editing
+                aspectRatio: width / height,  // Store aspect ratio
                 metadata: metadata,
                 imageUrl: imageUrl,
                 artworkId: artworkId,  // Event object_id or legacy airtableId
@@ -12951,10 +13016,10 @@
             document.getElementById('edit-price-input').value = artworkGroup.userData.metadata.price || '';
             document.getElementById('edit-currency-input').value = artworkGroup.userData.metadata.currency || 'USD';
 
-            const heightMeters = artworkGroup.userData.width / (artworkGroup.userData.imageUrl ?
-                (artworkGroup.children[1].geometry.parameters.width / artworkGroup.children[1].geometry.parameters.height) : 1);
-            const heightInches = heightMeters / 0.0254;
-            document.getElementById('edit-height-input').value = heightInches.toFixed(0);
+            // Use stored heightFeet (unscaled) to show correct editable value
+            const heightFeet = artworkGroup.userData.heightFeet || 3;  // Default 3 feet = 36 inches
+            const heightInches = heightFeet * 12;
+            document.getElementById('edit-height-input').value = Math.round(heightInches);
 
             const imagePreview = document.getElementById('edit-image-preview');
             if (artworkGroup.userData.imageUrl) {
@@ -13047,6 +13112,15 @@
             currentEditingArtwork.userData.metadata = newMetadata;
             currentEditingArtwork.userData.gatewayTo = gatewayTo;
             currentEditingArtwork.userData.displayMode = displayMode;
+
+            // Check if height has changed and apply visual resize
+            const oldHeightFeet = currentEditingArtwork.userData.heightFeet || 3;
+            const heightChanged = Math.abs(heightFeet - oldHeightFeet) > 0.01;
+
+            if (heightChanged) {
+                // Apply visual resize to the artwork mesh
+                resizeArtworkMesh(currentEditingArtwork, heightFeet);
+            }
 
             // Handle pending crop data if any
             let cropDataToSave = null;
