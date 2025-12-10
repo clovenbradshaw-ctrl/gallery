@@ -4462,16 +4462,25 @@
                 <button class="primary" onclick="setActiveGallery(document.getElementById('gallery-select').value)">Open</button>
             </div>
             <div class="settings-row">
-                <input type="text" id="gallery-name-input" placeholder="Gallery name">
-                <button class="secondary" onclick="renameActiveGallery()">Rename</button>
-            </div>
-            <div class="settings-row">
-                <button class="primary" onclick="generateNewGallery()">New</button>
-            </div>
-            <div class="settings-row">
                 <button class="danger" onclick="deleteActiveGallery()" style="flex: 1;">Delete Gallery</button>
             </div>
             <div class="settings-info">Shareable: ?gallery=&lt;id&gt;</div>
+        </div>
+
+        <div class="settings-section">
+            <h4>Rename Gallery</h4>
+            <div class="settings-row">
+                <input type="text" id="gallery-name-input" placeholder="New name for current gallery">
+                <button class="secondary" onclick="renameActiveGallery()">Rename</button>
+            </div>
+        </div>
+
+        <div class="settings-section">
+            <h4>New Gallery</h4>
+            <div class="settings-row">
+                <input type="text" id="new-gallery-name-input" placeholder="Enter gallery name">
+                <button class="primary" onclick="generateNewGallery()">Create</button>
+            </div>
         </div>
 
         <div class="settings-section">
@@ -8343,7 +8352,7 @@
         }
 
         async function generateNewGallery() {
-            const nameInput = document.getElementById('gallery-name-input');
+            const nameInput = document.getElementById('new-gallery-name-input');
             const name = (nameInput?.value || '').trim() || `Gallery ${galleries.length + 1}`;
             const id = generateGUID();
             const colorTemperature = getActiveGallery()?.colorTemperature || DEFAULT_COLOR_TEMPERATURE;
@@ -8363,6 +8372,9 @@
             };
 
             galleries.push(newGallery);
+
+            // Clear the new gallery input field
+            if (nameInput) nameInput.value = '';
 
             saveGalleryState();
             renderGalleryControls();
