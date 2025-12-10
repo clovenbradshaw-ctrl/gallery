@@ -809,11 +809,11 @@
             bottom: 0;
             left: 0;
             right: 0;
-            background: linear-gradient(to top, rgba(0, 0, 0, 0.95) 0%, rgba(0, 0, 0, 0.85) 100%);
+            background: linear-gradient(to top, rgba(0, 0, 0, 0.98) 0%, rgba(0, 0, 0, 0.92) 100%);
             color: white;
             text-align: left;
-            padding: 24px 32px 32px;
-            backdrop-filter: blur(20px);
+            padding: 28px 36px 36px;
+            backdrop-filter: blur(24px);
             transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease;
             transform: translateY(0);
             opacity: 1;
@@ -829,24 +829,52 @@
         }
 
         #viewer-title {
-            font-size: 1.8em;
-            font-weight: 600;
-            margin-bottom: 8px;
-            line-height: 1.3;
+            font-size: 2.2em;
+            font-weight: 700;
+            margin-bottom: 10px;
+            line-height: 1.25;
             color: #ffffff;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+            letter-spacing: -0.02em;
         }
 
         #viewer-artist {
-            font-size: 1.2em;
-            color: #bbbbbb;
-            margin-bottom: 16px;
-            font-weight: 400;
+            font-size: 1.35em;
+            color: #e0e0e0;
+            margin-bottom: 18px;
+            font-weight: 500;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+        }
+
+        #viewer-price {
+            font-size: 1.5em;
+            color: #ffffff;
+            font-weight: 700;
+            margin-top: 12px;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+        }
+
+        #viewer-product-link {
+            margin-top: 8px;
+        }
+
+        #viewer-product-link a {
+            color: #8b9cf7;
+            font-size: 1.1em;
+            font-weight: 500;
+            text-decoration: none;
+            transition: color 0.2s ease;
+        }
+
+        #viewer-product-link a:hover {
+            color: #a8b5ff;
+            text-decoration: underline;
         }
 
         #viewer-description {
-            font-size: 1em;
+            font-size: 1.05em;
             color: #e0e0e0;
-            line-height: 1.6;
+            line-height: 1.65;
             text-align: left;
         }
         
@@ -4806,8 +4834,8 @@
             <div id="viewer-title"></div>
             <div id="viewer-artist"></div>
             <div id="viewer-description"></div>
-            <div id="viewer-price" style="margin-top: 10px; font-weight: bold;"></div>
-            <div id="viewer-product-link" style="margin-top: 5px;"></div>
+            <div id="viewer-price"></div>
+            <div id="viewer-product-link"></div>
 
             <!-- Space Assignment Section -->
             <div id="viewer-space-assignment">
@@ -12990,7 +13018,7 @@
             }
 
             if (artData.metadata.productUrl) {
-                productLinkEl.innerHTML = `<a href="${artData.metadata.productUrl}" target="_blank" style="color: #667eea; text-decoration: none;">View Product Page →</a>`;
+                productLinkEl.innerHTML = `<a href="${artData.metadata.productUrl}" target="_blank">View Product Page →</a>`;
                 productLinkEl.style.display = 'block';
             } else {
                 productLinkEl.style.display = 'none';
@@ -13054,6 +13082,14 @@
          */
         function updateSpaceAssignmentUI(artData) {
             currentViewerArtwork = artData;
+
+            // Hide space assignment section for non-admin users
+            const spaceAssignmentSection = document.getElementById('viewer-space-assignment');
+            if (!isAdmin) {
+                spaceAssignmentSection.style.display = 'none';
+                return;
+            }
+            spaceAssignmentSection.style.display = 'block';
 
             const locationDisplay = document.getElementById('current-location-display');
             const locationName = document.getElementById('current-location-name');
