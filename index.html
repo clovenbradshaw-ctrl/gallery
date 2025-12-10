@@ -4479,7 +4479,13 @@
         <div id="image-preview" style="display:none; margin-bottom: 15px;">
             <img id="preview-img" style="max-width: 100%; max-height: 150px; border-radius: 6px;">
         </div>
-        
+
+        <div class="section-divider">
+            <label><strong>Image URL:</strong> <span class="optional-label">(required)</span></label>
+            <input type="url" id="placement-image-url-input" placeholder="https://example.com/image.jpg">
+            <p style="font-size: 11px; color: #888; margin-top: 4px;">Enter a direct link to an image hosted online</p>
+        </div>
+
         <div class="section-divider">
             <label><strong>Title:</strong> <span class="optional-label">(required)</span></label>
             <input type="text" id="title-input" placeholder="Enter artwork title">
@@ -4716,8 +4722,8 @@
                         </svg>
                     </div>
                     <div class="place-assign-option-text">
-                        <div class="place-assign-option-title">Upload New Artwork</div>
-                        <div class="place-assign-option-desc">Upload an image to place here</div>
+                        <div class="place-assign-option-title">Add New Artwork</div>
+                        <div class="place-assign-option-desc">Add artwork from a URL to place here</div>
                     </div>
                 </div>
             </div>
@@ -8499,13 +8505,11 @@
             const locationInfo = pendingAssignLocation;
             closePlaceAssignDialog();
 
-            // Trigger file input and pre-select the location
-            const fileInput = document.getElementById('file-input');
-
-            // Store the pending location for use after file selection
+            // Store the pending location for use when placing artwork
             window.pendingUploadLocation = locationInfo;
 
-            fileInput.click();
+            // Open placement dialog for entering URL and metadata
+            showPlacementDialogForNewArtwork(locationInfo);
         }
 
         // ==========================================
@@ -10940,13 +10944,124 @@
 
             dialog.classList.add('active');
 
+            // Populate the URL input field in the dialog
+            document.getElementById('placement-image-url-input').value = imageUrl;
+
             setTimeout(() => {
                 document.getElementById('title-input').focus();
             }, 100);
 
             document.getElementById('image-url-input').value = '';
         }
-        
+
+        function showPlacementDialogForNewArtwork(locationInfo = null) {
+            if (!isAdmin) return;
+
+            const dialog = document.getElementById('placement-dialog');
+            document.getElementById('artwork-name').textContent = 'Add New Artwork';
+
+            // Hide image preview initially
+            const imagePreview = document.getElementById('image-preview');
+            imagePreview.style.display = 'none';
+
+            // Clear all fields
+            currentPendingArt = {
+                imageUrl: '',
+                type: 'image',
+                aspectRatio: 1.5 // Default aspect ratio
+            };
+
+            document.getElementById('placement-image-url-input').value = '';
+            document.getElementById('title-input').value = '';
+            document.getElementById('artist-input').value = '';
+            document.getElementById('description-input').value = '';
+            document.getElementById('product-url-input').value = '';
+            document.getElementById('price-input').value = '';
+            document.getElementById('currency-input').value = 'USD';
+
+            document.getElementById('dimension-label').textContent = 'Height (inches):';
+            document.getElementById('height-input').value = 36;
+
+            setupLocationGrid('image');
+
+            // Pre-select location if provided
+            if (locationInfo) {
+                setTimeout(() => {
+                    const locationButtons = document.querySelectorAll('#location-grid .location-button');
+                    locationButtons.forEach(btn => {
+                        if (btn.dataset.locationId === locationInfo.locationId) {
+                            btn.click();
+                        }
+                    });
+                }, 100);
+            }
+
+            dialog.classList.add('active');
+
+            setTimeout(() => {
+                document.getElementById('placement-image-url-input').focus();
+            }, 100);
+        }
+
+        function loadImageFromPlacementUrl() {
+            const urlInput = document.getElementById('placement-image-url-input');
+            const url = urlInput.value.trim();
+
+            if (!url) {
+                // Hide preview if URL is cleared
+                document.getElementById('image-preview').style.display = 'none';
+                if (currentPendingArt) {
+                    currentPendingArt.imageUrl = '';
+                }
+                return;
+            }
+
+            // Block base64/data URLs
+            if (isBase64Image(url)) {
+                alert('Base64 and data: URLs are not supported. Please provide a direct image URL (e.g., https://example.com/image.jpg).');
+                return;
+            }
+
+            // Validate URL format
+            try {
+                new URL(url);
+            } catch (e) {
+                alert('Please enter a valid URL');
+                return;
+            }
+
+            // Update current pending art
+            if (currentPendingArt) {
+                currentPendingArt.imageUrl = url;
+            }
+
+            // Show preview
+            const imagePreview = document.getElementById('image-preview');
+            const previewImg = document.getElementById('preview-img');
+            previewImg.src = url;
+            imagePreview.style.display = 'block';
+
+            // Load image to get aspect ratio
+            const img = new Image();
+            img.crossOrigin = 'anonymous';
+            img.onload = () => {
+                const aspectRatio = img.width / img.height;
+                if (currentPendingArt && currentPendingArt.imageUrl === url) {
+                    currentPendingArt.aspectRatio = aspectRatio;
+                    console.log('Image loaded successfully. Aspect ratio:', aspectRatio);
+                    updateSizePreview();
+                }
+            };
+            img.onerror = () => {
+                console.warn('Could not load image for preview, but will still attempt to use it.');
+                if (currentPendingArt && currentPendingArt.imageUrl === url) {
+                    currentPendingArt.aspectRatio = 1.5;
+                    updateSizePreview();
+                }
+            };
+            img.src = url;
+        }
+
         function setupEventListeners() {
             document.addEventListener('keydown', onKeyDown);
             document.addEventListener('keyup', onKeyUp);
@@ -10973,6 +11088,17 @@
             }
 
             document.getElementById('height-input').addEventListener('input', updateSizePreview);
+
+            // Placement dialog URL input - load image on blur or Enter key
+            const placementUrlInput = document.getElementById('placement-image-url-input');
+            placementUrlInput.addEventListener('blur', loadImageFromPlacementUrl);
+            placementUrlInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    loadImageFromPlacementUrl();
+                    document.getElementById('title-input').focus();
+                }
+            });
 
             // Art viewer event listeners
             document.getElementById('viewer-close').addEventListener('click', closeArtViewer);
@@ -11688,6 +11814,33 @@
                 return;
             }
 
+            // Get and validate image URL from placement dialog
+            const imageUrl = document.getElementById('placement-image-url-input').value.trim();
+            if (!imageUrl) {
+                alert('Please enter an image URL');
+                document.getElementById('placement-image-url-input').focus();
+                return;
+            }
+
+            // Validate URL format
+            try {
+                new URL(imageUrl);
+            } catch (e) {
+                alert('Please enter a valid image URL');
+                document.getElementById('placement-image-url-input').focus();
+                return;
+            }
+
+            // Block base64/data URLs
+            if (isBase64Image(imageUrl)) {
+                alert('Base64 and data: URLs are not supported. Please provide a direct image URL.');
+                document.getElementById('placement-image-url-input').focus();
+                return;
+            }
+
+            // Update currentPendingArt with the URL from dialog
+            currentPendingArt.imageUrl = imageUrl;
+
             // Validate required fields
             const title = document.getElementById('title-input').value.trim();
             const artist = document.getElementById('artist-input').value.trim();
@@ -11745,12 +11898,39 @@
             console.log('=== PLACE ARTWORK CALLED ===');
             console.log('Current pending art:', currentPendingArt);
             console.log('Selected location:', selectedLocation);
-            
+
             if (!currentPendingArt || !selectedLocation) {
                 console.log('Missing pending art or location, returning');
                 return;
             }
-            
+
+            // Get and validate image URL from placement dialog
+            const imageUrl = document.getElementById('placement-image-url-input').value.trim();
+            if (!imageUrl) {
+                alert('Please enter an image URL');
+                document.getElementById('placement-image-url-input').focus();
+                return;
+            }
+
+            // Validate URL format
+            try {
+                new URL(imageUrl);
+            } catch (e) {
+                alert('Please enter a valid image URL');
+                document.getElementById('placement-image-url-input').focus();
+                return;
+            }
+
+            // Block base64/data URLs
+            if (isBase64Image(imageUrl)) {
+                alert('Base64 and data: URLs are not supported. Please provide a direct image URL.');
+                document.getElementById('placement-image-url-input').focus();
+                return;
+            }
+
+            // Update currentPendingArt with the URL from dialog
+            currentPendingArt.imageUrl = imageUrl;
+
             // Validate required fields
             const title = document.getElementById('title-input').value.trim();
             const artist = document.getElementById('artist-input').value.trim();
