@@ -5914,6 +5914,18 @@
                 });
             }
 
+            // Get artworks that can actually be displayed (have imageUrl and valid location)
+            getDisplayableArtworks(galleryId = null) {
+                return this.getPlacedArtworks(galleryId).filter(artwork => {
+                    // Must have an image URL to display
+                    if (!artwork.imageUrl) return false;
+                    // Must have a location (locationId or location field)
+                    const location = artwork.locationId || artwork.location;
+                    if (!location) return false;
+                    return true;
+                });
+            }
+
             // Get artwork by ID
             getArtwork(objectId) {
                 return this.state.artworks[objectId] || null;
@@ -8431,8 +8443,8 @@
                     item.classList.add('current');
                 }
 
-                // Count all placed artworks for this gallery
-                const artworkCount = eventStore.getPlacedArtworks(gallery.id).length;
+                // Count artworks that can actually be displayed (have imageUrl and valid location)
+                const artworkCount = eventStore.getDisplayableArtworks(gallery.id).length;
                 const artworkText = artworkCount === 1 ? '1 piece' : `${artworkCount} pieces`;
 
                 item.innerHTML = `
