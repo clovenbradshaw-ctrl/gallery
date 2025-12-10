@@ -4494,7 +4494,7 @@
         </div>
         <div class="help-section">
             <h4>Actions</h4>
-            <p>Click artwork to view details<br><span class="help-key">M</span> Gallery map<br><span class="help-key">Tab</span> Toggle wall spots<br><span class="help-key">R</span> Remove artwork</p>
+            <p>Click artwork to view details<br><span class="help-key">M</span> Gallery map<br><span class="help-key">Tab</span> Toggle wall spots<br><span class="help-key">R</span> Remove from location</p>
         </div>
         <div class="help-section">
             <h4>VR Mode</h4>
@@ -4620,9 +4620,12 @@
             <small style="opacity: 0.7; display: block; margin-top: 5px;">Slider mode: Click to cycle through images. Grid mode: Show all images at once.</small>
         </div>
 
-        <div>
-            <button onclick="saveArtworkEdit()">Save Changes</button>
-            <button class="cancel" onclick="cancelEdit()">Cancel</button>
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+            <div style="display: flex; gap: 10px;">
+                <button onclick="saveArtworkEdit()">Save Changes</button>
+                <button class="cancel" onclick="cancelEdit()">Cancel</button>
+            </div>
+            <button onclick="removeFromLocationAndClose()" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); width: 100%;">Remove from Location</button>
         </div>
     </div>
 
@@ -10114,6 +10117,38 @@
         // Alias for backward compatibility
         const deleteArtworkFromAirtable = deleteArtworkEvent;
 
+        // Remove artwork from its current location without deleting it
+        // The artwork remains in the catalogue and can be placed again
+        async function removeArtworkFromLocation(objectId) {
+            if (!isAdmin || !objectId) return;
+
+            const eventData = {
+                verb: 'unplace',
+                op: 'artwork_unplace',
+                object_type: 'artwork',
+                object_id: objectId,
+                data: {
+                    locationId: null,
+                    roomId: null,
+                    locationName: null,
+                    spaceId: null,
+                    roomGuid: null,
+                    placed: false
+                }
+            };
+
+            console.log('Posting unplace event:', eventData);
+
+            try {
+                await eventStore.postEvent(eventData);
+                console.log('Artwork unplace event created - artwork removed from location but not deleted');
+                return true;
+            } catch (error) {
+                console.error('Failed to create unplace event:', error);
+                return false;
+            }
+        }
+
         function saveAirtableConfig() {
             document.getElementById('sync-status').textContent = '⏳ Loading artworks from events...';
             document.getElementById('sync-status').style.color = '#667eea';
@@ -12081,18 +12116,21 @@
         function removeNearestArtwork() {
             raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
             const intersects = raycaster.intersectObjects(artworks, true);
-            
+
             if (intersects.length > 0) {
                 let artworkGroup = intersects[0].object;
                 while (artworkGroup.parent && !artworkGroup.userData.spotId) {
                     artworkGroup = artworkGroup.parent;
                 }
-                
+
                 if (artworkGroup.userData.spotId) {
-                    if (isAdmin && artworkGroup.userData.artworkId) {
-                        deleteArtworkEvent(artworkGroup.userData.artworkId);
+                    const artworkId = artworkGroup.userData.artworkId;
+
+                    // Remove from location (keeps in catalogue) instead of deleting
+                    if (isAdmin && artworkId) {
+                        removeArtworkFromLocation(artworkId);
                     }
-                    
+
                     const wallSpot = wallSpots.find(s => s.userData.id === artworkGroup.userData.spotId);
 
                     if (wallSpot) {
@@ -12121,6 +12159,11 @@
                     }
                     const index = artworks.indexOf(artworkGroup);
                     if (index > -1) artworks.splice(index, 1);
+
+                    // Remove from loaded artwork tracking
+                    if (roomManager && roomManager.loadedArtworkIds && artworkId) {
+                        roomManager.loadedArtworkIds.delete(artworkId);
+                    }
 
                     updateSpotCounters();
                 }
@@ -12589,6 +12632,73 @@
         function cancelEdit() {
             document.getElementById('edit-dialog').classList.remove('active');
             currentEditingArtwork = null;
+        }
+
+        // Remove artwork from its location (but keep it in catalogue)
+        async function removeFromLocationAndClose() {
+            if (!currentEditingArtwork) return;
+
+            const artworkId = currentEditingArtwork.userData.artworkId;
+            const artworkTitle = currentEditingArtwork.userData.metadata?.title || 'this artwork';
+
+            if (!confirm(`Remove "${artworkTitle}" from this location?\n\nThe artwork will remain in your catalogue and can be placed again.`)) {
+                return;
+            }
+
+            // Get reference before clearing currentEditingArtwork
+            const artworkGroup = currentEditingArtwork;
+            const spotId = artworkGroup.userData.spotId;
+
+            // Close dialog first
+            document.getElementById('edit-dialog').classList.remove('active');
+            currentEditingArtwork = null;
+
+            // Post the unplace event
+            const success = await removeArtworkFromLocation(artworkId);
+
+            if (success) {
+                // Remove from 3D scene (similar to removeNearestArtwork)
+                const wallSpot = wallSpots.find(s => s.userData.id === spotId);
+                if (wallSpot) {
+                    wallSpot.userData.occupied = false;
+                    wallSpot.userData.currentWidth = 0;
+                    wallSpot.material.color.setHex(0x667eea);
+                    wallSpot.material.emissive.setHex(0x667eea);
+                }
+
+                // Remove placard if exists
+                if (artworkGroup.userData.placardIndex !== undefined &&
+                    placards[artworkGroup.userData.placardIndex]) {
+                    const placard = placards[artworkGroup.userData.placardIndex];
+                    if (placard && placard.parent) {
+                        placard.parent.remove(placard);
+                    }
+                    placards[artworkGroup.userData.placardIndex] = null;
+                }
+
+                // Remove wire if exists
+                if (artworkGroup.userData.wire && artworkGroup.userData.wire.parent) {
+                    artworkGroup.userData.wire.parent.remove(artworkGroup.userData.wire);
+                    artworkGroup.userData.wire = null;
+                }
+
+                // Remove artwork mesh from scene
+                if (artworkGroup.parent) {
+                    artworkGroup.parent.remove(artworkGroup);
+                }
+                const index = artworks.indexOf(artworkGroup);
+                if (index > -1) artworks.splice(index, 1);
+
+                // Remove from loaded artwork tracking so it won't reload
+                if (roomManager && roomManager.loadedArtworkIds) {
+                    roomManager.loadedArtworkIds.delete(artworkId);
+                }
+
+                updateSpotCounters();
+                showToast('Removed', `"${artworkTitle}" has been removed from this location`, 'success');
+            } else {
+                showToast('Error', 'Failed to remove artwork from location', 'error');
+            }
         }
 
         function openCropFromEdit() {
