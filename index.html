@@ -5897,8 +5897,11 @@
             getPlacedArtworks(galleryId = null) {
                 return Object.values(this.state.artworks).filter(artwork => {
                     if (!artwork.placed) return false;
-                    // Allow artworks with 'default' galleryId to show in any gallery
-                    if (galleryId && artwork.galleryId && artwork.galleryId !== galleryId && artwork.galleryId !== 'default') return false;
+                    // Filter by galleryId - artworks must match the specified gallery
+                    // If no galleryId filter is provided, return all placed artworks
+                    if (galleryId && artwork.galleryId && artwork.galleryId !== galleryId) return false;
+                    // If galleryId filter is provided but artwork has no galleryId, exclude it
+                    if (galleryId && !artwork.galleryId) return false;
                     return true;
                 });
             }
@@ -6136,9 +6139,11 @@
             }
         }
 
-        // Check if a catalogue item is placed in the gallery
+        // Check if a catalogue item is placed in the current gallery
         function isCatalogueItemPlaced(catalogueId) {
-            const placedArtworks = eventStore.getPlacedArtworks();
+            const activeGallery = getActiveGallery();
+            const galleryId = activeGallery?.id || null;
+            const placedArtworks = eventStore.getPlacedArtworks(galleryId);
             return placedArtworks.some(artwork => artwork.catalogueId === catalogueId);
         }
 
@@ -6404,14 +6409,24 @@
             document.getElementById('catalogue-description').value = item.description || '';
             document.getElementById('catalogue-height').value = 36;
 
-            // Populate gallery dropdown
+            // Populate gallery dropdown - always ensure active gallery is selected
             const gallerySelect = document.getElementById('catalogue-gallery');
-            const galleries = JSON.parse(localStorage.getItem('vr-gallery:galleries') || '[]');
-            const activeGalleryId = localStorage.getItem('vr-gallery:activeGallery');
+            const storedGalleries = JSON.parse(localStorage.getItem('vr-gallery:galleries') || '[]');
+            const activeGallery = getActiveGallery();
+            const currentGalleryId = activeGallery?.id || localStorage.getItem('vr-gallery:activeGallery');
 
-            gallerySelect.innerHTML = galleries.map(g =>
-                `<option value="${g.id}" ${g.id === activeGalleryId ? 'selected' : ''}>${g.name}</option>`
-            ).join('') || '<option value="">Default Gallery</option>';
+            if (storedGalleries.length > 0) {
+                gallerySelect.innerHTML = storedGalleries.map(g =>
+                    `<option value="${g.id}" ${g.id === currentGalleryId ? 'selected' : ''}>${g.name}</option>`
+                ).join('');
+            } else if (currentGalleryId) {
+                // No galleries in list but we have an active gallery ID - use it
+                gallerySelect.innerHTML = `<option value="${currentGalleryId}" selected>${activeGallery?.name || 'Current Gallery'}</option>`;
+            } else {
+                // No galleries at all - generate a unique ID to prevent cross-gallery pollution
+                const uniqueId = 'gallery-' + Date.now().toString(36);
+                gallerySelect.innerHTML = `<option value="${uniqueId}" selected>Default Gallery</option>`;
+            }
 
             // Populate room tag dropdown
             const roomTagSelect = document.getElementById('catalogue-room-tag');
@@ -6485,7 +6500,10 @@
         // Populate location dropdown based on selected gallery and room tag
         function populateCatalogueLocations(preferredRoomId = null, preSelectedLocationId = null) {
             const locationSelect = document.getElementById('catalogue-location');
-            const placedArtworks = eventStore.getPlacedArtworks();
+            // Get placed artworks for the current gallery only - locations in other galleries are available
+            const activeGallery = getActiveGallery();
+            const galleryId = activeGallery?.id || null;
+            const placedArtworks = eventStore.getPlacedArtworks(galleryId);
             const occupiedLocations = new Set(placedArtworks.map(a => a.locationId));
 
             let options = [];
@@ -7288,7 +7306,7 @@
                     locationId: locationId,
                     locationName: locationName,
                     roomId: roomId,
-                    galleryId: galleryId || 'default',
+                    galleryId: galleryId || getActiveGallery()?.id || ('gallery-' + Date.now().toString(36)),
                     catalogueId: item.id,
                     productUrl: item.product_url,
                     price: item.price,
@@ -8173,7 +8191,7 @@
                 // Also collect unique gallery IDs from artworks that have assignments
                 const artworkGalleryIds = new Set();
                 Object.values(eventStore.state.artworks).forEach(artwork => {
-                    if (artwork.galleryId && artwork.galleryId !== 'default') {
+                    if (artwork.galleryId) {
                         artworkGalleryIds.add(artwork.galleryId);
                     }
                 });
