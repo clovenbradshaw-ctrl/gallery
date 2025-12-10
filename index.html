@@ -4660,18 +4660,6 @@
             <input type="number" id="edit-height-input" value="36" min="6" max="144" step="6">
         </div>
 
-        <div class="section-divider">
-            <label>Room:</label>
-            <select id="edit-room-filter" onchange="filterEditLocations()">
-            </select>
-        </div>
-
-        <div class="section-divider">
-            <label>Location:</label>
-            <div id="edit-location-grid" class="location-grid"></div>
-        </div>
-
-        <div id="edit-size-warning" class="warning" style="display:none;"></div>
 
         <div style="display: flex; flex-direction: column; gap: 10px;">
             <div style="display: flex; gap: 10px;">
@@ -11813,76 +11801,6 @@
             return false;
         }
 
-        // Track selected location for edit dialog
-        let selectedEditLocation = null;
-
-        function filterEditLocations() {
-            const selectedRoomId = document.getElementById('edit-room-filter').value;
-            setupEditLocationGrid(selectedRoomId);
-        }
-
-        function setupEditLocationGrid(filterRoomId = null) {
-            const locationGrid = document.getElementById('edit-location-grid');
-            const warning = document.getElementById('edit-size-warning');
-
-            locationGrid.innerHTML = '';
-
-            warning.style.display = 'none';
-            warning.textContent = '';
-
-            const spots = wallSpots;
-            const currentSpotId = currentEditingArtwork ? currentEditingArtwork.userData.spotId : null;
-
-            spots.forEach(spotMesh => {
-                const pos = spotMesh.userData;
-
-                // Filter by room if specified
-                if (filterRoomId && pos.roomId !== filterRoomId) {
-                    return;
-                }
-
-                const locationOption = document.createElement('div');
-                locationOption.className = 'location-option';
-                locationOption.dataset.id = pos.id;
-
-                // Consider current artwork's spot as available (since we're moving it)
-                const isOccupied = spotMesh.userData.occupied && pos.id !== currentSpotId;
-                const isCurrentLocation = pos.id === currentSpotId;
-
-                if (isOccupied) {
-                    locationOption.classList.add('occupied');
-                }
-                if (isCurrentLocation) {
-                    locationOption.classList.add('selected');
-                    selectedEditLocation = pos.id;
-                }
-
-                const friendlyName = LOCATION_ID_TO_NAME_MAP[pos.id] || pos.displayName || pos.id;
-
-                locationOption.innerHTML = `
-                    <div class="location-name">${friendlyName}</div>
-                    <div class="location-status">${isCurrentLocation ? 'Current' : (isOccupied ? 'Occupied' : 'Available')}</div>
-                `;
-
-                if (!isOccupied) {
-                    locationOption.addEventListener('click', () => {
-                        locationGrid.querySelectorAll('.location-option').forEach(opt =>
-                            opt.classList.remove('selected'));
-                        locationOption.classList.add('selected');
-                        selectedEditLocation = pos.id;
-                    });
-                }
-
-                locationGrid.appendChild(locationOption);
-            });
-
-            // If no locations found for the selected room
-            if (locationGrid.children.length === 0) {
-                warning.textContent = 'No locations available in this room.';
-                warning.style.display = 'block';
-            }
-        }
-
         function showPlacementDialog(file, type, aspectRatio = null, imageUrl = null, cropData = null) {
             if (!isAdmin) return;
 
@@ -13603,25 +13521,6 @@
                 imagePreview.style.display = 'none';
             }
 
-            // Populate room filter dropdown for location selection
-            // Get current artwork's room from its spot first
-            const currentSpot = wallSpots.find(s => s.userData.id === artworkGroup.userData.spotId);
-            const currentRoomId = currentSpot ? currentSpot.userData.roomId : (roomManager?.currentRoom || Object.values(ROOMS)[0]?.id || '');
-
-            const roomFilter = document.getElementById('edit-room-filter');
-            roomFilter.innerHTML = '';
-            Object.values(ROOMS).forEach(room => {
-                const option = document.createElement('option');
-                option.value = room.id;
-                option.textContent = room.name;
-                if (room.id === currentRoomId) option.selected = true;
-                roomFilter.appendChild(option);
-            });
-
-            // Set up location grid with current room filter
-            selectedEditLocation = artworkGroup.userData.spotId;
-            setupEditLocationGrid(currentRoomId);
-
             dialog.classList.add('active');
             document.exitPointerLock();
         }
@@ -13659,11 +13558,6 @@
             const gatewayTo = currentEditingArtwork.userData.gatewayTo || '';
             const displayMode = currentEditingArtwork.userData.displayMode || 'single';
 
-            // Check if location has changed
-            const oldSpotId = currentEditingArtwork.userData.spotId;
-            const newSpotId = selectedEditLocation;
-            const locationChanged = newSpotId && newSpotId !== oldSpotId;
-
             // Create a hash of the edit data to detect duplicate submissions
             const editHash = JSON.stringify({
                 id: currentEditingArtwork.userData.artworkId,
@@ -13671,7 +13565,6 @@
                 heightFeet,
                 gatewayTo,
                 displayMode,
-                spotId: newSpotId,
                 cropData: pendingCropData ? pendingCropData.cropData : null
             });
 
@@ -13707,63 +13600,7 @@
                 applyPendingCropToArtwork(currentEditingArtwork, cropDataToSave, cropAspectRatio);
             }
 
-            // Handle location change
-            let newSpot = null;
-            let newRoomId = null;
-            let newLocationName = null;
-            if (locationChanged) {
-                // Find old and new spots
-                const oldSpot = wallSpots.find(s => s.userData.id === oldSpotId);
-                newSpot = wallSpots.find(s => s.userData.id === newSpotId);
-
-                if (newSpot) {
-                    // Mark old spot as unoccupied
-                    if (oldSpot) {
-                        oldSpot.userData.occupied = false;
-                        oldSpot.userData.currentWidth = 0;
-                        oldSpot.material.color.setHex(0x667eea);
-                        oldSpot.material.emissive.setHex(0x667eea);
-                    }
-
-                    // Mark new spot as occupied
-                    newSpot.userData.occupied = true;
-                    newSpot.userData.currentWidth = currentEditingArtwork.userData.width;
-                    newSpot.material.color.setHex(0x4ade80);
-                    newSpot.material.emissive.setHex(0x4ade80);
-
-                    // Update artwork's spot reference
-                    currentEditingArtwork.userData.spotId = newSpotId;
-                    newRoomId = newSpot.userData.roomId;
-                    newLocationName = LOCATION_ID_TO_NAME_MAP[newSpotId] || newSpot.userData.displayName || newSpotId;
-
-                    // Move the artwork to the new position
-                    const artworkWidth = currentEditingArtwork.userData.width;
-                    const artworkHeight = currentEditingArtwork.children[1] ?
-                        currentEditingArtwork.children[1].geometry.parameters.height : artworkWidth;
-
-                    // Position artwork at new spot
-                    currentEditingArtwork.position.copy(newSpot.position);
-                    currentEditingArtwork.position.y = newSpot.position.y;
-
-                    // Apply rotation
-                    currentEditingArtwork.rotation.set(0, newSpot.userData.rotation, 0);
-
-                    // Offset slightly from wall
-                    const wallOffset = new THREE.Vector3(0, 0, 0.02);
-                    wallOffset.applyEuler(currentEditingArtwork.rotation);
-                    currentEditingArtwork.position.add(wallOffset);
-
-                    // Move to new room's parent if different
-                    if (newSpot.parent && currentEditingArtwork.parent !== newSpot.parent) {
-                        if (currentEditingArtwork.parent) {
-                            currentEditingArtwork.parent.remove(currentEditingArtwork);
-                        }
-                        newSpot.parent.add(currentEditingArtwork);
-                    }
-                }
-            }
-
-            // Update placard (at new or current location)
+            // Update placard at current location
             if (currentEditingArtwork.userData.placardIndex !== undefined &&
                 placards[currentEditingArtwork.userData.placardIndex]) {
                 const oldPlacard = placards[currentEditingArtwork.userData.placardIndex];
@@ -13771,7 +13608,7 @@
                     oldPlacard.parent.remove(oldPlacard);
                 }
 
-                const spot = newSpot || wallSpots.find(s => s.userData.id === currentEditingArtwork.userData.spotId);
+                const spot = wallSpots.find(s => s.userData.id === currentEditingArtwork.userData.spotId);
                 if (spot) {
                     const artworkWidth = currentEditingArtwork.userData.width;
                     const artworkHeight = currentEditingArtwork.children[1].geometry.parameters.height;
@@ -13787,11 +13624,6 @@
 
             // Close dialog immediately for snappy UX
             cancelEdit();
-
-            // Update spot counters if location changed
-            if (locationChanged) {
-                updateSpotCounters();
-            }
 
             // DEFERRED XANO SYNC: Post update to XANO in background so everyone sees the same art
             if (artworkIdToUpdate) {
@@ -13809,14 +13641,6 @@
                     currency: newMetadata.currency
                 };
 
-                // Include location data if changed
-                if (locationChanged && newSpot) {
-                    updateData.location = newSpotId;
-                    updateData.locationName = newLocationName;
-                    updateData.roomId = newRoomId;
-                    updateData.currentlyPlaced = true;
-                }
-
                 // Include crop data if applied
                 if (cropDataToSave) {
                     updateData.cropData = cropDataToSave;
@@ -13826,9 +13650,6 @@
                 updateArtworkEvent(updateData).then(() => {
                     lastArtworkEditHash = editHash;
                     console.log('Artwork edit synced to XANO');
-                    if (locationChanged) {
-                        showToast('Moved', `Artwork moved to ${newLocationName}`, 'success');
-                    }
                 }).catch(error => {
                     console.error('Failed to sync artwork edit to XANO:', error);
                     showToast('Sync Warning', 'Changes saved locally but failed to save online. Others may not see your changes until you retry.', 'warning', 8000);
