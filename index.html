@@ -8117,6 +8117,8 @@
             // Always use main-gallery room
             if (roomManager && !options.skipRoomLoad) {
                 roomManager.loadRoom('main-gallery', { centerCamera: true });
+                // Update wall sign to show actual gallery name
+                updateRoomNameSign('main-gallery', gallery.name);
             }
 
             if (!options.skipArtReload) {
@@ -8175,6 +8177,8 @@
             gallery.name = newName;
             saveGalleryState();
             renderGalleryControls();
+            // Update wall sign to show new gallery name
+            updateRoomNameSign('main-gallery', newName);
 
             showToast(`Renamed to "${newName}"`, 'success');
 
