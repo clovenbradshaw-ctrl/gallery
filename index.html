@@ -4543,7 +4543,6 @@
         <div class="section-divider">
             <label>Gallery:</label>
             <select id="placement-room-filter" onchange="filterPlacementLocations()">
-                <option value="">All Galleries</option>
             </select>
         </div>
 
@@ -4629,7 +4628,6 @@
         <div class="section-divider">
             <label>Room:</label>
             <select id="edit-room-filter" onchange="filterEditLocations()">
-                <option value="">All Rooms</option>
             </select>
         </div>
 
@@ -11425,11 +11423,10 @@
 
             // Populate room filter dropdown, defaulting to current room
             const roomFilter = document.getElementById('placement-room-filter');
-            const currentRoomId = roomManager?.currentRoom || '';
-            roomFilter.innerHTML = '<option value="">All Galleries</option>' +
-                Object.values(ROOMS).map(room =>
-                    `<option value="${room.id}"${room.id === currentRoomId ? ' selected' : ''}>${room.name}</option>`
-                ).join('');
+            const currentRoomId = roomManager?.currentRoom || Object.values(ROOMS)[0]?.id || '';
+            roomFilter.innerHTML = Object.values(ROOMS).map(room =>
+                `<option value="${room.id}"${room.id === currentRoomId ? ' selected' : ''}>${room.name}</option>`
+            ).join('');
 
             // Default to showing only current room's spots
             setupLocationGrid(type, currentRoomId || null);
@@ -12982,19 +12979,19 @@
             displayModeSelect.value = artworkGroup.userData.displayMode || 'single';
 
             // Populate room filter dropdown for location selection
+            // Get current artwork's room from its spot first
+            const currentSpot = wallSpots.find(s => s.userData.id === artworkGroup.userData.spotId);
+            const currentRoomId = currentSpot ? currentSpot.userData.roomId : (roomManager?.currentRoom || Object.values(ROOMS)[0]?.id || '');
+
             const roomFilter = document.getElementById('edit-room-filter');
-            roomFilter.innerHTML = '<option value="">All Rooms</option>';
+            roomFilter.innerHTML = '';
             Object.values(ROOMS).forEach(room => {
                 const option = document.createElement('option');
                 option.value = room.id;
                 option.textContent = room.name;
+                if (room.id === currentRoomId) option.selected = true;
                 roomFilter.appendChild(option);
             });
-
-            // Get current artwork's room from its spot
-            const currentSpot = wallSpots.find(s => s.userData.id === artworkGroup.userData.spotId);
-            const currentRoomId = currentSpot ? currentSpot.userData.roomId : '';
-            roomFilter.value = currentRoomId;
 
             // Set up location grid with current room filter
             selectedEditLocation = artworkGroup.userData.spotId;
