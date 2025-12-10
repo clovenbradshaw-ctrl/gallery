@@ -1631,19 +1631,6 @@
             }
         }
 
-        /* Door prompt mobile styling */
-        #door-prompt {
-            bottom: 160px;
-        }
-
-        @media (max-width: 640px) {
-            #door-prompt {
-                bottom: 180px;
-                font-size: 14px;
-                padding: 10px 20px;
-            }
-        }
-
         /* Catalogue Styles */
         #catalogue-dialog {
             position: fixed;
@@ -7582,15 +7569,7 @@
                     }
                 ],
                 floors: [],
-                doors: [
-                    {
-                        id: 'door-to-contemporary',
-                        position: { x: 6, y: 0, z: 10 },
-                        rotation: Math.PI,
-                        targetRoom: 'contemporary-wing',
-                        label: 'Room 2'
-                    }
-                ]
+                doors: []
             },
             'contemporary-wing': {
                 id: 'contemporary-wing',
@@ -7732,15 +7711,7 @@
                     }
                 ],
                 floors: [],
-                doors: [
-                    {
-                        id: 'door-to-main',
-                        position: { x: 0, y: 0, z: -8 },
-                        rotation: 0,
-                        targetRoom: 'main-gallery',
-                        label: 'Room 1'
-                    }
-                ]
+                doors: []
             }
         };
 
@@ -8891,85 +8862,11 @@
             }
         }
 
-        function createDoor(doorConfig, roomId) {
-            const doorGroup = new THREE.Group();
-
-            const frameGeometry = new THREE.BoxGeometry(3, 4, 0.3);
-            const frameMaterial = new THREE.MeshStandardMaterial({
-                color: 0x8b7355,
-                roughness: 0.7,
-                metalness: 0.2
-            });
-            const frame = new THREE.Mesh(frameGeometry, frameMaterial);
-            frame.castShadow = true;
-            doorGroup.add(frame);
-
-            const doorGeometry = new THREE.BoxGeometry(2.8, 3.8, 0.1);
-            const doorMaterial = new THREE.MeshStandardMaterial({
-                color: 0xffffff,
-                transparent: true,
-                opacity: 0.8,
-                roughness: 0.4
-            });
-            const doorPanel = new THREE.Mesh(doorGeometry, doorMaterial);
-            doorPanel.position.z = -0.15;
-            doorGroup.add(doorPanel);
-
-            const triggerGeometry = new THREE.BoxGeometry(4, 3, 2.5);
-            const triggerMaterial = new THREE.MeshBasicMaterial({ visible: false });
-            const trigger = new THREE.Mesh(triggerGeometry, triggerMaterial);
-            trigger.name = 'door-trigger';
-            trigger.userData = {
-                type: 'door',
-                doorId: doorConfig.id,
-                targetRoom: doorConfig.targetRoom,
-                sourceRoom: roomId,
-                label: doorConfig.label
-            };
-            doorGroup.add(trigger);
-
-            const canvas = document.createElement('canvas');
-            canvas.width = 512;
-            canvas.height = 128;
-            const ctx = canvas.getContext('2d');
-            ctx.fillStyle = '#f0f0f0';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            ctx.fillStyle = '#2a2a2a';
-            ctx.font = 'bold 48px "Segoe UI", Arial';
-            ctx.textAlign = 'center';
-            ctx.fillText(doorConfig.label || 'Enter', canvas.width / 2, 80);
-
-            const signTexture = new THREE.CanvasTexture(canvas);
-            const signGeometry = new THREE.PlaneGeometry(2.4, 0.6);
-            const signMaterial = new THREE.MeshBasicMaterial({ map: signTexture });
-            const sign = new THREE.Mesh(signGeometry, signMaterial);
-            sign.position.y = 2.3;
-            sign.position.z = 0.35;
-            doorGroup.add(sign);
-
-            doorGroup.position.set(
-                doorConfig.position.x,
-                doorConfig.position.y + 2,
-                doorConfig.position.z
-            );
-            doorGroup.rotation.y = doorConfig.rotation || 0;
-
-            doorGroup.userData = {
-                type: 'door',
-                config: doorConfig,
-                roomId: roomId
-            };
-
-            return doorGroup;
-        }
-
         class RoomManager {
             constructor(scene) {
                 this.scene = scene;
                 this.roomMeshes = new Map();
                 this.roomSpots = new Map();
-                this.doorMeshes = new Map();
-                this.activeDoors = [];
                 this.currentRoom = null;
                 this.cameraBounds = null;
                 this.pendingArtworks = {};
@@ -9028,7 +8925,6 @@
                 wallSpots = spots.wallSpots;
                 console.log('[loadRoom] Spots loaded - Walls:', wallSpots.length, wallSpots.map(s => s.userData.id));
 
-                this.activeDoors = this.doorMeshes.get(roomId) || [];
                 this.currentRoom = roomId;
                 console.log('[loadRoom] Room loaded, currentRoom set to:', this.currentRoom);
 
@@ -9101,14 +8997,6 @@
 
                 const spots = this.createRoomSpots(roomGroup, roomConfig);
                 this.roomSpots.set(roomConfig.id, spots);
-
-                const doors = [];
-                (roomConfig.doors || []).forEach(doorConfig => {
-                    const door = createDoor(doorConfig, roomConfig.id);
-                    doors.push(door);
-                    roomGroup.add(door);
-                });
-                this.doorMeshes.set(roomConfig.id, doors);
 
                 this.createRoomLighting(roomGroup, roomConfig, spots);
                 this.addRoomDecor(roomGroup, roomConfig);
@@ -9444,60 +9332,19 @@
                 console.log('[addArtwork] Added to pending queue for room:', entry.roomId);
             }
 
-            checkDoorProximity(cameraPosition) {
-                for (const door of this.activeDoors) {
-                    const doorWorldPos = new THREE.Vector3();
-                    door.getWorldPosition(doorWorldPos);
-                    const distance = cameraPosition.distanceTo(doorWorldPos);
-                    if (distance < 2.2) {
-                        return door.userData.config;
-                    }
-                }
-                return null;
-            }
-
             transitionToRoom(targetRoomId) {
                 if (!targetRoomId || targetRoomId === this.currentRoom) {
                     return;
                 }
 
                 this.fadeTransition(async () => {
-                    const previousRoom = this.currentRoom;
                     this.loadRoom(targetRoomId);
 
                     const targetRoom = ROOMS[targetRoomId];
                     if (!targetRoom) return;
 
-                    const entryDoorConfig = (targetRoom.doors || []).find(d => d.targetRoom === previousRoom);
-                    if (entryDoorConfig) {
-                        // Enter through connected door
-                        const entryPos = new THREE.Vector3(
-                            targetRoom.position.x + entryDoorConfig.position.x,
-                            1.6,
-                            targetRoom.position.z + entryDoorConfig.position.z
-                        );
-
-                        const offset = new THREE.Vector3(0, 0, -3);
-                        offset.applyEuler(new THREE.Euler(0, entryDoorConfig.rotation || 0, 0));
-                        entryPos.add(offset);
-
-                        camera.position.copy(entryPos);
-
-                        // Face the center of the room for a clear view of contents
-                        const roomCenter = new THREE.Vector3(
-                            targetRoom.position.x,
-                            1.6,
-                            targetRoom.position.z
-                        );
-                        const directionToCenter = new THREE.Vector2(
-                            roomCenter.x - entryPos.x,
-                            roomCenter.z - entryPos.z
-                        );
-                        camera.rotation.y = Math.atan2(-directionToCenter.x, -directionToCenter.y);
-                    } else {
-                        // Teleport to room center (no door connection - clicked from map)
-                        this.centerCameraInRoom(targetRoom);
-                    }
+                    // Teleport to room center
+                    this.centerCameraInRoom(targetRoom);
                 });
             }
 
@@ -9667,13 +9514,6 @@
                 ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
                 ctx.lineWidth = 2;
                 ctx.strokeRect(x - w / 2, y - h / 2, w, h);
-
-                (room.doors || []).forEach(door => {
-                    const doorX = x + door.position.x * scale;
-                    const doorY = y + door.position.z * scale;
-                    ctx.fillStyle = '#4ade80';
-                    ctx.fillRect(doorX - 3, doorY - 3, 6, 6);
-                });
             });
 
             if (cameraPosition) {
@@ -9686,39 +9526,6 @@
             }
         }
 
-        function showDoorPrompt(label) {
-            let prompt = document.getElementById('door-prompt');
-            if (!prompt) {
-                prompt = document.createElement('div');
-                prompt.id = 'door-prompt';
-                prompt.style.cssText = `
-                    position: fixed;
-                    top: 50%;
-                    left: 50%;
-                    transform: translate(-50%, -50%);
-                    background: rgba(0, 0, 0, 0.8);
-                    color: white;
-                    padding: 20px 40px;
-                    border-radius: 12px;
-                    font-size: 18px;
-                    z-index: 200;
-                    backdrop-filter: blur(10px);
-                    text-align: center;
-                `;
-                document.body.appendChild(prompt);
-            }
-
-            prompt.innerHTML = `Press <strong>E</strong> to enter<br>${label}`;
-            prompt.style.display = 'block';
-        }
-
-        function hideDoorPrompt() {
-            const prompt = document.getElementById('door-prompt');
-            if (prompt) {
-                prompt.style.display = 'none';
-            }
-        }
-        
         function checkAdminPassword() {
             const password = document.getElementById('admin-password').value;
             const errorDiv = document.getElementById('auth-error');
@@ -14111,20 +13918,6 @@
             if (roomManager && roomManager.cameraBounds) {
                 camera.position.x = Math.max(roomManager.cameraBounds.minX, Math.min(roomManager.cameraBounds.maxX, camera.position.x));
                 camera.position.z = Math.max(roomManager.cameraBounds.minZ, Math.min(roomManager.cameraBounds.maxZ, camera.position.z));
-            }
-
-            if (roomManager) {
-                const nearbyDoor = roomManager.checkDoorProximity(camera.position);
-                if (nearbyDoor) {
-                    showDoorPrompt(nearbyDoor.label);
-                    if (interactKeyPressed) {
-                        interactKeyPressed = false;
-                        hideDoorPrompt();
-                        roomManager.transitionToRoom(nearbyDoor.targetRoom);
-                    }
-                } else {
-                    hideDoorPrompt();
-                }
             }
         }
 
