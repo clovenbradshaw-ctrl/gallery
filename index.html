@@ -5923,14 +5923,12 @@
                 });
             }
 
-            // Get artworks that can actually be displayed (have imageUrl and valid location)
+            // Get artworks that can actually be displayed (have imageUrl and valid wall location)
+            // This reflects what is ACTUALLY visible in the room - validated wall spots with images
             getDisplayableArtworks(galleryId = null) {
-                return this.getPlacedArtworks(galleryId).filter(artwork => {
+                return this.getWallArtworks(galleryId).filter(artwork => {
                     // Must have an image URL to display
                     if (!artwork.imageUrl) return false;
-                    // Must have a location (locationId or location field)
-                    const location = artwork.locationId || artwork.location;
-                    if (!location) return false;
                     return true;
                 });
             }
