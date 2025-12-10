@@ -9572,6 +9572,51 @@
             return { roomId, spotId, locationId: fullLocationId };
         }
 
+        // Clear all artworks from the scene (used when switching galleries)
+        function clearAllArtworks() {
+            console.log('[clearAllArtworks] Clearing', artworks.length, 'artworks from scene');
+
+            // Remove each artwork from the scene
+            for (const artworkMesh of artworks) {
+                // Free up the wall spot
+                const wallSpot = wallSpots.find(s => s.userData.id === artworkMesh.userData.spotId);
+                if (wallSpot) {
+                    wallSpot.userData.occupied = false;
+                    wallSpot.userData.currentWidth = 0;
+                    wallSpot.material.color.setHex(0x667eea);
+                    wallSpot.material.emissive.setHex(0x667eea);
+                }
+
+                // Remove wire if exists
+                if (artworkMesh.userData.wire && artworkMesh.userData.wire.parent) {
+                    artworkMesh.userData.wire.parent.remove(artworkMesh.userData.wire);
+                }
+
+                // Remove placard if exists
+                if (artworkMesh.userData.placardIndex !== undefined &&
+                    placards[artworkMesh.userData.placardIndex]) {
+                    const placard = placards[artworkMesh.userData.placardIndex];
+                    if (placard && placard.parent) {
+                        placard.parent.remove(placard);
+                    }
+                    placards[artworkMesh.userData.placardIndex] = null;
+                }
+
+                // Remove from scene
+                if (artworkMesh.parent) {
+                    artworkMesh.parent.remove(artworkMesh);
+                }
+            }
+
+            // Clear the artworks array
+            artworks.length = 0;
+
+            // Clean up placards array (remove null entries)
+            placards = placards.filter(p => p !== null);
+
+            console.log('[clearAllArtworks] Scene cleared');
+        }
+
         async function loadArtworksFromEvents() {
             try {
                 const activeGallery = getActiveGallery();
@@ -9587,6 +9632,9 @@
                 // Clear pending artworks and loaded artwork tracking for fresh load
                 roomManager.pendingArtworks = {};
                 roomManager.loadedArtworkIds.clear();
+
+                // Clear existing artworks from scene before loading new gallery
+                clearAllArtworks();
 
                 const loadPromises = [];
                 const totalRecords = Object.keys(eventStore.state.artworks).length;
