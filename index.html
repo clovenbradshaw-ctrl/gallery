@@ -5654,6 +5654,12 @@
                         normalized[camelCase] = data[snakeCase];
                     }
                 }
+
+                // Also map location_id to location for backward compatibility
+                if (data.location_id !== undefined && data.location === undefined) {
+                    normalized.location = data.location_id;
+                }
+
                 return normalized;
             }
 
@@ -5790,11 +5796,13 @@
             // Get artworks placed on walls only (not floors)
             getWallArtworks(galleryId = null) {
                 return this.getPlacedArtworks(galleryId).filter(artwork => {
-                    if (!artwork.location || !artwork.roomId) return false;
+                    // Check both location and locationId (API may use either)
+                    const location = artwork.location || artwork.locationId;
+                    if (!location || !artwork.roomId) return false;
                     const room = ROOMS[artwork.roomId];
                     if (!room) return false;
                     // Check if the location is a wall spot
-                    return room.walls.some(w => w.id === artwork.location);
+                    return room.walls.some(w => w.id === location);
                 });
             }
 
