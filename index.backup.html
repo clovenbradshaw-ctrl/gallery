@@ -3,105 +3,618 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Virtual Art Gallery</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <title>VR Art Museum</title>
+    <link rel="icon" type="image/png" href="https://storage.googleapis.com/intelechia-content/im/VART.png">
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-
         body {
+            margin: 0;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             overflow: hidden;
-            background: #000;
+            background: #f0f0f0;
         }
-
-        #canvas-container {
+        
+        #admin-auth {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            z-index: 1000;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(10px);
         }
-
-        /* Status Bar */
-        #status-bar {
-            position: fixed;
+        
+        #admin-auth.active {
+            display: flex;
+        }
+        
+        .admin-auth-box {
+            background: rgba(30, 30, 30, 0.95);
+            padding: 40px;
+            border-radius: 12px;
+            max-width: 400px;
+            width: 90%;
+            text-align: center;
+        }
+        
+        .admin-auth-box h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+        }
+        
+        .admin-auth-box input {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            border-radius: 6px;
+            box-sizing: border-box;
+            font-size: 16px;
+        }
+        
+        .admin-auth-box button {
+            width: 100%;
+            padding: 12px;
+            margin-top: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 500;
+        }
+        
+        .admin-auth-box button:hover {
+            transform: translateY(-2px);
+        }
+        
+        .admin-auth-box .error {
+            color: #ff6b6b;
+            margin-top: 10px;
+            font-size: 14px;
+        }
+        
+        #canvas-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+        
+        .airtable-config {
+            margin: 20px 0;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+        }
+        
+        .airtable-config button {
+            width: 100%;
+            padding: 8px;
+            margin-top: 10px;
+            background: #4ade80;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        .sync-status {
+            margin-top: 10px;
+            font-size: 0.85em;
+            color: #4ade80;
+        }
+        
+        #ui-overlay {
+            position: absolute;
             top: 20px;
             left: 20px;
-            background: rgba(0, 0, 0, 0.7);
-            color: white;
-            padding: 12px 20px;
-            border-radius: 8px;
-            font-size: 14px;
+            right: auto;
             z-index: 100;
-        }
-
-        #status-bar .room-name {
-            font-weight: 600;
-            font-size: 16px;
-            margin-bottom: 4px;
-        }
-
-        #status-bar .artwork-count {
-            color: #4ade80;
-            font-size: 13px;
-        }
-
-        /* Controls Help */
-        #controls-help {
-            position: fixed;
-            bottom: 20px;
-            left: 20px;
-            background: rgba(0, 0, 0, 0.7);
-            color: white;
-            padding: 12px 16px;
-            border-radius: 8px;
-            font-size: 12px;
-            z-index: 100;
-        }
-
-        #controls-help div {
-            margin: 4px 0;
-            color: #ccc;
-        }
-
-        #controls-help kbd {
-            background: rgba(255, 255, 255, 0.2);
-            padding: 2px 6px;
-            border-radius: 3px;
-            font-family: monospace;
-        }
-
-        /* Mini Map */
-        #mini-map {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            width: 180px;
             background: rgba(0, 0, 0, 0.8);
+            padding: 20px;
+            border-radius: 12px;
+            color: white;
+            width: min(360px, calc(100vw - 48px));
+            backdrop-filter: blur(10px);
+            transition: transform 0.3s ease;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        
+        #ui-overlay.hidden {
+            transform: translateX(-380px);
+        }
+        
+        #toggle-ui {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 101;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            border: none;
+            padding: 10px 15px;
             border-radius: 8px;
-            padding: 12px;
-            z-index: 100;
+            cursor: pointer;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
         }
-
-        #mini-map canvas {
+        
+        #toggle-ui:hover {
+            background: rgba(0, 0, 0, 0.9);
+        }
+        
+        #ui-overlay.hidden + #toggle-ui {
+            left: 20px;
+        }
+        
+        #ui-overlay:not(.hidden) + #toggle-ui {
+            left: calc(20px + min(360px, calc(100vw - 48px)) + 40px + 10px);
+        }
+        
+        h2 {
+            margin-top: 0;
+            font-size: 1.4em;
+            color: #fff;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.2);
+            padding-bottom: 10px;
+        }
+        
+        .control-group {
+            margin: 15px 0;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 0.9em;
+            color: rgba(255, 255, 255, 0.9);
+        }
+        
+        input[type="file"] {
+            display: none;
+        }
+        
+        .file-label {
+            display: inline-block;
+            padding: 10px 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+            font-weight: 500;
             width: 100%;
-            border-radius: 4px;
+            text-align: center;
+            box-sizing: border-box;
+        }
+        
+        .file-label:hover {
+            transform: translateY(-2px);
+        }
+        
+        #drop-zone {
+            border: 2px dashed rgba(255, 255, 255, 0.3);
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            margin-top: 10px;
+            transition: all 0.3s ease;
+        }
+        
+        #drop-zone.dragover {
+            background: rgba(102, 126, 234, 0.2);
+            border-color: #667eea;
+        }
+        
+        .instructions {
+            margin-top: 20px;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            font-size: 0.85em;
+            line-height: 1.6;
+        }
+        
+        .instructions h3 {
+            margin-top: 0;
+            color: #667eea;
+        }
+        
+        #vr-button {
+            margin-top: 15px;
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 1em;
+            transition: transform 0.2s ease;
+        }
+        
+        #vr-button:hover:not(:disabled) {
+            transform: translateY(-2px);
+        }
+        
+        #vr-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        #art-queue {
+            margin-top: 15px;
+            max-height: 120px;
+            overflow-y: auto;
         }
 
-        #mini-map .room-buttons {
+        .input-row {
             display: flex;
             gap: 8px;
-            margin-top: 10px;
+            align-items: center;
+            margin: 8px 0;
         }
 
-        #mini-map button {
+        .input-row input,
+        .input-row select {
             flex: 1;
-            padding: 8px;
-            border: none;
-            border-radius: 4px;
-            background: #374151;
+            padding: 10px;
+            border-radius: 6px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            background: rgba(255, 255, 255, 0.08);
             color: white;
-            font-size: 11px;
+        }
+
+        .muted-label {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 0.85em;
+            margin-top: 6px;
+        }
+
+        .small-button {
+            padding: 9px 12px;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            background: rgba(102, 126, 234, 0.8);
+            color: white;
+            transition: transform 0.2s ease;
+            font-weight: 600;
+        }
+
+        .small-button.secondary {
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .small-button:hover {
+            transform: translateY(-1px);
+        }
+        
+        .art-item {
+            display: flex;
+            align-items: center;
+            padding: 8px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 6px;
+            margin-bottom: 8px;
+        }
+        
+        .art-thumb {
+            width: 40px;
+            height: 40px;
+            object-fit: cover;
+            border-radius: 4px;
+            margin-right: 10px;
+        }
+        
+        .art-info {
+            flex: 1;
+            font-size: 0.85em;
+        }
+        
+        .art-status {
+            font-size: 0.75em;
+            color: #667eea;
+        }
+        
+        #loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #333;
+            font-size: 1.2em;
+            z-index: 200;
+        }
+        
+        #placement-dialog {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.95);
+            padding: 30px;
+            border-radius: 12px;
+            z-index: 300;
+            color: white;
+            min-width: 450px;
+            max-width: 600px;
+            display: none;
+            backdrop-filter: blur(10px);
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        
+        #placement-dialog.active {
+            display: block;
+        }
+        
+        #edit-dialog {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.95);
+            padding: 30px;
+            border-radius: 12px;
+            z-index: 300;
+            color: white;
+            min-width: 450px;
+            max-width: 600px;
+            display: none;
+            backdrop-filter: blur(10px);
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        
+        #edit-dialog.active {
+            display: block;
+        }
+        
+        #placement-dialog h3, #edit-dialog h3 {
+            margin-top: 0;
+            color: #667eea;
+        }
+        
+        #placement-dialog input[type="number"],
+        #placement-dialog input[type="text"],
+        #placement-dialog textarea,
+        #edit-dialog input[type="number"],
+        #edit-dialog input[type="text"],
+        #edit-dialog textarea {
+            width: 100%;
+            padding: 8px;
+            margin: 5px 0;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        
+        #placement-dialog textarea,
+        #edit-dialog textarea {
+            min-height: 60px;
+            resize: vertical;
+        }
+        
+        #placement-dialog button,
+        #edit-dialog button {
+            margin-top: 15px;
+            padding: 10px 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        
+        #placement-dialog button:hover,
+        #edit-dialog button:hover {
+            transform: translateY(-2px);
+        }
+        
+        #placement-dialog button.cancel,
+        #edit-dialog button.cancel {
+            background: #666;
+        }
+        
+        .dimension-info {
+            margin: 10px 0;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 6px;
+            font-size: 0.85em;
+        }
+        
+        .warning {
+            color: #fbbf24;
+            font-size: 0.85em;
+            margin-top: 5px;
+            padding: 5px;
+            background: rgba(251, 191, 36, 0.1);
+            border-radius: 4px;
+        }
+        
+        .spots-indicator {
+            margin-top: 10px;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 6px;
+            font-size: 0.85em;
+        }
+        
+        .spot-available {
+            color: #4ade80;
+        }
+        
+        .spot-occupied {
+            color: #f87171;
+        }
+        
+        .supported-formats {
+            font-size: 0.75em;
+            color: rgba(255, 255, 255, 0.6);
+            margin-top: 5px;
+        }
+        
+        .location-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin: 10px 0;
+        }
+        
+        .location-option {
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+        }
+
+        .location-note {
+            margin-top: 6px;
+            font-size: 0.75em;
+            color: rgba(255, 255, 255, 0.6);
+        }
+        
+        .location-option:hover:not(.occupied) {
+            background: rgba(102, 126, 234, 0.2);
+            border-color: #667eea;
+        }
+        
+        .location-option.selected {
+            background: rgba(102, 126, 234, 0.3);
+            border-color: #667eea;
+        }
+        
+        .location-option.occupied {
+            opacity: 0.5;
+            cursor: not-allowed;
+            background: rgba(248, 113, 113, 0.1);
+        }
+        
+        .location-name {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .location-status {
+            font-size: 0.8em;
+            color: #4ade80;
+        }
+        
+        .location-option.occupied .location-status {
+            color: #f87171;
+        }
+        
+        .section-divider {
+            margin: 20px 0;
+            padding: 10px 0;
+            border-top: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .optional-label {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 0.8em;
+            font-style: italic;
+        }
+
+        /* Gallery Map Overlay */
+        #gallery-map-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.92);
+            z-index: 600;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(15px);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        #gallery-map-overlay.active {
+            display: flex;
+            opacity: 1;
+        }
+
+        .gallery-map-container {
+            position: relative;
+            width: 90%;
+            max-width: 800px;
+            max-height: 85vh;
+            background: linear-gradient(145deg, rgba(40, 40, 50, 0.98), rgba(25, 25, 35, 0.98));
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 25px 80px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.1);
+            overflow-y: auto;
+        }
+
+        .gallery-map-container h2 {
+            margin: 0 0 5px 0;
+            font-size: 1.8em;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-align: center;
+        }
+
+        .gallery-map-subtitle {
+            color: rgba(255, 255, 255, 0.6);
+            text-align: center;
+            margin: 0 0 25px 0;
+            font-size: 0.95em;
+        }
+
+        .gallery-map-close {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            background: none;
+            border: none;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 2em;
+            cursor: pointer;
+            padding: 5px 10px;
+            line-height: 1;
+            transition: color 0.2s, transform 0.2s;
+        }
+
+        .gallery-map-close:hover {
+            color: white;
+            transform: scale(1.1);
+        }
+
+        #gallery-map-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .gallery-map-item {
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid rgba(255, 255, 255, 0.15);
+            border-radius: 12px;
+            padding: 20px;
             cursor: pointer;
             transition: all 0.25s ease;
             position: relative;
@@ -4848,39 +5361,141 @@
             }
 
             async _doFetchEvents() {
-                return await this._retryWithBackoff(async () => {
-                    const response = await fetch(XANO_API_URL);
-                    if (!response.ok) {
-                        const error = new Error(`Failed to fetch events from API: ${response.status} ${response.statusText}`);
-                        error.status = response.status;
-                        throw error;
-                    }
-                    const jsonData = await response.json();
-
-                    // Handle both array response and wrapped response (e.g., { items: [...] } or { data: [...] })
-                    let fetchedEvents = [];
-                    if (Array.isArray(jsonData)) {
-                        fetchedEvents = jsonData;
-                    } else if (jsonData && typeof jsonData === 'object') {
-                        // Try common wrapper properties
-                        fetchedEvents = jsonData.items || jsonData.data || jsonData.events || jsonData.records || [];
-                        if (!Array.isArray(fetchedEvents)) {
-                            console.warn('Unexpected API response structure:', Object.keys(jsonData));
-                            fetchedEvents = [];
+                try {
+                    return await this._retryWithBackoff(async () => {
+                        const response = await fetch(XANO_API_URL);
+                        if (!response.ok) {
+                            const error = new Error(`Failed to fetch events: ${response.status}`);
+                            error.status = response.status;
+                            throw error;
                         }
+                        const jsonData = await response.json();
+
+                        // Handle both array response and wrapped response (e.g., { items: [...] } or { data: [...] })
+                        let fetchedEvents = [];
+                        if (Array.isArray(jsonData)) {
+                            fetchedEvents = jsonData;
+                        } else if (jsonData && typeof jsonData === 'object') {
+                            // Try common wrapper properties
+                            fetchedEvents = jsonData.items || jsonData.data || jsonData.events || jsonData.records || [];
+                            if (!Array.isArray(fetchedEvents)) {
+                                console.warn('Unexpected API response structure:', Object.keys(jsonData));
+                                fetchedEvents = [];
+                            }
+                        }
+
+                        // Validate and normalize events before storing
+                        this.events = fetchedEvents.map(e => this._normalizeEvent(e)).filter(e => e !== null);
+
+                        console.log('Fetched events from Xano:', this.events.length);
+                        if (this.events.length > 0) {
+                            const sample = this.events[0];
+                            console.log('Sample event structure:', JSON.stringify(sample, null, 2));
+                        }
+                        this.reconstructState();
+                        return this.events;
+                    });
+                } catch (error) {
+                    console.warn('API fetch failed, attempting to load from local CSV fallback:', error.message);
+                    return await this._loadFromCSVFallback();
+                }
+            }
+
+            // Fallback: Load events from local data.csv file
+            async _loadFromCSVFallback() {
+                try {
+                    const response = await fetch('data.csv');
+                    if (!response.ok) {
+                        throw new Error(`Failed to fetch data.csv: ${response.status}`);
                     }
+                    const csvText = await response.text();
+                    const events = this._parseCSV(csvText);
 
                     // Validate and normalize events before storing
-                    this.events = fetchedEvents.map(e => this._normalizeEvent(e)).filter(e => e !== null);
+                    this.events = events.map(e => this._normalizeEvent(e)).filter(e => e !== null);
 
-                    console.log('Fetched events from API:', this.events.length);
+                    console.log('Loaded events from CSV fallback:', this.events.length);
                     if (this.events.length > 0) {
                         const sample = this.events[0];
-                        console.log('Sample event structure:', JSON.stringify(sample, null, 2));
+                        console.log('Sample event structure from CSV:', JSON.stringify(sample, null, 2));
                     }
                     this.reconstructState();
                     return this.events;
-                });
+                } catch (csvError) {
+                    console.error('CSV fallback also failed:', csvError.message);
+                    throw csvError;
+                }
+            }
+
+            // Parse CSV text into event objects
+            _parseCSV(csvText) {
+                const lines = csvText.trim().split('\n');
+                if (lines.length < 2) {
+                    console.warn('CSV file is empty or has no data rows');
+                    return [];
+                }
+
+                // Parse header row
+                const headers = this._parseCSVLine(lines[0]);
+                const events = [];
+
+                // Parse data rows
+                for (let i = 1; i < lines.length; i++) {
+                    const line = lines[i].trim();
+                    if (!line) continue;
+
+                    const values = this._parseCSVLine(line);
+                    const event = {};
+
+                    headers.forEach((header, index) => {
+                        event[header] = values[index] || '';
+                    });
+
+                    // Parse the data field as JSON if present
+                    if (event.data && typeof event.data === 'string') {
+                        try {
+                            event.data = JSON.parse(event.data);
+                        } catch (e) {
+                            // Keep as string if not valid JSON
+                        }
+                    }
+
+                    events.push(event);
+                }
+
+                return events;
+            }
+
+            // Parse a single CSV line, handling quoted fields with commas
+            _parseCSVLine(line) {
+                const values = [];
+                let current = '';
+                let inQuotes = false;
+
+                for (let i = 0; i < line.length; i++) {
+                    const char = line[i];
+                    const nextChar = line[i + 1];
+
+                    if (char === '"' && !inQuotes) {
+                        inQuotes = true;
+                    } else if (char === '"' && inQuotes) {
+                        if (nextChar === '"') {
+                            // Escaped quote
+                            current += '"';
+                            i++;
+                        } else {
+                            inQuotes = false;
+                        }
+                    } else if (char === ',' && !inQuotes) {
+                        values.push(current);
+                        current = '';
+                    } else {
+                        current += char;
+                    }
+                }
+                values.push(current);
+
+                return values;
             }
 
             // Normalize event data to ensure consistent structure
@@ -11678,1199 +12293,1447 @@
                     break;
             }
         }
-
-        #mini-map button:hover {
-            background: #4b5563;
-        }
-
-        #mini-map button.active {
-            background: #3b82f6;
-        }
-
-        /* Artwork Viewer Modal */
-        #artwork-viewer {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.95);
-            z-index: 1000;
-            justify-content: center;
-            align-items: center;
-        }
-
-        #artwork-viewer.active {
-            display: flex;
-        }
-
-        #artwork-viewer .viewer-content {
-            max-width: 90%;
-            max-height: 90%;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-
-        #artwork-viewer img {
-            max-width: 100%;
-            max-height: 70vh;
-            object-fit: contain;
-            border-radius: 4px;
-        }
-
-        #artwork-viewer .artwork-info {
-            margin-top: 20px;
-            text-align: center;
-            color: white;
-        }
-
-        #artwork-viewer .artwork-title {
-            font-size: 24px;
-            font-weight: 600;
-            margin-bottom: 8px;
-        }
-
-        #artwork-viewer .artwork-artist {
-            font-size: 18px;
-            color: #9ca3af;
-            margin-bottom: 12px;
-        }
-
-        #artwork-viewer .artwork-price {
-            font-size: 20px;
-            color: #4ade80;
-            margin-bottom: 16px;
-        }
-
-        #artwork-viewer .artwork-link {
-            display: inline-block;
-            padding: 12px 24px;
-            background: #3b82f6;
-            color: white;
-            text-decoration: none;
-            border-radius: 6px;
-            font-weight: 500;
-            transition: background 0.2s;
-        }
-
-        #artwork-viewer .artwork-link:hover {
-            background: #2563eb;
-        }
-
-        #artwork-viewer .close-btn {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            width: 40px;
-            height: 40px;
-            border: none;
-            border-radius: 50%;
-            background: rgba(255, 255, 255, 0.1);
-            color: white;
-            font-size: 24px;
-            cursor: pointer;
-            transition: background 0.2s;
-        }
-
-        #artwork-viewer .close-btn:hover {
-            background: rgba(255, 255, 255, 0.2);
-        }
-
-        /* Door Prompt */
-        #door-prompt {
-            display: none;
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: rgba(0, 0, 0, 0.8);
-            color: white;
-            padding: 16px 24px;
-            border-radius: 8px;
-            font-size: 16px;
-            z-index: 100;
-            text-align: center;
-        }
-
-        #door-prompt.active {
-            display: block;
-        }
-
-        /* Loading Screen */
-        #loading-screen {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: #111;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            z-index: 2000;
-            transition: opacity 0.5s;
-        }
-
-        #loading-screen.fade-out {
-            opacity: 0;
-            pointer-events: none;
-        }
-
-        #loading-screen h1 {
-            color: white;
-            font-size: 32px;
-            margin-bottom: 20px;
-        }
-
-        #loading-screen .progress {
-            width: 200px;
-            height: 4px;
-            background: #333;
-            border-radius: 2px;
-            overflow: hidden;
-        }
-
-        #loading-screen .progress-bar {
-            height: 100%;
-            background: #3b82f6;
-            width: 0%;
-            transition: width 0.3s;
-        }
-
-        #loading-screen .status {
-            color: #9ca3af;
-            margin-top: 16px;
-            font-size: 14px;
-        }
-
-        /* Crosshair */
-        #crosshair {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 20px;
-            height: 20px;
-            pointer-events: none;
-            z-index: 50;
-        }
-
-        #crosshair::before,
-        #crosshair::after {
-            content: '';
-            position: absolute;
-            background: rgba(255, 255, 255, 0.5);
-        }
-
-        #crosshair::before {
-            width: 2px;
-            height: 20px;
-            left: 9px;
-            top: 0;
-        }
-
-        #crosshair::after {
-            width: 20px;
-            height: 2px;
-            left: 0;
-            top: 9px;
-        }
-
-        /* Fade overlay for room transitions */
-        #fade-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: black;
-            opacity: 0;
-            pointer-events: none;
-            z-index: 500;
-            transition: opacity 0.4s;
-        }
-    </style>
-</head>
-<body>
-    <div id="loading-screen">
-        <h1>Virtual Gallery</h1>
-        <div class="progress">
-            <div class="progress-bar"></div>
-        </div>
-        <div class="status">Loading...</div>
-    </div>
-
-    <div id="canvas-container"></div>
-    <div id="crosshair"></div>
-
-    <div id="status-bar">
-        <div class="room-name">Main Gallery</div>
-        <div class="artwork-count">Loading artworks...</div>
-    </div>
-
-    <div id="controls-help">
-        <div><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> Move</div>
-        <div><kbd>Mouse</kbd> Look around</div>
-        <div><kbd>Click</kbd> View artwork</div>
-        <div><kbd>E</kbd> Enter door</div>
-    </div>
-
-    <div id="mini-map">
-        <canvas id="map-canvas" width="156" height="120"></canvas>
-        <div class="room-buttons">
-            <button id="btn-main" class="active">Main Gallery</button>
-            <button id="btn-contemporary">Contemporary</button>
-        </div>
-    </div>
-
-    <div id="door-prompt">
-        Press <kbd>E</kbd> to enter <span class="door-label"></span>
-    </div>
-
-    <div id="fade-overlay"></div>
-
-    <div id="artwork-viewer">
-        <button class="close-btn">&times;</button>
-        <div class="viewer-content">
-            <img src="" alt="">
-            <div class="artwork-info">
-                <div class="artwork-title"></div>
-                <div class="artwork-artist"></div>
-                <div class="artwork-price"></div>
-                <a class="artwork-link" href="#" target="_blank">View in Shop</a>
-            </div>
-        </div>
-    </div>
-
-<script>
-// ============================================================
-// CONFIGURATION - Single source of truth for gallery layout
-// ============================================================
-
-const CONFIG = {
-    // Room definitions with unified spots (walls + floors in one array)
-    rooms: {
-        'main-gallery': {
-            name: 'Main Gallery',
-            dimensions: { width: 16, depth: 20, height: 5 },
-            position: { x: 0, y: 0, z: 0 },
-            theme: { wallColor: 0xf5f5f5, floorColor: 0xfafafa },
-            spots: [
-                // Back wall spots
-                { id: 'main-gallery:back-1', type: 'wall', position: { x: -4, y: 2.2, z: -9.9 }, rotation: 0, name: 'Back Left Wall' },
-                { id: 'main-gallery:back-2', type: 'wall', position: { x: 0, y: 2.2, z: -9.9 }, rotation: 0, name: 'Back Center Wall' },
-                { id: 'main-gallery:back-3', type: 'wall', position: { x: 4, y: 2.2, z: -9.9 }, rotation: 0, name: 'Back Right Wall' },
-                // Right wall spots
-                { id: 'main-gallery:right-1', type: 'wall', position: { x: 7.9, y: 2.2, z: -4 }, rotation: -Math.PI / 2, name: 'Right Front Wall' },
-                { id: 'main-gallery:right-2', type: 'wall', position: { x: 7.9, y: 2.2, z: 4 }, rotation: -Math.PI / 2, name: 'Right Back Wall' },
-                // Left wall spots
-                { id: 'main-gallery:left-1', type: 'wall', position: { x: -7.9, y: 2.2, z: -4 }, rotation: Math.PI / 2, name: 'Left Front Wall' },
-                { id: 'main-gallery:left-2', type: 'wall', position: { x: -7.9, y: 2.2, z: 4 }, rotation: Math.PI / 2, name: 'Left Back Wall' },
-                // Floor spots (easel placements)
-                { id: 'main-gallery:floor-1', type: 'floor', position: { x: -3, y: 0, z: 6 }, rotation: 0, name: 'Front Left' },
-                { id: 'main-gallery:floor-2', type: 'floor', position: { x: 0, y: 0, z: 6 }, rotation: 0, name: 'Front Center' },
-                { id: 'main-gallery:floor-3', type: 'floor', position: { x: 3, y: 0, z: 6 }, rotation: 0, name: 'Front Right' },
-                { id: 'main-gallery:floor-5', type: 'floor', position: { x: 3, y: 0, z: -6 }, rotation: 0, name: 'Rear Right' },
-                { id: 'main-gallery:floor-center', type: 'floor', position: { x: 0, y: 0, z: 0 }, rotation: 0, name: 'Center Stage' }
-            ],
-            doors: [
-                { position: { x: 6, y: 0, z: 10 }, rotation: Math.PI, targetRoom: 'contemporary-wing', label: 'Contemporary Wing' }
-            ]
-        },
-        'contemporary-wing': {
-            name: 'Contemporary Wing',
-            dimensions: { width: 20, depth: 16, height: 5 },
-            position: { x: 0, y: 0, z: 28 },
-            theme: { wallColor: 0xf0f4ff, floorColor: 0xffffff },
-            spots: [
-                // North wall (back)
-                { id: 'contemporary-wing:north-1', type: 'wall', position: { x: -5, y: 2.2, z: -7.9 }, rotation: 0, name: 'Skyline Panel' },
-                { id: 'contemporary-wing:north-2', type: 'wall', position: { x: 0, y: 2.2, z: -7.9 }, rotation: 0, name: 'Lightwell' },
-                { id: 'contemporary-wing:north-3', type: 'wall', position: { x: 5, y: 2.2, z: -7.9 }, rotation: 0, name: 'Glass Passage' },
-                // West wall (left)
-                { id: 'contemporary-wing:west-1', type: 'wall', position: { x: -9.9, y: 2.2, z: -3 }, rotation: Math.PI / 2, name: 'Chromatic Stack' },
-                { id: 'contemporary-wing:west-2', type: 'wall', position: { x: -9.9, y: 2.2, z: 3 }, rotation: Math.PI / 2, name: 'Cascade Wall' },
-                // East wall (right)
-                { id: 'contemporary-wing:east-1', type: 'wall', position: { x: 9.9, y: 2.2, z: -3 }, rotation: -Math.PI / 2, name: 'Spectrum Drift' },
-                { id: 'contemporary-wing:east-2', type: 'wall', position: { x: 9.9, y: 2.2, z: 3 }, rotation: -Math.PI / 2, name: 'Neon Strata' },
-                // Floor spots
-                { id: 'contemporary-wing:floor-1', type: 'floor', position: { x: -4, y: 0, z: -4 }, rotation: 0, name: 'Atrium Plinth' },
-                { id: 'contemporary-wing:floor-2', type: 'floor', position: { x: 0, y: 0, z: -4 }, rotation: 0, name: 'Reflective Stage' },
-                { id: 'contemporary-wing:floor-3', type: 'floor', position: { x: 4, y: 0, z: -4 }, rotation: 0, name: 'Aurora Base' },
-                { id: 'contemporary-wing:floor-4', type: 'floor', position: { x: -4, y: 0, z: 4 }, rotation: 0, name: 'Sculpture Garden' },
-                { id: 'contemporary-wing:floor-5', type: 'floor', position: { x: 4, y: 0, z: 4 }, rotation: 0, name: 'Light Pool' }
-            ],
-            doors: [
-                { position: { x: 0, y: 0, z: 8 }, rotation: 0, targetRoom: 'main-gallery', label: 'Main Gallery' }
-            ]
-        }
-    },
-
-    camera: {
-        fov: 75,
-        near: 0.1,
-        far: 1000,
-        eyeLevel: 1.6,
-        moveSpeed: 5,
-        lookSpeed: 0.002
-    },
-
-    dataUrl: 'data.csv'
-};
-
-// ============================================================
-// STATE - Simple, centralized state
-// ============================================================
-
-const state = {
-    currentRoom: 'main-gallery',
-    artworks: new Map(),        // artwork id -> artwork data
-    placements: new Map(),      // spotId -> artwork data
-    isPointerLocked: false,
-    nearDoor: null,
-    selectedArtwork: null
-};
-
-// ============================================================
-// DATA LOADING - Simple CSV parser
-// ============================================================
-
-async function loadArtworksFromCSV() {
-    updateLoadingStatus('Loading artwork data...');
-
-    try {
-        const response = await fetch(CONFIG.dataUrl);
-        const text = await response.text();
-        const artworks = parseCSV(text);
-
-        console.log(`[Data] Loaded ${artworks.length} artwork events from CSV`);
-
-        // Store artworks and create placements map
-        artworks.forEach(artwork => {
-            if (artwork.locationId && artwork.imageUrl) {
-                state.artworks.set(artwork.id, artwork);
-                state.placements.set(artwork.locationId, artwork);
-                console.log(`[Data] Placed: "${artwork.title}" at ${artwork.locationId}`);
+        
+        function toggleViewMode() {
+            if (!isAdmin) {
+                viewMode = 'normal';
+                wallSpots.forEach(spot => spot.visible = false);
+                updateShowSpacesButton();
+                return;
             }
-        });
 
-        console.log(`[Data] Total placements: ${state.placements.size}`);
-        updateLoadingStatus(`Loaded ${state.placements.size} placed artworks`);
-        return artworks;
-    } catch (error) {
-        console.error('[Data] Failed to load CSV:', error);
-        updateLoadingStatus('Failed to load artworks');
-        return [];
-    }
-}
+            const modes = ['normal', 'spots'];
+            const currentIndex = modes.indexOf(viewMode);
+            viewMode = modes[(currentIndex + 1) % modes.length];
 
-function parseCSV(text) {
-    const lines = text.trim().split('\n');
-    if (lines.length < 2) return [];
-
-    const artworks = [];
-
-    for (let i = 1; i < lines.length; i++) {
-        const line = lines[i];
-        if (!line.trim()) continue;
-
-        const parts = parseCSVLine(line);
-        if (parts.length < 12) continue;
-
-        const [id, created_at, event_uid, verb, op, frame, scale, published, actor_id, object_type, object_id, dataStr] = parts;
-
-        // Only process artwork_upload events
-        if (op !== 'artwork_upload') continue;
-
-        try {
-            const data = JSON.parse(dataStr);
-            artworks.push({
-                id: object_id,
-                title: data.title || 'Untitled',
-                artist: data.artist || 'Unknown Artist',
-                description: data.description || '',
-                imageUrl: data.imageUrl,
-                productUrl: data.productUrl,
-                price: data.price,
-                currency: data.currency || 'USD',
-                roomId: data.roomId,
-                locationId: data.locationId,
-                locationName: data.locationName,
-                heightMeters: data.heightMeters || 0.9144,
-                widthInches: data.widthInches,
-                heightInches: data.heightInches
+            wallSpots.forEach(spot => {
+                spot.visible = viewMode === 'spots' && !spot.userData.occupied;
             });
-        } catch (e) {
-            console.warn('[Data] Failed to parse row:', i, e.message);
-        }
-    }
 
-    return artworks;
-}
-
-function parseCSVLine(line) {
-    const parts = [];
-    let current = '';
-    let inQuotes = false;
-
-    for (let i = 0; i < line.length; i++) {
-        const char = line[i];
-
-        if (char === '"' && (i === 0 || line[i-1] !== '\\')) {
-            inQuotes = !inQuotes;
-        } else if (char === ',' && !inQuotes) {
-            parts.push(current.trim());
-            current = '';
-        } else {
-            current += char;
-        }
-    }
-    parts.push(current.trim());
-
-    return parts.map(p => {
-        if (p.startsWith('"') && p.endsWith('"')) {
-            return p.slice(1, -1).replace(/""/g, '"');
-        }
-        return p;
-    });
-}
-
-// ============================================================
-// THREE.JS SCENE
-// ============================================================
-
-let scene, camera, renderer;
-let roomMeshes = new Map();
-let spotMeshes = new Map();      // spotId -> spot mesh
-let artworkMeshes = new Map();   // spotId -> artwork group
-let doorMeshes = [];
-let clock;
-
-function initScene() {
-    updateLoadingStatus('Initializing 3D scene...');
-
-    scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x1a1a2e);
-
-    camera = new THREE.PerspectiveCamera(
-        CONFIG.camera.fov,
-        window.innerWidth / window.innerHeight,
-        CONFIG.camera.near,
-        CONFIG.camera.far
-    );
-
-    renderer = new THREE.WebGLRenderer({ antialias: true });
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-    document.getElementById('canvas-container').appendChild(renderer.domElement);
-
-    // Global lighting
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
-    scene.add(ambientLight);
-
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.4);
-    directionalLight.position.set(5, 10, 5);
-    directionalLight.castShadow = true;
-    scene.add(directionalLight);
-
-    clock = new THREE.Clock();
-
-    // Build all rooms
-    Object.keys(CONFIG.rooms).forEach(roomId => {
-        buildRoom(roomId);
-    });
-
-    // Position camera in starting room
-    const startRoom = CONFIG.rooms[state.currentRoom];
-    camera.position.set(
-        startRoom.position.x,
-        CONFIG.camera.eyeLevel,
-        startRoom.position.z + startRoom.dimensions.depth / 2 - 3
-    );
-
-    updateRoomVisibility();
-    window.addEventListener('resize', onWindowResize);
-}
-
-function buildRoom(roomId) {
-    const roomConfig = CONFIG.rooms[roomId];
-    const roomGroup = new THREE.Group();
-    roomGroup.name = roomId;
-
-    const { width, depth, height } = roomConfig.dimensions;
-    const { x, y, z } = roomConfig.position;
-
-    // Floor
-    const floorGeom = new THREE.PlaneGeometry(width, depth);
-    const floorMat = new THREE.MeshStandardMaterial({ color: roomConfig.theme.floorColor, roughness: 0.4 });
-    const floor = new THREE.Mesh(floorGeom, floorMat);
-    floor.rotation.x = -Math.PI / 2;
-    floor.receiveShadow = true;
-    roomGroup.add(floor);
-
-    // Ceiling
-    const ceilingGeom = new THREE.PlaneGeometry(width, depth);
-    const ceilingMat = new THREE.MeshStandardMaterial({ color: 0xffffff });
-    const ceiling = new THREE.Mesh(ceilingGeom, ceilingMat);
-    ceiling.rotation.x = Math.PI / 2;
-    ceiling.position.y = height;
-    roomGroup.add(ceiling);
-
-    // Walls
-    const wallMat = new THREE.MeshStandardMaterial({ color: roomConfig.theme.wallColor, roughness: 0.9 });
-
-    const backWall = new THREE.Mesh(new THREE.PlaneGeometry(width, height), wallMat);
-    backWall.position.set(0, height / 2, -depth / 2);
-    roomGroup.add(backWall);
-
-    const frontWall = new THREE.Mesh(new THREE.PlaneGeometry(width, height), wallMat);
-    frontWall.position.set(0, height / 2, depth / 2);
-    frontWall.rotation.y = Math.PI;
-    roomGroup.add(frontWall);
-
-    const leftWall = new THREE.Mesh(new THREE.PlaneGeometry(depth, height), wallMat);
-    leftWall.position.set(-width / 2, height / 2, 0);
-    leftWall.rotation.y = Math.PI / 2;
-    roomGroup.add(leftWall);
-
-    const rightWall = new THREE.Mesh(new THREE.PlaneGeometry(depth, height), wallMat);
-    rightWall.position.set(width / 2, height / 2, 0);
-    rightWall.rotation.y = -Math.PI / 2;
-    roomGroup.add(rightWall);
-
-    // Create invisible spot markers
-    roomConfig.spots.forEach(spot => {
-        const spotMesh = createSpotMarker(spot);
-        spotMesh.userData = { ...spot, roomId };
-        roomGroup.add(spotMesh);
-        spotMeshes.set(spot.id, spotMesh);
-    });
-
-    // Create doors
-    roomConfig.doors.forEach(doorConfig => {
-        const door = createDoor(doorConfig, roomId);
-        roomGroup.add(door);
-        doorMeshes.push(door);
-    });
-
-    // Room lighting
-    addRoomLighting(roomGroup, roomConfig);
-
-    roomGroup.position.set(x, y, z);
-    scene.add(roomGroup);
-    roomMeshes.set(roomId, roomGroup);
-}
-
-function createSpotMarker(spot) {
-    const geometry = spot.type === 'floor'
-        ? new THREE.CylinderGeometry(0.5, 0.5, 0.02, 16)
-        : new THREE.BoxGeometry(1.5, 1.5, 0.02);
-
-    const material = new THREE.MeshBasicMaterial({ visible: false });
-    const mesh = new THREE.Mesh(geometry, material);
-    mesh.position.set(spot.position.x, spot.position.y, spot.position.z);
-    if (spot.type === 'wall') mesh.rotation.y = spot.rotation;
-    return mesh;
-}
-
-function createDoor(doorConfig, roomId) {
-    const doorGroup = new THREE.Group();
-
-    // Frame
-    const frameGeom = new THREE.BoxGeometry(1.8, 2.8, 0.15);
-    const frameMat = new THREE.MeshStandardMaterial({ color: 0x4a4a4a });
-    const frame = new THREE.Mesh(frameGeom, frameMat);
-    frame.position.y = 1.4;
-    doorGroup.add(frame);
-
-    // Opening
-    const openingGeom = new THREE.PlaneGeometry(1.5, 2.5);
-    const openingMat = new THREE.MeshBasicMaterial({ color: 0x111111 });
-    const opening = new THREE.Mesh(openingGeom, openingMat);
-    opening.position.y = 1.25;
-    opening.position.z = 0.08;
-    doorGroup.add(opening);
-
-    // Arrow
-    const arrowGeom = new THREE.ConeGeometry(0.15, 0.3, 8);
-    const arrowMat = new THREE.MeshBasicMaterial({ color: 0x4ade80 });
-    const arrow = new THREE.Mesh(arrowGeom, arrowMat);
-    arrow.rotation.x = Math.PI / 2;
-    arrow.position.set(0, 1.5, 0.2);
-    doorGroup.add(arrow);
-
-    doorGroup.position.set(doorConfig.position.x, doorConfig.position.y, doorConfig.position.z);
-    doorGroup.rotation.y = doorConfig.rotation;
-    doorGroup.userData = { isDoor: true, targetRoom: doorConfig.targetRoom, label: doorConfig.label, sourceRoom: roomId };
-
-    return doorGroup;
-}
-
-function addRoomLighting(roomGroup, roomConfig) {
-    roomConfig.spots.filter(s => s.type === 'wall').forEach(spot => {
-        const light = new THREE.SpotLight(0xffffff, 0.8);
-        light.position.set(spot.position.x, roomConfig.dimensions.height - 0.5, spot.position.z + 2);
-        light.target.position.set(spot.position.x, spot.position.y, spot.position.z);
-        light.angle = 0.5;
-        light.penumbra = 0.5;
-        light.castShadow = true;
-        roomGroup.add(light);
-        roomGroup.add(light.target);
-    });
-}
-
-function updateRoomVisibility() {
-    roomMeshes.forEach((mesh, roomId) => {
-        mesh.visible = (roomId === state.currentRoom);
-    });
-
-    // Also show/hide artworks based on room
-    artworkMeshes.forEach((mesh, spotId) => {
-        const roomId = spotId.split(':')[0];
-        mesh.visible = (roomId === state.currentRoom);
-    });
-
-    // Update UI
-    const roomConfig = CONFIG.rooms[state.currentRoom];
-    document.querySelector('#status-bar .room-name').textContent = roomConfig.name;
-
-    let count = 0;
-    roomConfig.spots.forEach(spot => {
-        if (state.placements.has(spot.id)) count++;
-    });
-    document.querySelector('#status-bar .artwork-count').textContent = `${count} artwork${count !== 1 ? 's' : ''} displayed`;
-
-    // Update mini-map buttons
-    document.querySelectorAll('#mini-map button').forEach(btn => btn.classList.remove('active'));
-    const activeBtn = state.currentRoom === 'main-gallery' ? '#btn-main' : '#btn-contemporary';
-    document.querySelector(activeBtn).classList.add('active');
-}
-
-function onWindowResize() {
-    camera.aspect = window.innerWidth / window.innerHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
-}
-
-// ============================================================
-// ARTWORK RENDERING
-// ============================================================
-
-const textureLoader = new THREE.TextureLoader();
-
-function renderAllArtworks() {
-    updateLoadingStatus('Rendering artworks...');
-
-    let loaded = 0;
-    const total = state.placements.size;
-
-    if (total === 0) {
-        updateLoadingProgress(100);
-        return;
-    }
-
-    state.placements.forEach((artwork, spotId) => {
-        const spotMesh = spotMeshes.get(spotId);
-        if (!spotMesh) {
-            console.warn(`[Render] Spot not found: ${spotId}`);
-            loaded++;
-            updateLoadingProgress((loaded / total) * 100);
-            return;
+            updateShowSpacesButton();
         }
 
-        renderArtwork(artwork, spotMesh.userData, () => {
-            loaded++;
-            updateLoadingProgress((loaded / total) * 100);
-        });
-    });
-}
+        function toggleShowSpaces() {
+            toggleViewMode();
+        }
 
-function renderArtwork(artwork, spot, onComplete) {
-    textureLoader.load(
-        artwork.imageUrl,
-        (texture) => {
-            const aspectRatio = texture.image.width / texture.image.height;
-            const height = artwork.heightMeters || 0.9;
-            const width = height * aspectRatio;
+        function updateShowSpacesButton() {
+            const btn = document.getElementById('show-spaces-btn');
+            if (btn) {
+                if (viewMode === 'spots') {
+                    btn.textContent = 'Hide Spaces';
+                    btn.style.background = 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)';
+                } else {
+                    btn.textContent = 'Show Spaces';
+                    btn.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+                }
+            }
+        }
+        
+        function removeNearestArtwork() {
+            raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
+            const intersects = raycaster.intersectObjects(artworks, true);
+            
+            if (intersects.length > 0) {
+                let artworkGroup = intersects[0].object;
+                while (artworkGroup.parent && !artworkGroup.userData.spotId) {
+                    artworkGroup = artworkGroup.parent;
+                }
+                
+                if (artworkGroup.userData.spotId) {
+                    if (isAdmin && artworkGroup.userData.artworkId) {
+                        deleteArtworkEvent(artworkGroup.userData.artworkId);
+                    }
+                    
+                    const wallSpot = wallSpots.find(s => s.userData.id === artworkGroup.userData.spotId);
+                    const floorSpot = floorSpots.find(s => s.userData.id === artworkGroup.userData.spotId);
+                    
+                    if (wallSpot) {
+                        wallSpot.userData.occupied = false;
+                        wallSpot.userData.currentWidth = 0;
+                        wallSpot.material.color.setHex(0x667eea);
+                        wallSpot.material.emissive.setHex(0x667eea);
+                    }
+                    
+                    if (floorSpot) {
+                        floorSpot.userData.occupied = false;
+                        floorSpot.material.color.setHex(0x667eea);
+                        floorSpot.material.emissive.setHex(0x667eea);
 
-            if (spot.type === 'wall') {
-                createWallArtwork(artwork, spot, texture, width, height);
+                        if (floorSpot.userData.pedestal) {
+                            const pedestalParent = floorSpot.userData.pedestal.parent;
+                            if (pedestalParent) {
+                                pedestalParent.remove(floorSpot.userData.pedestal);
+                            }
+                            floorSpot.userData.pedestal = null;
+                        }
+                    }
+
+                    if (artworkGroup.userData.placardIndex !== undefined &&
+                        placards[artworkGroup.userData.placardIndex]) {
+                        const placard = placards[artworkGroup.userData.placardIndex];
+                        if (placard && placard.parent) {
+                            placard.parent.remove(placard);
+                        }
+                        placards[artworkGroup.userData.placardIndex] = null;
+                    }
+
+                    if (artworkGroup.userData.wire && artworkGroup.userData.wire.parent) {
+                        artworkGroup.userData.wire.parent.remove(artworkGroup.userData.wire);
+                        artworkGroup.userData.wire = null;
+                    }
+
+                    if (artworkGroup.parent) {
+                        artworkGroup.parent.remove(artworkGroup);
+                    }
+                    const index = artworks.indexOf(artworkGroup);
+                    if (index > -1) artworks.splice(index, 1);
+
+                    updateSpotCounters();
+                }
+            }
+        }
+        
+        function onCanvasClick(event) {
+            const pointer = new THREE.Vector2(0, 0);
+
+            if (!document.pointerLockElement) {
+                const rect = renderer.domElement.getBoundingClientRect();
+                pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+                pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+            }
+
+            raycaster.setFromCamera(pointer, camera);
+
+            const artIntersects = raycaster.intersectObjects(artworks, true);
+            if (artIntersects.length > 0) {
+                let artworkGroup = artIntersects[0].object;
+                while (artworkGroup.parent && !artworkGroup.userData.metadata) {
+                    artworkGroup = artworkGroup.parent;
+                }
+
+                if (artworkGroup.userData.metadata) {
+                    // Check if this artwork is a gateway to another room
+                    if (artworkGroup.userData.gatewayTo && ROOMS[artworkGroup.userData.gatewayTo]) {
+                        console.log('Gateway painting clicked, transitioning to:', artworkGroup.userData.gatewayTo);
+                        roomManager.transitionToRoom(artworkGroup.userData.gatewayTo);
+                        return;
+                    }
+
+                    // Check if this is a multi-image display with slider mode
+                    if (artworkGroup.userData.displayMode === 'slider' && artworkGroup.userData.images && artworkGroup.userData.images.length > 1) {
+                        // Cycle to next image in slider
+                        cycleSliderImage(artworkGroup);
+                        return;
+                    }
+
+                    // Normal interaction: edit or view
+                    if (isAdmin && artworkGroup.userData.imageUrl) {
+                        showEditDialog(artworkGroup);
+                    } else if (artworkGroup.userData.imageUrl) {
+                        showArtViewer(artworkGroup.userData);
+                    }
+                    return;
+                }
+            }
+
+            const ray = raycaster.ray;
+            let closestArtwork = null;
+            let closestDistance = Infinity;
+            const NEAR_THRESHOLD = 0.75;
+
+            artworks.forEach(artwork => {
+                const box = new THREE.Box3().setFromObject(artwork);
+                const sphere = box.getBoundingSphere(new THREE.Sphere());
+
+                const toCenter = new THREE.Vector3().subVectors(sphere.center, ray.origin);
+                const projection = toCenter.dot(ray.direction);
+                if (projection < 0) return;
+
+                const distanceToRay = Math.sqrt(ray.distanceSqToPoint(sphere.center));
+                if (distanceToRay <= sphere.radius + NEAR_THRESHOLD && distanceToRay < closestDistance) {
+                    closestDistance = distanceToRay;
+                    closestArtwork = artwork;
+                }
+            });
+
+            if (closestArtwork && closestArtwork.userData.metadata) {
+                // Check if this artwork is a gateway to another room
+                if (closestArtwork.userData.gatewayTo && ROOMS[closestArtwork.userData.gatewayTo]) {
+                    console.log('Gateway painting clicked (fallback), transitioning to:', closestArtwork.userData.gatewayTo);
+                    roomManager.transitionToRoom(closestArtwork.userData.gatewayTo);
+                    return;
+                }
+
+                // Check if this is a multi-image display with slider mode
+                if (closestArtwork.userData.displayMode === 'slider' && closestArtwork.userData.images && closestArtwork.userData.images.length > 1) {
+                    cycleSliderImage(closestArtwork);
+                    return;
+                }
+
+                // Normal interaction
+                if (isAdmin && closestArtwork.userData.imageUrl) {
+                    showEditDialog(closestArtwork);
+                } else if (closestArtwork.userData.imageUrl) {
+                    showArtViewer(closestArtwork.userData);
+                }
+                return;
+            }
+
+            // Check for wall spot clicks (admin only, spots mode)
+            if (isAdmin && viewMode === 'spots') {
+                const visibleSpots = [...wallSpots, ...floorSpots].filter(s => s.visible);
+                const spotIntersects = raycaster.intersectObjects(visibleSpots, false);
+
+                if (spotIntersects.length > 0) {
+                    const clickedSpot = spotIntersects[0].object;
+                    if (clickedSpot.userData && !clickedSpot.userData.occupied) {
+                        const spotData = clickedSpot.userData;
+                        const roomConfig = ROOMS[spotData.roomId];
+                        const roomName = roomConfig ? roomConfig.name : spotData.roomId;
+                        const locationName = spotData.displayName || spotData.baseId || spotData.id;
+
+                        openPlaceAssignDialog(spotData.id, spotData.roomId, locationName, roomName);
+                    }
+                }
+            }
+        }
+
+        function onCanvasDblClick(event) {
+            // Check if double-click is on a painting
+            const pointer = new THREE.Vector2();
+
+            if (document.pointerLockElement) {
+                // If pointer is locked, use center of screen
+                pointer.set(0, 0);
             } else {
-                createFloorArtwork(artwork, spot, texture, width, height);
+                // Otherwise use click position
+                const rect = renderer.domElement.getBoundingClientRect();
+                pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+                pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
             }
 
-            console.log(`[Render] Rendered "${artwork.title}" at ${spot.id} (${spot.type})`);
-            if (onComplete) onComplete();
-        },
-        undefined,
-        (error) => {
-            console.error(`[Render] Failed to load: ${artwork.imageUrl}`, error);
-            if (onComplete) onComplete();
+            raycaster.setFromCamera(pointer, camera);
+            const artIntersects = raycaster.intersectObjects(artworks, true);
+
+            // Only toggle cursor if NOT clicking on a painting
+            if (artIntersects.length === 0) {
+                if (document.pointerLockElement) {
+                    // Currently locked, so unlock (show cursor)
+                    document.exitPointerLock();
+                } else {
+                    // Currently unlocked, so lock (hide cursor)
+                    renderer.domElement.requestPointerLock();
+                }
+            }
         }
-    );
-}
 
-function createWallArtwork(artwork, spot, texture, width, height) {
-    const group = new THREE.Group();
+        // Create a grid layout of multiple artworks in one spot
+        function createGridLayout(spot, imagesData, metadata, artworkId, artworkData) {
+            if (!imagesData || imagesData.length === 0) return;
 
-    // Frame
-    const frameDepth = 0.05;
-    const frameBorder = 0.08;
-    const frameGeom = new THREE.BoxGeometry(width + frameBorder * 2, height + frameBorder * 2, frameDepth);
-    const frameMat = new THREE.MeshStandardMaterial({ color: 0x2d2d2d, roughness: 0.3 });
-    const frame = new THREE.Mesh(frameGeom, frameMat);
-    frame.castShadow = true;
-    group.add(frame);
+            const gridGroup = new THREE.Group();
+            gridGroup.name = 'artwork-grid';
+            gridGroup.userData = {
+                name: metadata.title || 'Untitled Grid',
+                spotId: spot.userData.id,
+                metadata: metadata,
+                artworkId: artworkId,
+                gatewayTo: artworkData?.gatewayTo || '',
+                displayMode: 'grid',
+                images: imagesData,
+                isGrid: true
+            };
 
-    // Canvas
-    const canvasGeom = new THREE.PlaneGeometry(width, height);
-    const canvasMat = new THREE.MeshStandardMaterial({ map: texture, roughness: 0.5 });
-    const canvas = new THREE.Mesh(canvasGeom, canvasMat);
-    canvas.position.z = frameDepth / 2 + 0.001;
-    group.add(canvas);
+            // Calculate grid dimensions (2x2, 2x3, 3x3, etc.)
+            const imageCount = imagesData.length;
+            const cols = Math.ceil(Math.sqrt(imageCount));
+            const rows = Math.ceil(imageCount / cols);
 
-    // Position
-    const roomPos = CONFIG.rooms[spot.roomId].position;
-    group.position.set(roomPos.x + spot.position.x, roomPos.y + spot.position.y, roomPos.z + spot.position.z);
-    group.rotation.y = spot.rotation;
+            // Size each image to fit in grid
+            const maxGridWidth = spot.userData.maxWidth * 0.3048 * 0.9; // 90% of spot width
+            const imageWidth = maxGridWidth / cols * 0.9; // With some spacing
+            const imageHeight = imageWidth; // Square for simplicity
+            const spacing = imageWidth * 0.15;
 
-    // Offset from wall
-    const offset = new THREE.Vector3(0, 0, 0.05);
-    offset.applyAxisAngle(new THREE.Vector3(0, 1, 0), spot.rotation);
-    group.position.add(offset);
+            const gridWidth = cols * imageWidth + (cols - 1) * spacing;
+            const gridHeight = rows * imageHeight + (rows - 1) * spacing;
 
-    group.userData = { isArtwork: true, artwork, spotId: spot.id };
+            gridGroup.position.copy(spot.position);
+            gridGroup.rotation.y = spot.userData.rotation;
 
-    // Placard
-    const placard = createPlacard(artwork, width);
-    placard.position.y = -height / 2 - 0.25;
-    placard.position.z = 0.03;
-    group.add(placard);
+            const normal = new THREE.Vector3(0, 0, 1);
+            normal.applyEuler(new THREE.Euler(0, spot.userData.rotation, 0));
+            gridGroup.position.add(normal.multiplyScalar(0.05));
 
-    scene.add(group);
-    artworkMeshes.set(spot.id, group);
-}
+            const parentGroup = spot.parent || scene;
 
-function createFloorArtwork(artwork, spot, texture, width, height) {
-    const group = new THREE.Group();
-    const easelMat = new THREE.MeshStandardMaterial({ color: 0x4a3728 });
+            // Create each image in the grid
+            let loadedCount = 0;
+            imagesData.forEach((imageData, index) => {
+                if (!imageData.imageUrl) return;
 
-    // Easel legs
-    const legGeom = new THREE.CylinderGeometry(0.02, 0.02, 1.8, 8);
+                const col = index % cols;
+                const row = Math.floor(index / cols);
 
-    const leg1 = new THREE.Mesh(legGeom, easelMat);
-    leg1.position.set(-0.25, 0.9, -0.15);
-    leg1.rotation.x = 0.1;
-    group.add(leg1);
+                const xOffset = (col - (cols - 1) / 2) * (imageWidth + spacing);
+                const yOffset = ((rows - 1) / 2 - row) * (imageHeight + spacing);
 
-    const leg2 = new THREE.Mesh(legGeom, easelMat);
-    leg2.position.set(0.25, 0.9, -0.15);
-    leg2.rotation.x = 0.1;
-    group.add(leg2);
+                const textureLoader = new THREE.TextureLoader();
+                textureLoader.setCrossOrigin('anonymous');
+                textureLoader.load(imageData.imageUrl, (texture) => {
+                    const frameGeometry = new THREE.BoxGeometry(imageWidth + 0.05, imageHeight + 0.05, 0.03);
+                    const frameMaterial = new THREE.MeshStandardMaterial({ color: 0x8b7355, roughness: 0.8, metalness: 0.2 });
+                    const frame = new THREE.Mesh(frameGeometry, frameMaterial);
+                    frame.castShadow = true;
 
-    const leg3 = new THREE.Mesh(legGeom, easelMat);
-    leg3.position.set(0, 0.9, 0.2);
-    leg3.rotation.x = -0.15;
-    group.add(leg3);
+                    const artGeometry = new THREE.PlaneGeometry(imageWidth, imageHeight);
+                    const artMaterial = new THREE.MeshStandardMaterial({ map: texture, roughness: 0.3, metalness: 0.1 });
+                    const art = new THREE.Mesh(artGeometry, artMaterial);
+                    art.position.z = 0.016;
 
-    // Support bar
-    const barGeom = new THREE.BoxGeometry(0.6, 0.03, 0.03);
-    const bar = new THREE.Mesh(barGeom, easelMat);
-    bar.position.set(0, 0.5, -0.1);
-    group.add(bar);
+                    const imageGroup = new THREE.Group();
+                    imageGroup.add(frame);
+                    imageGroup.add(art);
+                    imageGroup.position.set(xOffset, yOffset, 0);
+                    imageGroup.userData = {
+                        metadata: {
+                            title: imageData.title || metadata.title || 'Untitled',
+                            artist: imageData.artist || metadata.artist || '',
+                            description: imageData.description || metadata.description || ''
+                        },
+                        imageUrl: imageData.imageUrl,
+                        gridIndex: index
+                    };
 
-    // Scale artwork
-    const maxSize = 0.7;
-    const scale = Math.min(maxSize / width, maxSize / height);
-    const scaledWidth = width * scale;
-    const scaledHeight = height * scale;
+                    gridGroup.add(imageGroup);
+                }, undefined, (error) => {
+                    console.error('Failed to load grid image:', imageData.imageUrl, error);
+                });
+            });
 
-    // Frame
-    const frameGeom = new THREE.BoxGeometry(scaledWidth + 0.06, scaledHeight + 0.06, 0.03);
-    const frameMat = new THREE.MeshStandardMaterial({ color: 0x2d2d2d });
-    const frame = new THREE.Mesh(frameGeom, frameMat);
-    frame.position.set(0, 1.1 + scaledHeight / 2, -0.1);
-    frame.rotation.x = -0.1;
-    frame.castShadow = true;
-    group.add(frame);
+            artworks.push(gridGroup);
+            parentGroup.add(gridGroup);
 
-    // Canvas
-    const canvasGeom = new THREE.PlaneGeometry(scaledWidth, scaledHeight);
-    const canvasMat = new THREE.MeshStandardMaterial({ map: texture });
-    const canvas = new THREE.Mesh(canvasGeom, canvasMat);
-    canvas.position.set(0, 1.1 + scaledHeight / 2, -0.08);
-    canvas.rotation.x = -0.1;
-    group.add(canvas);
+            const placard = createPlacard(metadata, spot.position, spot.userData.rotation, false, gridWidth, gridHeight, parentGroup);
+            if (placard) {
+                gridGroup.userData.placardIndex = placards.indexOf(placard);
+            }
 
-    // Position
-    const roomPos = CONFIG.rooms[spot.roomId].position;
-    group.position.set(roomPos.x + spot.position.x, roomPos.y + spot.position.y, roomPos.z + spot.position.z);
-    group.rotation.y = Math.PI;
+            spot.userData.occupied = true;
+            spot.userData.currentWidth = gridWidth;
+            spot.material.color.setHex(0xff6b6b);
+            spot.material.emissive.setHex(0xff6b6b);
 
-    group.userData = { isArtwork: true, artwork, spotId: spot.id };
-
-    scene.add(group);
-    artworkMeshes.set(spot.id, group);
-}
-
-function createPlacard(artwork, artworkWidth) {
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-    canvas.width = 512;
-    canvas.height = 128;
-
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    ctx.strokeStyle = '#e5e5e5';
-    ctx.lineWidth = 2;
-    ctx.strokeRect(1, 1, canvas.width - 2, canvas.height - 2);
-
-    ctx.fillStyle = '#1a1a1a';
-    ctx.font = 'bold 28px Arial';
-    ctx.textAlign = 'center';
-    const title = artwork.title.length > 30 ? artwork.title.substring(0, 30) + '...' : artwork.title;
-    ctx.fillText(title, canvas.width / 2, 40);
-
-    ctx.fillStyle = '#666666';
-    ctx.font = '22px Arial';
-    ctx.fillText(artwork.artist, canvas.width / 2, 75);
-
-    if (artwork.price) {
-        ctx.fillStyle = '#22c55e';
-        ctx.font = 'bold 24px Arial';
-        ctx.fillText(`$${artwork.price} ${artwork.currency || 'USD'}`, canvas.width / 2, 110);
-    }
-
-    const texture = new THREE.CanvasTexture(canvas);
-    const placardWidth = Math.min(artworkWidth, 0.5);
-    const placardHeight = placardWidth * (canvas.height / canvas.width);
-
-    const geometry = new THREE.PlaneGeometry(placardWidth, placardHeight);
-    const material = new THREE.MeshBasicMaterial({ map: texture });
-
-    return new THREE.Mesh(geometry, material);
-}
-
-// ============================================================
-// CONTROLS
-// ============================================================
-
-const keys = { w: false, a: false, s: false, d: false };
-
-function initControls() {
-    document.addEventListener('keydown', (e) => {
-        const key = e.key.toLowerCase();
-        if (keys.hasOwnProperty(key)) keys[key] = true;
-        if (key === 'e' && state.nearDoor) transitionToRoom(state.nearDoor.targetRoom);
-        if (key === 'escape') closeArtworkViewer();
-    });
-
-    document.addEventListener('keyup', (e) => {
-        const key = e.key.toLowerCase();
-        if (keys.hasOwnProperty(key)) keys[key] = false;
-    });
-
-    const canvas = renderer.domElement;
-
-    canvas.addEventListener('click', () => {
-        if (!state.isPointerLocked) {
-            canvas.requestPointerLock();
-        } else {
-            checkArtworkClick();
+            updateSpotCounters();
         }
-    });
 
-    document.addEventListener('pointerlockchange', () => {
-        state.isPointerLocked = document.pointerLockElement === canvas;
-    });
+        // Cycle to the next image in a slider display
+        function cycleSliderImage(artworkGroup) {
+            if (!artworkGroup.userData.images || artworkGroup.userData.images.length <= 1) return;
 
-    document.addEventListener('mousemove', (e) => {
-        if (!state.isPointerLocked) return;
-        camera.rotation.y -= e.movementX * CONFIG.camera.lookSpeed;
-        camera.rotation.x -= e.movementY * CONFIG.camera.lookSpeed;
-        camera.rotation.x = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, camera.rotation.x));
-    });
+            // Update current index
+            const currentIndex = artworkGroup.userData.currentImageIndex || 0;
+            const nextIndex = (currentIndex + 1) % artworkGroup.userData.images.length;
+            artworkGroup.userData.currentImageIndex = nextIndex;
 
-    document.getElementById('btn-main').addEventListener('click', () => {
-        if (state.currentRoom !== 'main-gallery') transitionToRoom('main-gallery');
-    });
+            // Get next image data
+            const nextImage = artworkGroup.userData.images[nextIndex];
+            if (!nextImage || !nextImage.imageUrl) return;
 
-    document.getElementById('btn-contemporary').addEventListener('click', () => {
-        if (state.currentRoom !== 'contemporary-wing') transitionToRoom('contemporary-wing');
-    });
-
-    document.querySelector('#artwork-viewer .close-btn').addEventListener('click', closeArtworkViewer);
-    document.getElementById('artwork-viewer').addEventListener('click', (e) => {
-        if (e.target.id === 'artwork-viewer') closeArtworkViewer();
-    });
-}
-
-function updateMovement(delta) {
-    if (!state.isPointerLocked) return;
-
-    const speed = CONFIG.camera.moveSpeed * delta;
-    const direction = new THREE.Vector3();
-
-    const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
-    forward.y = 0;
-    forward.normalize();
-
-    const right = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion);
-    right.y = 0;
-    right.normalize();
-
-    if (keys.w) direction.add(forward);
-    if (keys.s) direction.sub(forward);
-    if (keys.d) direction.add(right);
-    if (keys.a) direction.sub(right);
-
-    if (direction.length() > 0) {
-        direction.normalize();
-        const newPos = camera.position.clone().add(direction.multiplyScalar(speed));
-
-        const room = CONFIG.rooms[state.currentRoom];
-        const halfWidth = room.dimensions.width / 2 - 1;
-        const halfDepth = room.dimensions.depth / 2 - 1;
-
-        newPos.x = Math.max(room.position.x - halfWidth, Math.min(room.position.x + halfWidth, newPos.x));
-        newPos.z = Math.max(room.position.z - halfDepth, Math.min(room.position.z + halfDepth, newPos.z));
-
-        camera.position.copy(newPos);
-    }
-}
-
-function checkDoorProximity() {
-    const doorPrompt = document.getElementById('door-prompt');
-    state.nearDoor = null;
-
-    for (const door of doorMeshes) {
-        if (door.userData.sourceRoom !== state.currentRoom) continue;
-
-        const doorWorldPos = new THREE.Vector3();
-        door.getWorldPosition(doorWorldPos);
-
-        if (camera.position.distanceTo(doorWorldPos) < 2.5) {
-            state.nearDoor = door.userData;
-            doorPrompt.querySelector('.door-label').textContent = door.userData.label;
-            doorPrompt.classList.add('active');
-            return;
+            // Animate the painting sliding up/down on its wire
+            animateSliderTransition(artworkGroup, nextImage);
         }
-    }
 
-    doorPrompt.classList.remove('active');
-}
+        // Animate the slider transition with wire movement
+        function animateSliderTransition(artworkGroup, newImageData) {
+            const art = artworkGroup.children.find(child => child.geometry && child.geometry.type === 'PlaneGeometry');
+            if (!art) return;
 
-function transitionToRoom(targetRoomId) {
-    if (targetRoomId === state.currentRoom) return;
+            const duration = 600; // milliseconds
+            const startTime = Date.now();
+            const originalY = artworkGroup.position.y;
+            const slideDistance = 0.5; // meters to slide down then back up
 
-    const overlay = document.getElementById('fade-overlay');
-    overlay.style.opacity = '1';
+            // Load the new texture
+            const textureLoader = new THREE.TextureLoader();
+            textureLoader.setCrossOrigin('anonymous');
+            textureLoader.load(newImageData.imageUrl, (newTexture) => {
+                // Animate the slide
+                const animate = () => {
+                    const elapsed = Date.now() - startTime;
+                    const progress = Math.min(elapsed / duration, 1);
 
-    setTimeout(() => {
-        state.currentRoom = targetRoomId;
+                    // Ease in-out motion
+                    const eased = progress < 0.5
+                        ? 2 * progress * progress
+                        : 1 - Math.pow(-2 * progress + 2, 2) / 2;
 
-        const room = CONFIG.rooms[targetRoomId];
-        camera.position.set(room.position.x, CONFIG.camera.eyeLevel, room.position.z);
+                    // Slide down then up (double peak for swap effect)
+                    const yOffset = progress < 0.5
+                        ? -slideDistance * (eased * 2)
+                        : -slideDistance * (2 - eased * 2);
 
-        updateRoomVisibility();
+                    artworkGroup.position.y = originalY + yOffset;
 
-        setTimeout(() => { overlay.style.opacity = '0'; }, 100);
-    }, 400);
-}
+                    // Swap texture at midpoint
+                    if (progress >= 0.5 && art.material.map !== newTexture) {
+                        art.material.map = newTexture;
+                        art.material.needsUpdate = true;
 
-// ============================================================
-// ARTWORK INTERACTION
-// ============================================================
+                        // Update metadata
+                        if (newImageData.title || newImageData.artist || newImageData.description) {
+                            artworkGroup.userData.metadata = {
+                                title: newImageData.title || artworkGroup.userData.metadata.title,
+                                artist: newImageData.artist || artworkGroup.userData.metadata.artist,
+                                description: newImageData.description || artworkGroup.userData.metadata.description
+                            };
+                        }
+                        artworkGroup.userData.imageUrl = newImageData.imageUrl;
+                    }
 
-const raycaster = new THREE.Raycaster();
+                    if (progress < 1) {
+                        requestAnimationFrame(animate);
+                    } else {
+                        artworkGroup.position.y = originalY;
+                    }
+                };
 
-function checkArtworkClick() {
-    raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
-
-    const meshesToCheck = [];
-    artworkMeshes.forEach(group => {
-        if (group.visible && group.userData.artwork) {
-            group.traverse(child => { if (child.isMesh) meshesToCheck.push(child); });
+                animate();
+            }, undefined, (error) => {
+                console.error('Failed to load slider image:', error);
+            });
         }
-    });
 
-    const intersects = raycaster.intersectObjects(meshesToCheck, false);
+        function showEditDialog(artworkGroup) {
+            currentEditingArtwork = artworkGroup;
+            const dialog = document.getElementById('edit-dialog');
 
-    if (intersects.length > 0) {
-        let obj = intersects[0].object;
-        while (obj && !obj.userData.artwork) obj = obj.parent;
-        if (obj && obj.userData.artwork) openArtworkViewer(obj.userData.artwork);
-    }
-}
+            document.getElementById('edit-artwork-name').textContent = artworkGroup.userData.name;
+            document.getElementById('edit-title-input').value = artworkGroup.userData.metadata.title || '';
+            document.getElementById('edit-artist-input').value = artworkGroup.userData.metadata.artist || '';
+            document.getElementById('edit-description-input').value = artworkGroup.userData.metadata.description || '';
+            document.getElementById('edit-product-url-input').value = artworkGroup.userData.metadata.productUrl || '';
+            document.getElementById('edit-price-input').value = artworkGroup.userData.metadata.price || '';
+            document.getElementById('edit-currency-input').value = artworkGroup.userData.metadata.currency || 'USD';
 
-function openArtworkViewer(artwork) {
-    state.selectedArtwork = artwork;
+            const heightMeters = artworkGroup.userData.width / (artworkGroup.userData.imageUrl ?
+                (artworkGroup.children[1].geometry.parameters.width / artworkGroup.children[1].geometry.parameters.height) : 1);
+            const heightInches = heightMeters / 0.0254;
+            document.getElementById('edit-height-input').value = heightInches.toFixed(0);
 
-    const viewer = document.getElementById('artwork-viewer');
-    viewer.querySelector('img').src = artwork.imageUrl;
-    viewer.querySelector('.artwork-title').textContent = artwork.title;
-    viewer.querySelector('.artwork-artist').textContent = artwork.artist;
+            const imagePreview = document.getElementById('edit-image-preview');
+            if (artworkGroup.userData.imageUrl) {
+                document.getElementById('edit-preview-img').src = artworkGroup.userData.imageUrl;
+                imagePreview.style.display = 'block';
+            } else {
+                imagePreview.style.display = 'none';
+            }
 
-    if (artwork.price) {
-        viewer.querySelector('.artwork-price').textContent = `$${artwork.price} ${artwork.currency || 'USD'}`;
-        viewer.querySelector('.artwork-price').style.display = 'block';
-    } else {
-        viewer.querySelector('.artwork-price').style.display = 'none';
-    }
+            // Populate gateway room dropdown
+            const gatewaySelect = document.getElementById('edit-gateway-select');
+            gatewaySelect.innerHTML = '<option value="">None - Normal Painting</option>';
+            Object.values(ROOMS).forEach(room => {
+                const option = document.createElement('option');
+                option.value = room.id;
+                option.textContent = room.name;
+                gatewaySelect.appendChild(option);
+            });
+            gatewaySelect.value = artworkGroup.userData.gatewayTo || '';
 
-    if (artwork.productUrl) {
-        viewer.querySelector('.artwork-link').href = artwork.productUrl;
-        viewer.querySelector('.artwork-link').style.display = 'inline-block';
-    } else {
-        viewer.querySelector('.artwork-link').style.display = 'none';
-    }
+            // Set display mode
+            const displayModeSelect = document.getElementById('edit-display-mode');
+            displayModeSelect.value = artworkGroup.userData.displayMode || 'single';
 
-    viewer.classList.add('active');
-    document.exitPointerLock();
-}
+            dialog.classList.add('active');
+            document.exitPointerLock();
+        }
+        
+        // Track save state to prevent duplicate submissions
+        let isSavingArtwork = false;
+        let lastArtworkEditHash = '';
 
-function closeArtworkViewer() {
-    document.getElementById('artwork-viewer').classList.remove('active');
-    state.selectedArtwork = null;
-}
+        async function saveArtworkEdit() {
+            if (!currentEditingArtwork) return;
 
-// ============================================================
-// MINI MAP
-// ============================================================
+            // Prevent duplicate saves while one is in progress
+            if (isSavingArtwork) {
+                console.log('Save already in progress, skipping...');
+                return;
+            }
 
-function drawMiniMap() {
-    const canvas = document.getElementById('map-canvas');
-    const ctx = canvas.getContext('2d');
+            const productUrl = document.getElementById('edit-product-url-input').value.trim();
+            const priceValue = parseFloat(document.getElementById('edit-price-input').value);
+            const currency = document.getElementById('edit-currency-input').value;
 
-    ctx.fillStyle = '#1f2937';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+            const newMetadata = {
+                title: document.getElementById('edit-title-input').value || '',
+                artist: document.getElementById('edit-artist-input').value || '',
+                description: document.getElementById('edit-description-input').value || '',
+                productUrl: productUrl || '',
+                price: !isNaN(priceValue) ? priceValue : undefined,
+                currency: currency || 'USD'
+            };
 
-    const scale = 4;
-    const offsetX = canvas.width / 2;
-    const offsetY = 30;
+            const heightInches = parseFloat(document.getElementById('edit-height-input').value);
+            const heightFeet = heightInches / 12;
 
-    Object.entries(CONFIG.rooms).forEach(([roomId, room]) => {
-        const x = offsetX + (room.position.x - room.dimensions.width / 2) * scale;
-        const z = offsetY + (room.position.z - room.dimensions.depth / 2) * scale / 2;
-        const w = room.dimensions.width * scale;
-        const h = room.dimensions.depth * scale / 2;
+            // Get gateway and display mode settings
+            const gatewayTo = document.getElementById('edit-gateway-select').value;
+            const displayMode = document.getElementById('edit-display-mode').value;
 
-        ctx.fillStyle = roomId === state.currentRoom ? '#3b82f6' : '#374151';
-        ctx.fillRect(x, z, w, h);
+            // Create a hash of the edit data to detect duplicate submissions
+            const editHash = JSON.stringify({
+                id: currentEditingArtwork.userData.artworkId,
+                ...newMetadata,
+                heightFeet,
+                gatewayTo,
+                displayMode
+            });
 
-        ctx.strokeStyle = '#6b7280';
-        ctx.strokeRect(x, z, w, h);
+            // Skip if this is the exact same edit as the last one
+            if (editHash === lastArtworkEditHash) {
+                console.log('Duplicate edit detected, skipping...');
+                cancelEdit();
+                return;
+            }
 
-        ctx.fillStyle = '#4ade80';
-        room.spots.forEach(spot => {
-            if (state.placements.has(spot.id)) {
-                const dotX = offsetX + (room.position.x + spot.position.x) * scale;
-                const dotZ = offsetY + (room.position.z + spot.position.z) * scale / 2;
-                ctx.beginPath();
-                ctx.arc(dotX, dotZ, 2, 0, Math.PI * 2);
-                ctx.fill();
+            // OPTIMISTIC UI: Update local artwork data immediately for fast feedback
+            currentEditingArtwork.userData.metadata = newMetadata;
+            currentEditingArtwork.userData.gatewayTo = gatewayTo;
+            currentEditingArtwork.userData.displayMode = displayMode;
+
+            if (currentEditingArtwork.userData.placardIndex !== undefined &&
+                placards[currentEditingArtwork.userData.placardIndex]) {
+                const oldPlacard = placards[currentEditingArtwork.userData.placardIndex];
+                if (oldPlacard && oldPlacard.parent) {
+                    oldPlacard.parent.remove(oldPlacard);
+                }
+
+                const spot = wallSpots.find(s => s.userData.id === currentEditingArtwork.userData.spotId);
+                if (spot) {
+                    const artworkWidth = currentEditingArtwork.userData.width;
+                    const artworkHeight = currentEditingArtwork.children[1].geometry.parameters.height;
+                    const newPlacard = createPlacard(newMetadata, spot.position, spot.userData.rotation, false, artworkWidth, artworkHeight, spot.parent || scene);
+                    if (newPlacard) {
+                        placards[currentEditingArtwork.userData.placardIndex] = newPlacard;
+                    }
+                }
+            }
+
+            // Store artworkId before closing dialog
+            const artworkIdToUpdate = currentEditingArtwork.userData.artworkId;
+
+            // Close dialog immediately for snappy UX
+            cancelEdit();
+
+            // DEFERRED XANO SYNC: Post update to XANO in background so everyone sees the same art
+            if (artworkIdToUpdate) {
+                isSavingArtwork = true;
+                updateArtworkEvent({
+                    id: artworkIdToUpdate,
+                    title: newMetadata.title,
+                    artist: newMetadata.artist,
+                    description: newMetadata.description,
+                    heightFeet: heightFeet,
+                    gatewayTo: gatewayTo,
+                    displayMode: displayMode,
+                    productUrl: newMetadata.productUrl,
+                    price: newMetadata.price,
+                    currency: newMetadata.currency
+                }).then(() => {
+                    lastArtworkEditHash = editHash;
+                    console.log('Artwork edit synced to XANO');
+                }).catch(error => {
+                    console.error('Failed to sync artwork edit to XANO:', error);
+                    showToast('Sync Warning', 'Changes saved locally but failed to save online. Others may not see your changes until you retry.', 'warning', 8000);
+                }).finally(() => {
+                    isSavingArtwork = false;
+                });
+            }
+        }
+        
+        function cancelEdit() {
+            document.getElementById('edit-dialog').classList.remove('active');
+            currentEditingArtwork = null;
+        }
+
+        function openCropFromEdit() {
+            if (!currentEditingArtwork || !currentEditingArtwork.userData.imageUrl) {
+                alert('No image available to crop');
+                return;
+            }
+
+            const imageUrl = currentEditingArtwork.userData.imageUrl;
+
+            // Close edit dialog temporarily
+            document.getElementById('edit-dialog').classList.remove('active');
+
+            // Open crop dialog with the current image
+            showCropDialog(null, imageUrl, true, currentEditingArtwork);
+        }
+
+        function showArtViewer(artData) {
+            const viewer = document.getElementById('art-viewer');
+            const image = document.getElementById('viewer-image');
+            const info = document.getElementById('viewer-info');
+            const loading = document.getElementById('viewer-loading');
+            const error = document.getElementById('viewer-error');
+            const container = document.getElementById('viewer-image-container');
+
+            // Build artworks list for navigation
+            viewerState.artworksList = Array.from(artQueue);
+            viewerState.currentArtIndex = viewerState.artworksList.findIndex(art => art === artData);
+
+            // Reset viewer state
+            resetViewerTransform();
+
+            // Set metadata
+            document.getElementById('viewer-title').textContent = artData.metadata.title || 'Untitled';
+            document.getElementById('viewer-artist').textContent = artData.metadata.artist || '';
+            document.getElementById('viewer-description').textContent = artData.metadata.description || '';
+            image.alt = artData.metadata.title || 'Artwork';
+
+            // Set price and product link
+            const priceEl = document.getElementById('viewer-price');
+            const productLinkEl = document.getElementById('viewer-product-link');
+
+            if (artData.metadata.price && artData.metadata.price > 0) {
+                const formattedPrice = new Intl.NumberFormat('en-US', {
+                    style: 'currency',
+                    currency: artData.metadata.currency || 'USD'
+                }).format(artData.metadata.price);
+                priceEl.textContent = formattedPrice;
+                priceEl.style.display = 'block';
+            } else {
+                priceEl.style.display = 'none';
+            }
+
+            if (artData.metadata.productUrl) {
+                productLinkEl.innerHTML = `<a href="${artData.metadata.productUrl}" target="_blank" style="color: #667eea; text-decoration: none;">View Product Page →</a>`;
+                productLinkEl.style.display = 'block';
+            } else {
+                productLinkEl.style.display = 'none';
+            }
+
+            // Update space assignment UI
+            updateSpaceAssignmentUI(artData);
+
+            // Show info panel by default
+            info.classList.remove('hidden');
+
+            // Show loading state
+            image.classList.add('loading');
+            loading.classList.add('active');
+            error.classList.remove('active');
+
+            // Load image
+            const img = new Image();
+            img.onload = () => {
+                image.src = artData.imageUrl;
+                image.classList.remove('loading');
+                loading.classList.remove('active');
+            };
+            img.onerror = () => {
+                loading.classList.remove('active');
+                error.classList.add('active');
+            };
+            img.src = artData.imageUrl;
+
+            // Show viewer
+            viewer.classList.add('active');
+            updateNavigationArrows();
+
+            // Prevent body scroll
+            document.body.style.overflow = 'hidden';
+            document.exitPointerLock();
+        }
+
+        function closeArtViewer() {
+            const viewer = document.getElementById('art-viewer');
+            viewer.classList.remove('active');
+            document.body.style.overflow = '';
+            resetViewerTransform();
+            // Reset space assignment state
+            currentViewerArtwork = null;
+            hideSpaceAssignmentContent();
+        }
+
+        // ============================================
+        // SPACE ASSIGNMENT UI FUNCTIONS
+        // ============================================
+
+        // Store current artwork being viewed for space assignment
+        let currentViewerArtwork = null;
+        let selectedRoomGuid = null;
+        let selectedSpaceGuid = null;
+
+        /**
+         * Update the space assignment UI based on artwork data
+         * @param {object} artData - The artwork data object
+         */
+        function updateSpaceAssignmentUI(artData) {
+            currentViewerArtwork = artData;
+
+            const locationDisplay = document.getElementById('current-location-display');
+            const locationName = document.getElementById('current-location-name');
+            const legacyWarning = document.getElementById('legacy-location-warning');
+            const roomSelector = document.getElementById('viewer-room-selector');
+            const spaceSelector = document.getElementById('viewer-space-selector');
+
+            // Get location info from artwork
+            const spaceId = artData.spaceId || artData.metadata?.spaceId;
+            const locationId = artData.locationId || artData.metadata?.locationId;
+            const legacyLocationName = artData.locationName || artData.metadata?.locationName;
+
+            // Reset state
+            selectedRoomGuid = null;
+            selectedSpaceGuid = null;
+            hideSpaceAssignmentContent();
+
+            // Populate room selector
+            populateRoomSelector(roomSelector);
+            spaceSelector.innerHTML = '<option value="">Select a space...</option>';
+
+            // Determine current location status
+            if (spaceId && spaceId.startsWith('space_')) {
+                // Using GUID-based location
+                const space = findSpaceById(spaceId);
+                if (space) {
+                    locationName.textContent = getFullLocationName(spaceId);
+                    locationDisplay.classList.remove('unassigned');
+                    legacyWarning.style.display = 'none';
+
+                    // Pre-select current room and space
+                    selectedRoomGuid = space.roomGuid;
+                    selectedSpaceGuid = spaceId;
+                } else {
+                    locationName.textContent = `Unknown space (${spaceId})`;
+                    locationDisplay.classList.add('unassigned');
+                    legacyWarning.style.display = 'none';
+                }
+            } else if (locationId) {
+                // Using legacy location format
+                const spaceGuid = legacyLocationToSpaceGuid(locationId);
+                if (spaceGuid) {
+                    const space = findSpaceById(spaceGuid);
+                    locationName.textContent = getFullLocationName(spaceGuid);
+                    locationDisplay.classList.remove('unassigned');
+                    legacyWarning.style.display = 'flex';
+
+                    // Pre-select based on legacy mapping
+                    selectedRoomGuid = space?.roomGuid;
+                    selectedSpaceGuid = spaceGuid;
+                } else if (legacyLocationName) {
+                    locationName.textContent = legacyLocationName + ' (legacy)';
+                    locationDisplay.classList.remove('unassigned');
+                    legacyWarning.style.display = 'flex';
+                } else {
+                    locationName.textContent = locationId + ' (legacy)';
+                    locationDisplay.classList.remove('unassigned');
+                    legacyWarning.style.display = 'flex';
+                }
+            } else {
+                // Not assigned
+                locationName.textContent = 'Not assigned to a space';
+                locationDisplay.classList.add('unassigned');
+                legacyWarning.style.display = 'none';
+            }
+
+            // Update apply button state
+            updateApplyButtonState();
+        }
+
+        /**
+         * Toggle space assignment edit mode
+         */
+        function toggleSpaceAssignment() {
+            const content = document.getElementById('space-assignment-content');
+            const toggle = document.getElementById('space-assignment-toggle');
+            const roomSelector = document.getElementById('viewer-room-selector');
+            const spaceSelector = document.getElementById('viewer-space-selector');
+
+            if (content.classList.contains('active')) {
+                hideSpaceAssignmentContent();
+            } else {
+                content.classList.add('active');
+                toggle.textContent = 'Cancel';
+
+                // Pre-select current values if available, otherwise default to current room
+                let roomGuidToSelect = selectedRoomGuid;
+
+                // If no room is already selected, default to the current room
+                if (!roomGuidToSelect && roomManager?.currentRoom) {
+                    roomGuidToSelect = LEGACY_TO_GUID_MAP.rooms[roomManager.currentRoom] || null;
+                }
+
+                if (roomGuidToSelect) {
+                    roomSelector.value = roomGuidToSelect;
+                    populateSpaceSelector(spaceSelector, roomGuidToSelect, selectedSpaceGuid);
+                }
+
+                updateApplyButtonState();
+                clearAssignmentStatus();
+            }
+        }
+
+        /**
+         * Hide space assignment content and reset toggle
+         */
+        function hideSpaceAssignmentContent() {
+            const content = document.getElementById('space-assignment-content');
+            const toggle = document.getElementById('space-assignment-toggle');
+            content.classList.remove('active');
+            toggle.textContent = 'Edit';
+            clearAssignmentStatus();
+        }
+
+        /**
+         * Handle room selector change
+         */
+        function onViewerRoomChange() {
+            const roomSelector = document.getElementById('viewer-room-selector');
+            const spaceSelector = document.getElementById('viewer-space-selector');
+
+            const roomGuid = roomSelector.value;
+            populateSpaceSelector(spaceSelector, roomGuid);
+            updateApplyButtonState();
+        }
+
+        /**
+         * Handle space selector change
+         */
+        function onViewerSpaceChange() {
+            updateApplyButtonState();
+        }
+
+        /**
+         * Update apply button enabled state
+         */
+        function updateApplyButtonState() {
+            const applyBtn = document.getElementById('apply-space-btn');
+            const spaceSelector = document.getElementById('viewer-space-selector');
+
+            if (applyBtn && spaceSelector) {
+                applyBtn.disabled = !spaceSelector.value;
+            }
+        }
+
+        /**
+         * Cancel space assignment and close edit mode
+         */
+        function cancelSpaceAssignment() {
+            hideSpaceAssignmentContent();
+
+            // Reset selectors to original values
+            if (currentViewerArtwork) {
+                updateSpaceAssignmentUI(currentViewerArtwork);
+            }
+        }
+
+        /**
+         * Apply the selected space assignment
+         */
+        async function applySpaceAssignment() {
+            const spaceSelector = document.getElementById('viewer-space-selector');
+            const newSpaceGuid = spaceSelector.value;
+
+            if (!newSpaceGuid || !currentViewerArtwork) {
+                showAssignmentStatus('error', 'Please select a space');
+                return;
+            }
+
+            // Get artwork ID
+            const artworkId = currentViewerArtwork.eventId ||
+                              currentViewerArtwork.id ||
+                              currentViewerArtwork.airtableId ||
+                              currentViewerArtwork.metadata?.eventId;
+
+            if (!artworkId) {
+                showAssignmentStatus('error', 'Could not identify artwork');
+                return;
+            }
+
+            showAssignmentStatus('loading', 'Assigning artwork...');
+
+            try {
+                // Store old spotId before assignment for cleanup
+                const oldSpotId = currentViewerArtwork.spotId;
+
+                await assignArtworkToSpace(artworkId, newSpaceGuid);
+
+                // Update local artwork data
+                currentViewerArtwork.spaceId = newSpaceGuid;
+                if (currentViewerArtwork.metadata) {
+                    currentViewerArtwork.metadata.spaceId = newSpaceGuid;
+                }
+
+                // Update UI to show new assignment
+                selectedSpaceGuid = newSpaceGuid;
+                const space = findSpaceById(newSpaceGuid);
+                if (space) {
+                    selectedRoomGuid = space.roomGuid;
+                }
+
+                showAssignmentStatus('success', 'Space assigned successfully!');
+
+                // Update the location display
+                const locationName = document.getElementById('current-location-name');
+                const locationDisplay = document.getElementById('current-location-display');
+                const legacyWarning = document.getElementById('legacy-location-warning');
+
+                locationName.textContent = getFullLocationName(newSpaceGuid);
+                locationDisplay.classList.remove('unassigned');
+                legacyWarning.style.display = 'none';
+
+                // === SCENE REFRESH: Move artwork to new location ===
+                // 1. Remove artwork from old scene position
+                const artworkMesh = artworks.find(a =>
+                    a.userData.artworkId === artworkId ||
+                    a.userData.eventId === artworkId
+                );
+
+                if (artworkMesh) {
+                    // Free up the old wall spot
+                    const oldWallSpot = wallSpots.find(s => s.userData.id === artworkMesh.userData.spotId);
+                    if (oldWallSpot) {
+                        oldWallSpot.userData.occupied = false;
+                        oldWallSpot.userData.currentWidth = 0;
+                        oldWallSpot.material.color.setHex(0x667eea);
+                        oldWallSpot.material.emissive.setHex(0x667eea);
+                    }
+
+                    // Remove wire if exists
+                    if (artworkMesh.userData.wire && artworkMesh.userData.wire.parent) {
+                        artworkMesh.userData.wire.parent.remove(artworkMesh.userData.wire);
+                    }
+
+                    // Remove placard if exists
+                    if (artworkMesh.userData.placardIndex !== undefined &&
+                        placards[artworkMesh.userData.placardIndex]) {
+                        const placard = placards[artworkMesh.userData.placardIndex];
+                        if (placard && placard.parent) {
+                            placard.parent.remove(placard);
+                        }
+                        placards[artworkMesh.userData.placardIndex] = null;
+                    }
+
+                    // Remove from scene
+                    if (artworkMesh.parent) {
+                        artworkMesh.parent.remove(artworkMesh);
+                    }
+                    const artworkIndex = artworks.indexOf(artworkMesh);
+                    if (artworkIndex > -1) artworks.splice(artworkIndex, 1);
+                }
+
+                // 2. Clear from loadedArtworkIds so it can be re-added
+                if (roomManager && roomManager.loadedArtworkIds) {
+                    roomManager.loadedArtworkIds.delete(artworkId);
+                }
+
+                // 3. Add artwork to new location
+                const room = findRoomById(space.roomGuid);
+                const newLocationId = spaceGuidToLegacyLocation(newSpaceGuid);
+
+                if (room && newLocationId && roomManager) {
+                    // Get artwork data from event store for complete info
+                    const storedArtwork = eventStore.getArtwork(artworkId);
+                    const imageUrl = currentViewerArtwork.imageUrl ||
+                                    currentViewerArtwork.metadata?.imageUrl ||
+                                    storedArtwork?.imageUrl;
+                    const heightMeters = storedArtwork?.heightMeters ||
+                                        (storedArtwork?.heightInches ? storedArtwork.heightInches * 0.0254 : 0.9144);
+
+                    if (imageUrl) {
+                        roomManager.addArtwork({
+                            roomId: room.legacyId,
+                            locationId: newLocationId,
+                            url: imageUrl,
+                            heightMeters: heightMeters,
+                            eventId: artworkId,
+                            spaceId: newSpaceGuid,
+                            roomGuid: space.roomGuid,
+                            metadata: {
+                                title: currentViewerArtwork.metadata?.title || currentViewerArtwork.name || storedArtwork?.title || '',
+                                artist: currentViewerArtwork.metadata?.artist || storedArtwork?.artist || '',
+                                description: currentViewerArtwork.metadata?.description || storedArtwork?.description || '',
+                                spaceId: newSpaceGuid,
+                                roomGuid: space.roomGuid,
+                                locationId: newLocationId
+                            }
+                        });
+                        console.log('[applySpaceAssignment] Artwork moved to new location:', newLocationId);
+                    }
+                }
+
+                updateSpotCounters();
+                // === END SCENE REFRESH ===
+
+                // Hide edit mode after brief delay
+                setTimeout(() => {
+                    hideSpaceAssignmentContent();
+                }, 1500);
+
+            } catch (error) {
+                console.error('[applySpaceAssignment] Failed:', error);
+                showAssignmentStatus('error', error.message || 'Failed to assign space');
+            }
+        }
+
+        /**
+         * Show assignment status message
+         * @param {string} type - 'success', 'error', or 'loading'
+         * @param {string} message - The message to display
+         */
+        function showAssignmentStatus(type, message) {
+            const statusEl = document.getElementById('assignment-status');
+            statusEl.className = 'assignment-status ' + type;
+            statusEl.textContent = message;
+        }
+
+        /**
+         * Clear assignment status message
+         */
+        function clearAssignmentStatus() {
+            const statusEl = document.getElementById('assignment-status');
+            statusEl.className = 'assignment-status';
+            statusEl.textContent = '';
+        }
+
+        function toggleViewerInfo() {
+            const info = document.getElementById('viewer-info');
+            const isHidden = info.classList.toggle('hidden');
+            const infoText = document.getElementById('info-text');
+            if (infoText) {
+                infoText.textContent = isHidden ? 'Info' : 'Info';
+            }
+        }
+
+        function resetViewerTransform() {
+            viewerState.zoom = 1;
+            viewerState.panX = 0;
+            viewerState.panY = 0;
+            viewerState.isDragging = false;
+            updateImageTransform();
+            updateZoomDisplay();
+        }
+
+        function updateImageTransform() {
+            const image = document.getElementById('viewer-image');
+            const container = document.getElementById('viewer-image-container');
+
+            image.style.transform = `translate(${viewerState.panX}px, ${viewerState.panY}px) scale(${viewerState.zoom})`;
+
+            // Update cursor based on zoom
+            if (viewerState.zoom > 1) {
+                container.classList.add('zoomed');
+            } else {
+                container.classList.remove('zoomed');
+            }
+        }
+
+        function updateZoomDisplay() {
+            const zoomLevel = document.getElementById('zoom-level');
+            const zoomIn = document.getElementById('zoom-in');
+            const zoomOut = document.getElementById('zoom-out');
+
+            if (zoomLevel) {
+                zoomLevel.textContent = Math.round(viewerState.zoom * 100) + '%';
+            }
+
+            // Disable buttons at limits
+            if (zoomIn) zoomIn.disabled = viewerState.zoom >= 4;
+            if (zoomOut) zoomOut.disabled = viewerState.zoom <= 0.5;
+        }
+
+        function viewerZoomIn() {
+            viewerState.zoom = Math.min(viewerState.zoom + 0.25, 4);
+            updateImageTransform();
+            updateZoomDisplay();
+        }
+
+        function viewerZoomOut() {
+            viewerState.zoom = Math.max(viewerState.zoom - 0.25, 0.5);
+            // Reset pan if zooming out to fit
+            if (viewerState.zoom === 1) {
+                viewerState.panX = 0;
+                viewerState.panY = 0;
+            }
+            updateImageTransform();
+            updateZoomDisplay();
+        }
+
+        function viewerZoomReset() {
+            resetViewerTransform();
+        }
+
+        function retryLoadImage() {
+            const artData = viewerState.artworksList[viewerState.currentArtIndex];
+            if (artData) {
+                const viewer = document.getElementById('art-viewer');
+                viewer.classList.remove('active');
+                setTimeout(() => showArtViewer(artData), 100);
+            }
+        }
+
+        function navigateToPrevArtwork() {
+            if (viewerState.currentArtIndex > 0) {
+                viewerState.currentArtIndex--;
+                const artData = viewerState.artworksList[viewerState.currentArtIndex];
+                const viewer = document.getElementById('art-viewer');
+                viewer.classList.remove('active');
+                setTimeout(() => showArtViewer(artData), 100);
+            }
+        }
+
+        function navigateToNextArtwork() {
+            if (viewerState.currentArtIndex < viewerState.artworksList.length - 1) {
+                viewerState.currentArtIndex++;
+                const artData = viewerState.artworksList[viewerState.currentArtIndex];
+                const viewer = document.getElementById('art-viewer');
+                viewer.classList.remove('active');
+                setTimeout(() => showArtViewer(artData), 100);
+            }
+        }
+
+        function updateNavigationArrows() {
+            const prevBtn = document.getElementById('viewer-prev');
+            const nextBtn = document.getElementById('viewer-next');
+
+            if (prevBtn) {
+                if (viewerState.currentArtIndex <= 0) {
+                    prevBtn.classList.add('disabled');
+                } else {
+                    prevBtn.classList.remove('disabled');
+                }
+            }
+
+            if (nextBtn) {
+                if (viewerState.currentArtIndex >= viewerState.artworksList.length - 1) {
+                    nextBtn.classList.add('disabled');
+                } else {
+                    nextBtn.classList.remove('disabled');
+                }
+            }
+        }
+
+        // Mouse drag for pan
+        function handleViewerMouseDown(e) {
+            if (viewerState.zoom <= 1) return;
+            viewerState.isDragging = true;
+            viewerState.startX = e.clientX - viewerState.panX;
+            viewerState.startY = e.clientY - viewerState.panY;
+            document.getElementById('viewer-image-container').classList.add('grabbing');
+        }
+
+        function handleViewerMouseMove(e) {
+            if (!viewerState.isDragging) return;
+            e.preventDefault();
+            viewerState.panX = e.clientX - viewerState.startX;
+            viewerState.panY = e.clientY - viewerState.startY;
+            updateImageTransform();
+        }
+
+        function handleViewerMouseUp() {
+            viewerState.isDragging = false;
+            document.getElementById('viewer-image-container').classList.remove('grabbing');
+        }
+
+        // Mouse wheel zoom
+        function handleViewerWheel(e) {
+            e.preventDefault();
+            const delta = e.deltaY > 0 ? -0.1 : 0.1;
+            viewerState.zoom = Math.max(0.5, Math.min(4, viewerState.zoom + delta));
+
+            if (viewerState.zoom === 1) {
+                viewerState.panX = 0;
+                viewerState.panY = 0;
+            }
+
+            updateImageTransform();
+            updateZoomDisplay();
+        }
+
+        // Touch gestures
+        function getTouchDistance(touch1, touch2) {
+            const dx = touch1.clientX - touch2.clientX;
+            const dy = touch1.clientY - touch2.clientY;
+            return Math.sqrt(dx * dx + dy * dy);
+        }
+
+        function handleViewerTouchStart(e) {
+            if (e.touches.length === 2) {
+                // Pinch zoom
+                e.preventDefault();
+                viewerState.touchStartDistance = getTouchDistance(e.touches[0], e.touches[1]);
+            } else if (e.touches.length === 1 && viewerState.zoom > 1) {
+                // Pan
+                viewerState.isDragging = true;
+                viewerState.startX = e.touches[0].clientX - viewerState.panX;
+                viewerState.startY = e.touches[0].clientY - viewerState.panY;
+            }
+        }
+
+        function handleViewerTouchMove(e) {
+            if (e.touches.length === 2) {
+                // Pinch zoom
+                e.preventDefault();
+                const currentDistance = getTouchDistance(e.touches[0], e.touches[1]);
+                const scale = currentDistance / viewerState.touchStartDistance;
+                viewerState.zoom = Math.max(0.5, Math.min(4, viewerState.zoom * scale));
+                viewerState.touchStartDistance = currentDistance;
+
+                if (viewerState.zoom === 1) {
+                    viewerState.panX = 0;
+                    viewerState.panY = 0;
+                }
+
+                updateImageTransform();
+                updateZoomDisplay();
+            } else if (e.touches.length === 1 && viewerState.isDragging) {
+                // Pan
+                e.preventDefault();
+                viewerState.panX = e.touches[0].clientX - viewerState.startX;
+                viewerState.panY = e.touches[0].clientY - viewerState.startY;
+                updateImageTransform();
+            }
+        }
+
+        function handleViewerTouchEnd(e) {
+            if (e.touches.length < 2) {
+                viewerState.isDragging = false;
+                viewerState.touchStartDistance = 0;
+            }
+        }
+
+        // Keyboard navigation
+        function handleViewerKeyDown(e) {
+            const viewer = document.getElementById('art-viewer');
+            if (!viewer.classList.contains('active')) return;
+
+            switch(e.key) {
+                case 'Escape':
+                    e.preventDefault();
+                    closeArtViewer();
+                    break;
+                case 'ArrowLeft':
+                    e.preventDefault();
+                    navigateToPrevArtwork();
+                    break;
+                case 'ArrowRight':
+                    e.preventDefault();
+                    navigateToNextArtwork();
+                    break;
+                case '+':
+                case '=':
+                    e.preventDefault();
+                    viewerZoomIn();
+                    break;
+                case '-':
+                case '_':
+                    e.preventDefault();
+                    viewerZoomOut();
+                    break;
+                case '0':
+                    e.preventDefault();
+                    viewerZoomReset();
+                    break;
+                case 'i':
+                case 'I':
+                    e.preventDefault();
+                    toggleViewerInfo();
+                    break;
+            }
+        }
+
+        // Double-click/tap to zoom
+        function handleViewerDoubleClick(e) {
+            if (viewerState.zoom === 1) {
+                viewerState.zoom = 2;
+            } else {
+                viewerState.zoom = 1;
+                viewerState.panX = 0;
+                viewerState.panY = 0;
+            }
+            updateImageTransform();
+            updateZoomDisplay();
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+        
+        function checkVRSupport() {
+            if ('xr' in navigator) {
+                navigator.xr.isSessionSupported('immersive-vr').then((supported) => {
+                    const vrButton = document.getElementById('vr-button');
+                    if (supported) {
+                        vrButton.disabled = false;
+                        vrButton.textContent = 'Enter VR Mode';
+                    } else {
+                        vrButton.textContent = 'VR Not Supported';
+                    }
+                });
+            }
+        }
+        
+        async function toggleVR() {
+            const vrButton = document.getElementById('vr-button');
+            
+            if (!vrSession) {
+                try {
+                    vrSession = await navigator.xr.requestSession('immersive-vr', {
+                        optionalFeatures: ['local-floor', 'bounded-floor', 'hand-tracking']
+                    });
+
+                    renderer.xr.setSession(vrSession);
+                    vrButton.textContent = 'Exit VR Mode';
+
+                    vrSession.addEventListener('end', () => {
+                        vrSession = null;
+                        renderer.setAnimationLoop(null);
+                        requestAnimationFrame(animate);
+                        vrButton.textContent = 'Enter VR Mode';
+                    });
+                } catch (error) {
+                    console.error('Failed to start VR session:', error);
+                }
+            } else {
+                vrSession.end();
+            }
+        }
+        
+        function updateMovement(delta) {
+            // Allow movement on mobile, desktop, or VR - keyboard always works
+            if (!vrSession && !mobileControlsActive && !document.pointerLockElement) {
+                // Still process keyboard movement even without pointer lock
+                // Only skip VR/mobile-specific logic
+            }
+
+            velocity.x -= velocity.x * 10.0 * delta;
+            velocity.z -= velocity.z * 10.0 * delta;
+
+            direction.z = Number(moveForward) - Number(moveBackward);
+            direction.x = Number(moveRight) - Number(moveLeft);
+            direction.normalize();
+            
+            if (moveForward || moveBackward) {
+                velocity.z -= direction.z * 15.0 * delta;
+            }
+            if (moveLeft || moveRight) {
+                velocity.x -= direction.x * 15.0 * delta;
+            }
+            
+            const forward = new THREE.Vector3();
+            const right = new THREE.Vector3();
+            
+            camera.getWorldDirection(forward);
+            forward.y = 0;
+            forward.normalize();
+            
+            right.crossVectors(forward, new THREE.Vector3(0, 1, 0));
+
+            camera.position.add(forward.multiplyScalar(-velocity.z * delta));
+            camera.position.add(right.multiplyScalar(-velocity.x * delta));
+
+            if (roomManager && roomManager.cameraBounds) {
+                camera.position.x = Math.max(roomManager.cameraBounds.minX, Math.min(roomManager.cameraBounds.maxX, camera.position.x));
+                camera.position.z = Math.max(roomManager.cameraBounds.minZ, Math.min(roomManager.cameraBounds.maxZ, camera.position.z));
+            }
+
+            if (roomManager) {
+                const nearbyDoor = roomManager.checkDoorProximity(camera.position);
+                if (nearbyDoor) {
+                    showDoorPrompt(nearbyDoor.label);
+                    if (interactKeyPressed) {
+                        interactKeyPressed = false;
+                        hideDoorPrompt();
+                        roomManager.transitionToRoom(nearbyDoor.targetRoom);
+                    }
+                } else {
+                    hideDoorPrompt();
+                }
+            }
+        }
+
+        let clock = new THREE.Clock();
+
+        function renderFrame(delta) {
+            updateMovement(delta);
+
+            if (navigationMapCanvas && roomManager) {
+                updateNavigationMap(navigationMapCanvas, roomManager.currentRoom, camera.position);
+            }
+
+            artworks.forEach(artwork => {
+                if (artwork.name === '3d-model') {
+                    artwork.rotation.y += delta * 0.1;
+                }
+            });
+
+            renderer.render(scene, camera);
+        }
+
+        function animate() {
+            const delta = clock.getDelta();
+
+            renderFrame(delta);
+
+            if (vrSession) {
+                renderer.setAnimationLoop(() => {
+                    const vrDelta = clock.getDelta();
+                    renderFrame(vrDelta);
+                });
+            } else {
+                requestAnimationFrame(animate);
+            }
+        }
+        
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape') {
+                escapeCount++;
+                
+                if (escapeTimer) {
+                    clearTimeout(escapeTimer);
+                }
+                
+                if (escapeCount >= 3 && !isAdmin) {
+                    document.getElementById('admin-auth').classList.add('active');
+                    setTimeout(() => {
+                        document.getElementById('admin-password').focus();
+                    }, 100);
+                    escapeCount = 0;
+                } else {
+                    escapeTimer = setTimeout(() => {
+                        escapeCount = 0;
+                    }, 1000);
+                }
             }
         });
-    });
+        
+        let initCalled = false;
 
-    const playerX = offsetX + camera.position.x * scale;
-    const playerZ = offsetY + camera.position.z * scale / 2;
+        window.addEventListener('load', () => {
+            initCalled = true;
+            init();
+        });
 
-    ctx.fillStyle = '#ef4444';
-    ctx.beginPath();
-    ctx.arc(playerX, playerZ, 4, 0, Math.PI * 2);
-    ctx.fill();
-
-    const dir = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
-    ctx.strokeStyle = '#ef4444';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(playerX, playerZ);
-    ctx.lineTo(playerX + dir.x * 10, playerZ + dir.z * 5);
-    ctx.stroke();
-}
-
-// ============================================================
-// LOADING UI
-// ============================================================
-
-function updateLoadingStatus(message) {
-    const el = document.querySelector('#loading-screen .status');
-    if (el) el.textContent = message;
-}
-
-function updateLoadingProgress(percent) {
-    const el = document.querySelector('#loading-screen .progress-bar');
-    if (el) el.style.width = `${percent}%`;
-}
-
-function hideLoadingScreen() {
-    const el = document.getElementById('loading-screen');
-    if (el) {
-        el.classList.add('fade-out');
-        setTimeout(() => { el.style.display = 'none'; }, 500);
-    }
-}
-
-// ============================================================
-// ANIMATION LOOP
-// ============================================================
-
-function animate() {
-    requestAnimationFrame(animate);
-
-    const delta = clock.getDelta();
-
-    updateMovement(delta);
-    checkDoorProximity();
-    drawMiniMap();
-
-    renderer.render(scene, camera);
-}
-
-// ============================================================
-// INITIALIZATION
-// ============================================================
-
-async function init() {
-    try {
-        console.log('[Init] Starting gallery...');
-        updateLoadingProgress(10);
-
-        initScene();
-        updateLoadingProgress(30);
-
-        await loadArtworksFromCSV();
-        updateLoadingProgress(50);
-
-        renderAllArtworks();
-        updateLoadingProgress(90);
-
-        initControls();
-        updateLoadingProgress(100);
-
-        animate();
-
-        setTimeout(hideLoadingScreen, 500);
-
-        console.log('[Init] Gallery ready');
-        console.log(`[Init] Rooms: ${Object.keys(CONFIG.rooms).length}`);
-        console.log(`[Init] Total spots: ${spotMeshes.size}`);
-        console.log(`[Init] Placed artworks: ${state.placements.size}`);
-
-    } catch (error) {
-        console.error('[Init] Failed:', error);
-        updateLoadingStatus(`Error: ${error.message}`);
-    }
-}
-
-document.addEventListener('DOMContentLoaded', init);
-</script>
+        // Fallback: If init hasn't been called after 10 seconds, show error
+        setTimeout(() => {
+            if (!initCalled) {
+                const loading = document.getElementById('loading');
+                if (loading && loading.style.display !== 'none') {
+                    console.error('Museum init timeout - window load event may not have fired');
+                    loading.innerHTML = `<div style="color: #ff4444; text-align: center; padding: 20px;">
+                        <div style="font-size: 18px; margin-bottom: 10px;">Loading timeout</div>
+                        <div style="font-size: 14px; color: #999;">External resources may be blocked or slow to load.</div>
+                        <div style="font-size: 12px; color: #666; margin-top: 10px;">Try refreshing the page or check your network connection.</div>
+                    </div>`;
+                }
+            }
+        }, 10000);
+    </script>
 </body>
 </html>
