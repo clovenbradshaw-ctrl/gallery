@@ -5462,7 +5462,7 @@
                 });
             }
 
-            // Post a new event to Xano with retry logic
+            // Post a new event to Xano with queuing for ordered operations
             async postEvent(eventData, options = {}) {
                 const { skipDuplicateCheck = false, skipRecentCheck = false } = options;
 
@@ -5485,6 +5485,37 @@
                     return { skipped: true, reason: 'recent_duplicate' };
                 }
 
+                // Queue the event and return a promise
+                return new Promise((resolve, reject) => {
+                    this._postQueue.push({ eventData, options, resolve, reject });
+                    this._processQueue();
+                });
+            }
+
+            // Process queued events one at a time to maintain order
+            async _processQueue() {
+                if (this._isProcessingQueue || this._postQueue.length === 0) {
+                    return;
+                }
+
+                this._isProcessingQueue = true;
+
+                while (this._postQueue.length > 0) {
+                    const { eventData, options, resolve, reject } = this._postQueue.shift();
+
+                    try {
+                        const result = await this._doPostEvent(eventData);
+                        resolve(result);
+                    } catch (error) {
+                        reject(error);
+                    }
+                }
+
+                this._isProcessingQueue = false;
+            }
+
+            // Actually post an event to Xano
+            async _doPostEvent(eventData) {
                 const event = {
                     event_uid: generateEventUID(),
                     verb: eventData.verb,
@@ -5627,11 +5658,27 @@
             }
 
             applyArtworkEvent(verb, object_id, data, event) {
+                // Helper to normalize locationId to full format (roomId:spotId)
+                const normalizeLocation = (locId, roomId) => {
+                    if (!locId) return null;
+                    const loc = String(locId).trim();
+                    if (!loc) return null;
+                    if (loc.includes(':')) return loc;
+                    const room = roomId || 'main-gallery';
+                    return `${room}:${loc}`;
+                };
+
                 switch (verb) {
                     case 'create':
+                        // Normalize locationId from various possible sources
+                        const createLocId = data.locationId || data.location;
+                        const normalizedCreateLoc = normalizeLocation(createLocId, data.roomId);
+
                         this.state.artworks[object_id] = {
                             id: object_id,
                             ...data,
+                            // Ensure locationId is always in canonical format
+                            locationId: normalizedCreateLoc || data.locationId,
                             frame: event.frame || data.frame || 'classic',
                             scale: event.scale || data.scale || '1',
                             placed: true,
@@ -5643,9 +5690,17 @@
                         break;
                     case 'update':
                         if (this.state.artworks[object_id]) {
+                            // Normalize locationId if being updated
+                            const updateLocId = data.locationId || data.location;
+                            const normalizedUpdateLoc = updateLocId
+                                ? normalizeLocation(updateLocId, data.roomId || this.state.artworks[object_id].roomId)
+                                : this.state.artworks[object_id].locationId;
+
                             this.state.artworks[object_id] = {
                                 ...this.state.artworks[object_id],
                                 ...data,
+                                // Preserve normalized locationId
+                                locationId: normalizedUpdateLoc,
                                 frame: event.frame || this.state.artworks[object_id].frame,
                                 scale: event.scale || this.state.artworks[object_id].scale,
                                 // Update spaceId if provided
@@ -5664,7 +5719,12 @@
                     case 'place':
                         if (this.state.artworks[object_id]) {
                             this.state.artworks[object_id].placed = true;
-                            this.state.artworks[object_id].location = data.location;
+                            // Normalize location using shared helper
+                            const placeLocId = data.locationId || data.location;
+                            const normalizedPlaceLoc = normalizeLocation(placeLocId, data.roomId);
+                            if (normalizedPlaceLoc) {
+                                this.state.artworks[object_id].locationId = normalizedPlaceLoc;
+                            }
                             this.state.artworks[object_id].locationName = data.locationName;
                             this.state.artworks[object_id].roomId = data.roomId;
                             // Also capture spaceId if provided during place
@@ -7063,6 +7123,22 @@
                 return;
             }
 
+            // PRE-PLACEMENT VALIDATION: Check if spot is still available
+            // Re-fetch fresh data from API to prevent placement collisions in multi-user scenarios
+            try {
+                await eventStore.fetchEvents({ forceRefresh: true });
+                const placedArtworks = eventStore.getPlacedArtworks(galleryId);
+                const existingAtSpot = placedArtworks.find(a => a.locationId === locationId);
+
+                if (existingAtSpot) {
+                    alert(`This spot is already occupied by "${existingAtSpot.title || 'another artwork'}". Please choose a different location.`);
+                    return;
+                }
+            } catch (validationError) {
+                console.warn('Pre-placement validation failed, proceeding anyway:', validationError);
+                // Continue with placement - the API post will fail if there's a real conflict
+            }
+
             console.log('Placing artwork:', { locationId, locationName, roomId, imageUrl: item.image_url });
 
             // Load image to get dimensions
@@ -7142,20 +7218,27 @@
             closeCatalogueDetail();
             closeCatalogue();
 
-            // Show immediate success toast
-            const roomName = ROOM_ID_TO_NAME_MAP[roomId] || roomId;
-            showToast('Artwork Placed', `"${title}" is now displayed at ${locationName}`, 'success');
+            // Show initial placement toast
+            showToast('Placing Artwork...', `Saving "${title}" to gallery`, 'info', 3000);
 
             // DEFERRED XANO SYNC: Post to XANO in background so everyone sees the same art
             // This ensures the artwork is persisted and visible to all users on reload
             console.log('Posting artwork event to XANO (deferred):', eventData);
-            eventStore.postEvent(eventData).then(result => {
+            try {
+                const result = await eventStore.postEvent(eventData);
                 console.log('Artwork synced to XANO:', result);
-            }).catch(error => {
+                showToast('Artwork Placed', `"${title}" is now displayed at ${locationName}`, 'success');
+            } catch (error) {
                 console.error('Failed to sync artwork to XANO:', error);
-                // Show warning that sync failed - artwork won't persist for others
-                showToast('Sync Warning', 'Artwork displayed locally but failed to save online. Others may not see it until you retry.', 'warning', 8000);
-            });
+
+                // ROLLBACK: Remove optimistically-added artwork on sync failure
+                if (typeof roomManager !== 'undefined') {
+                    roomManager.removeArtworkByLocation(locationId, objectId);
+                }
+
+                // Show error with option to retry
+                showToast('Placement Failed', `"${title}" could not be saved. The artwork has been removed. Please try again.`, 'error', 8000);
+            }
         }
 
         // Add item to catalogue (for future expansion)
@@ -7982,20 +8065,30 @@
         }
 
         function loadGalleryState() {
-            // Clear any stale cached gallery state from localStorage
+            // Try to load from localStorage cache first for faster initial render
             try {
-                localStorage.removeItem('vr-gallery:galleries');
-                localStorage.removeItem('vr-gallery:activeGallery');
+                const cachedGalleries = localStorage.getItem('vr-gallery:galleries');
+                const cachedActiveId = localStorage.getItem('vr-gallery:activeGallery');
+
+                if (cachedGalleries) {
+                    const parsed = JSON.parse(cachedGalleries);
+                    if (Array.isArray(parsed) && parsed.length > 0) {
+                        galleries = parsed;
+                        activeGalleryId = cachedActiveId || galleries[0]?.id || null;
+                        console.log('Loaded gallery state from localStorage cache:', galleries.length, 'galleries');
+                        return;
+                    }
+                }
             } catch (e) {
-                // Ignore errors if localStorage is not available
+                console.warn('Failed to load gallery state from localStorage:', e);
             }
 
-            // Start with default galleries - will be updated after API fetch
+            // Fall back to default galleries - will be updated after API fetch
             galleries = getDefaultGalleries();
             activeGalleryId = galleries[0]?.id || null;
         }
 
-        // Async function to load galleries from API and merge with defaults
+        // Async function to load galleries from API and merge with defaults + cached
         async function initGalleriesFromAPI() {
             try {
                 // Fetch events from API
@@ -8012,11 +8105,14 @@
                     }
                 });
 
+                // Keep track of galleries from localStorage cache (might have unsynced user-created galleries)
+                const cachedGalleries = [...galleries];
+
                 // Build merged galleries array
                 const mergedGalleries = [];
                 const usedIds = new Set();
 
-                // First: Add galleries from API state (explicit gallery events)
+                // First: Add galleries from API state (explicit gallery events) - authoritative source
                 Object.values(apiGalleries).forEach(gallery => {
                     mergedGalleries.push({
                         id: gallery.id,
@@ -8029,16 +8125,28 @@
                 // Second: Add galleries for any artwork galleryIds not already covered
                 artworkGalleryIds.forEach(galleryId => {
                     if (!usedIds.has(galleryId)) {
+                        // Check if we have a cached version with a custom name
+                        const cached = cachedGalleries.find(g => g.id === galleryId);
                         mergedGalleries.push({
                             id: galleryId,
-                            name: `Gallery ${galleryId}`,
-                            colorTemperature: DEFAULT_COLOR_TEMPERATURE
+                            name: cached?.name || `Gallery ${galleryId}`,
+                            colorTemperature: cached?.colorTemperature || DEFAULT_COLOR_TEMPERATURE
                         });
                         usedIds.add(galleryId);
                     }
                 });
 
-                // Third: Add default galleries for any slots not yet used
+                // Third: Add any user-created galleries from cache that aren't in API yet
+                // (This preserves galleries created locally but not yet synced)
+                cachedGalleries.forEach(cachedGallery => {
+                    if (!usedIds.has(cachedGallery.id) && !cachedGallery.id.startsWith('gallery-')) {
+                        // Non-default gallery that's not in API yet - keep it
+                        mergedGalleries.push(cachedGallery);
+                        usedIds.add(cachedGallery.id);
+                    }
+                });
+
+                // Fourth: Add default galleries for any slots not yet used
                 const defaultGalleries = getDefaultGalleries();
                 defaultGalleries.forEach(defaultGallery => {
                     if (!usedIds.has(defaultGallery.id)) {
@@ -8059,23 +8167,32 @@
                     console.log('Galleries initialized from API:', {
                         apiGalleries: Object.keys(apiGalleries).length,
                         artworkGalleryIds: artworkGalleryIds.size,
+                        cachedUnsynced: cachedGalleries.filter(c => !usedIds.has(c.id) || !c.id.startsWith('gallery-')).length,
                         defaultsAdded: defaultGalleries.filter(d => mergedGalleries.find(m => m.id === d.id)).length,
                         total: galleries.length
                     });
                 }
+
+                // Cache the merged gallery state
+                saveGalleryState();
 
                 // Re-render gallery controls to reflect API galleries
                 renderGalleryControls();
 
             } catch (error) {
                 console.error('Failed to load galleries from API:', error);
-                // Keep using default galleries on error
+                // Keep using default/cached galleries on error
             }
         }
 
         function saveGalleryState() {
-            // No-op: gallery state is no longer cached to localStorage
-            // This prevents stale gallery data from being shown on page refresh
+            // Cache gallery state to localStorage for faster initial render on reload
+            try {
+                localStorage.setItem('vr-gallery:galleries', JSON.stringify(galleries));
+                localStorage.setItem('vr-gallery:activeGallery', activeGalleryId);
+            } catch (e) {
+                console.warn('Failed to save gallery state to localStorage:', e);
+            }
         }
 
         function getActiveGallery() {
@@ -8125,11 +8242,10 @@
                 loadArtworksFromAirtable();
             }
 
-            if (!options.fromURL) {
-                const params = new URLSearchParams(window.location.search);
-                params.set('gallery', gallery.id);
-                window.history.replaceState({}, '', `${window.location.pathname}?${params.toString()}`);
-            }
+            // Always update URL for shareability and bookmarking
+            const params = new URLSearchParams(window.location.search);
+            params.set('gallery', gallery.id);
+            window.history.replaceState({}, '', `${window.location.pathname}?${params.toString()}`);
         }
 
         async function generateNewGallery() {
@@ -9221,6 +9337,78 @@
                 console.log('[addArtwork] Added to pending queue for room:', entry.roomId);
             }
 
+            // Remove artwork from scene by locationId (used for optimistic UI rollback)
+            removeArtworkByLocation(locationId, artworkId = null) {
+                console.log('[removeArtworkByLocation] Removing artwork at:', locationId, 'id:', artworkId);
+
+                // Remove from loaded tracking
+                if (artworkId) {
+                    this.loadedArtworkIds.delete(artworkId);
+                }
+
+                // Remove from pending artworks
+                Object.keys(this.pendingArtworks).forEach(roomId => {
+                    this.pendingArtworks[roomId] = this.pendingArtworks[roomId].filter(entry => {
+                        if (entry.locationId === locationId) {
+                            return false;
+                        }
+                        if (artworkId && (entry.eventId === artworkId || entry.airtableId === artworkId)) {
+                            return false;
+                        }
+                        return true;
+                    });
+                });
+
+                // Find and remove the 3D artwork from the scene
+                const artworkGroup = artworks.find(a =>
+                    a.userData.spotId === locationId ||
+                    (artworkId && a.userData.artworkId === artworkId)
+                );
+
+                if (artworkGroup) {
+                    // Reset wall spot
+                    const wallSpot = wallSpots.find(s => s.userData.id === locationId);
+                    if (wallSpot) {
+                        wallSpot.userData.occupied = false;
+                        wallSpot.userData.currentWidth = 0;
+                        wallSpot.material.color.setHex(0x667eea);
+                        wallSpot.material.emissive.setHex(0x667eea);
+                    }
+
+                    // Remove placard if exists
+                    if (artworkGroup.userData.placardIndex !== undefined &&
+                        placards[artworkGroup.userData.placardIndex]) {
+                        const placard = placards[artworkGroup.userData.placardIndex];
+                        if (placard && placard.parent) {
+                            placard.parent.remove(placard);
+                        }
+                        placards[artworkGroup.userData.placardIndex] = null;
+                    }
+
+                    // Remove wire if exists
+                    if (artworkGroup.userData.wire && artworkGroup.userData.wire.parent) {
+                        artworkGroup.userData.wire.parent.remove(artworkGroup.userData.wire);
+                        artworkGroup.userData.wire = null;
+                    }
+
+                    // Remove from scene
+                    if (artworkGroup.parent) {
+                        artworkGroup.parent.remove(artworkGroup);
+                    }
+
+                    // Remove from artworks array
+                    const index = artworks.indexOf(artworkGroup);
+                    if (index > -1) artworks.splice(index, 1);
+
+                    updateSpotCounters();
+                    console.log('[removeArtworkByLocation] Artwork removed from scene');
+                    return true;
+                }
+
+                console.log('[removeArtworkByLocation] Artwork not found in scene');
+                return false;
+            }
+
             checkDoorProximity(cameraPosition) {
                 for (const door of this.activeDoors) {
                     const doorWorldPos = new THREE.Vector3();
@@ -9546,18 +9734,6 @@
                 let skippedCount = 0;
 
                 for (const artwork of placedArtworks) {
-                    console.log('[loadArtworksFromEvents] Processing artwork:', {
-                        id: artwork.id,
-                        title: artwork.title,
-                        imageUrl: artwork.imageUrl?.substring(0, 50),
-                        location: artwork.location,
-                        locationId: artwork.locationId,
-                        locationName: artwork.locationName,
-                        roomId: artwork.roomId,
-                        spaceId: artwork.spaceId,
-                        roomGuid: artwork.roomGuid
-                    });
-
                     // Skip if no image URL
                     if (!artwork.imageUrl) {
                         console.warn(`[loadArtworksFromEvents] Skipping "${artwork.title}" - no image URL`);
@@ -9565,41 +9741,19 @@
                         continue;
                     }
 
-                    // Parse location from artwork data - use helper function for consistency
-                    const rawLocationId = artwork.locationId || artwork.location;
-                    const artworkRoomId = artwork.roomId;
-                    const locationName = artwork.locationName;
+                    // locationId is now normalized during state reconstruction (applyArtworkEvent)
+                    // It should always be in "roomId:spotId" format
+                    const locationId = artwork.locationId;
 
-                    let parsedLocation;
-
-                    // Try to parse from locationId first (preferred)
-                    if (rawLocationId) {
-                        parsedLocation = parseLocationId(
-                            rawLocationId,
-                            artworkRoomId,
-                            roomManager?.currentRoom || 'main-gallery'
-                        );
-                    }
-
-                    // Fall back to parsing from locationName if locationId didn't work
-                    if (!parsedLocation?.locationId && locationName) {
-                        parsedLocation = parseLocationData(locationName);
-                        // If we have artworkRoomId, override the parsed roomId
-                        if (parsedLocation && artworkRoomId && artworkRoomId !== parsedLocation.roomId) {
-                            const correctLocationId = `${artworkRoomId}:${parsedLocation.spotId}`;
-                            parsedLocation = {
-                                roomId: artworkRoomId,
-                                spotId: parsedLocation.spotId,
-                                locationId: correctLocationId
-                            };
-                        }
-                    }
-
-                    if (!parsedLocation?.locationId) {
-                        console.warn(`[loadArtworksFromEvents] Skipping "${artwork.title}" - could not determine location`);
+                    if (!locationId || !locationId.includes(':')) {
+                        console.warn(`[loadArtworksFromEvents] Skipping "${artwork.title}" - invalid locationId: ${locationId}`);
                         skippedCount++;
                         continue;
                     }
+
+                    // Parse the normalized locationId
+                    const [roomId, spotId] = locationId.split(':');
+                    const parsedLocation = { roomId, spotId, locationId };
 
                     const metadata = {
                         title: artwork.title || '',
