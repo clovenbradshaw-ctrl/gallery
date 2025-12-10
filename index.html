@@ -8049,6 +8049,7 @@
         let currentLightFactor = 1;
         let lightingAnimationFrame = null;
         let pendingArtworkLoads = 0;
+        let isRoomTransitioning = false; // Flag to prevent artwork loads during room transitions
         let roomManager = null;
         let navigationMapCanvas = null;
         let interactKeyPressed = false;
@@ -9320,7 +9321,10 @@
                 console.log('[clearCurrentRoomArtworks] Clearing ALL artworks for room transition, current room:', this.currentRoom);
                 console.log('[clearCurrentRoomArtworks] Removing', artworks.length, 'artworks');
 
-                for (const artworkMesh of artworks) {
+                // Make a copy of the artworks array to iterate safely
+                const artworksCopy = [...artworks];
+
+                for (const artworkMesh of artworksCopy) {
                     // Free up the wall spot - need to find it in ALL room spots, not just current wallSpots
                     const spotId = artworkMesh.userData.spotId;
 
@@ -9372,10 +9376,16 @@
                 // Clear the global artworks array completely
                 artworks.length = 0;
 
+                // Clear ALL pending artwork queues to prevent stale artworks from loading
+                this.pendingArtworks = {};
+
+                // Clear all loaded artwork IDs for a fresh start
+                this.loadedArtworkIds.clear();
+
                 // Clean up placards array (remove null entries)
                 placards = placards.filter(p => p !== null);
 
-                console.log('[clearCurrentRoomArtworks] Scene cleared, artworks remaining:', artworks.length);
+                console.log('[clearCurrentRoomArtworks] Scene cleared, artworks remaining:', artworks.length, 'pending queues cleared');
             }
 
             async addArtwork(entry) {
@@ -9477,6 +9487,9 @@
             }
 
             fadeTransition(callback) {
+                // Set transition flag to prevent artwork loads during transition
+                isRoomTransitioning = true;
+
                 const overlay = document.createElement('div');
                 overlay.style.cssText = `
                     position: fixed;
@@ -9486,23 +9499,24 @@
                     height: 100%;
                     background: black;
                     opacity: 0;
-                    transition: opacity 0.6s ease-in-out;
+                    transition: opacity 0.8s ease-in-out;
                     z-index: 9999;
                     pointer-events: none;
                 `;
                 document.body.appendChild(overlay);
 
-                // Animate lights dimming down
-                const dimDuration = 500; // ms
+                // Immersive room light dimming effect - complete blackout
+                const dimDuration = 700; // ms - longer for more cinematic effect
                 const dimStartTime = performance.now();
                 const initialLightFactor = currentLightFactor;
 
                 const animateDimDown = (timestamp) => {
                     const elapsed = timestamp - dimStartTime;
                     const progress = Math.min(elapsed / dimDuration, 1);
-                    // Ease out: faster at start, slower at end
-                    const easeProgress = 1 - Math.pow(1 - progress, 2);
-                    const newFactor = initialLightFactor * (1 - easeProgress * 0.95); // Dim to 5% brightness
+                    // Smooth cubic ease-out for cinematic dimming
+                    const easeProgress = 1 - Math.pow(1 - progress, 3);
+                    // Dim to 0% for complete blackout (immersive effect)
+                    const newFactor = initialLightFactor * (1 - easeProgress);
                     setGalleryLightFactor(newFactor);
 
                     if (progress < 1) {
@@ -9516,16 +9530,23 @@
                 });
 
                 setTimeout(async () => {
+                    // Ensure lights are completely off before room change
+                    setGalleryLightFactor(0);
+
                     await callback();
 
+                    // Brief pause in darkness for immersive effect
+                    await new Promise(resolve => setTimeout(resolve, 150));
+
                     // Animate lights brightening back up
+                    const brightenDuration = 800; // ms - slightly longer for dramatic reveal
                     const brightenStartTime = performance.now();
                     const animateBrightenUp = (timestamp) => {
                         const elapsed = timestamp - brightenStartTime;
-                        const progress = Math.min(elapsed / dimDuration, 1);
-                        // Ease in: slower at start, faster at end
-                        const easeProgress = progress * progress;
-                        const newFactor = 0.05 + easeProgress * (initialLightFactor - 0.05);
+                        const progress = Math.min(elapsed / brightenDuration, 1);
+                        // Smooth cubic ease-in for gradual reveal
+                        const easeProgress = progress * progress * progress;
+                        const newFactor = easeProgress * initialLightFactor;
                         setGalleryLightFactor(newFactor);
 
                         if (progress < 1) {
@@ -9533,6 +9554,8 @@
                         } else {
                             // Ensure we end at exactly the initial factor
                             setGalleryLightFactor(initialLightFactor);
+                            // Clear transition flag after lights are fully restored
+                            isRoomTransitioning = false;
                         }
                     };
 
@@ -9543,8 +9566,8 @@
                         if (overlay.parentElement) {
                             overlay.parentElement.removeChild(overlay);
                         }
-                    }, 600);
-                }, 600);
+                    }, 850);
+                }, 750);
             }
         }
 
@@ -12252,6 +12275,12 @@
         }
         
         function createArtworkMesh(texture, name, spot, dimensions, metadata, imageUrl, artworkId = null, artworkData = null) {
+            // Prevent adding artworks during room transitions to avoid persistence bugs
+            if (isRoomTransitioning) {
+                console.log('[createArtworkMesh] Blocked during room transition:', name);
+                return;
+            }
+
             const width = dimensions.width;
             const height = dimensions.height;
 
@@ -12667,6 +12696,11 @@
 
         // Create a grid layout of multiple artworks in one spot
         function createGridLayout(spot, imagesData, metadata, artworkId, artworkData) {
+            // Prevent adding artworks during room transitions to avoid persistence bugs
+            if (isRoomTransitioning) {
+                console.log('[createGridLayout] Blocked during room transition:', metadata?.title);
+                return;
+            }
             if (!imagesData || imagesData.length === 0) return;
 
             const gridGroup = new THREE.Group();
