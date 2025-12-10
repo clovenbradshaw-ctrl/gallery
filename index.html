@@ -7992,9 +7992,89 @@
                 // Ignore errors if localStorage is not available
             }
 
-            // Always use fresh defaults - no localStorage caching to avoid showing stale gallery state
+            // Start with default galleries - will be updated after API fetch
             galleries = getDefaultGalleries();
             activeGalleryId = galleries[0]?.id || null;
+        }
+
+        // Async function to load galleries from API and merge with defaults
+        async function initGalleriesFromAPI() {
+            try {
+                // Fetch events from API
+                await eventStore.fetchEvents();
+
+                // Collect galleries from API state
+                const apiGalleries = { ...eventStore.state.galleries };
+
+                // Also collect unique gallery IDs from artworks that have assignments
+                const artworkGalleryIds = new Set();
+                Object.values(eventStore.state.artworks).forEach(artwork => {
+                    if (artwork.galleryId && artwork.galleryId !== 'default') {
+                        artworkGalleryIds.add(artwork.galleryId);
+                    }
+                });
+
+                // Build merged galleries array
+                const mergedGalleries = [];
+                const usedIds = new Set();
+
+                // First: Add galleries from API state (explicit gallery events)
+                Object.values(apiGalleries).forEach(gallery => {
+                    mergedGalleries.push({
+                        id: gallery.id,
+                        name: gallery.name || `Gallery ${gallery.id}`,
+                        homeRoom: gallery.homeRoom || 'main-gallery',
+                        colorTemperature: gallery.colorTemperature || DEFAULT_COLOR_TEMPERATURE
+                    });
+                    usedIds.add(gallery.id);
+                });
+
+                // Second: Add galleries for any artwork galleryIds not already covered
+                artworkGalleryIds.forEach(galleryId => {
+                    if (!usedIds.has(galleryId)) {
+                        mergedGalleries.push({
+                            id: galleryId,
+                            name: `Gallery ${galleryId}`,
+                            homeRoom: 'main-gallery',
+                            colorTemperature: DEFAULT_COLOR_TEMPERATURE
+                        });
+                        usedIds.add(galleryId);
+                    }
+                });
+
+                // Third: Add default galleries for any slots not yet used
+                const defaultGalleries = getDefaultGalleries();
+                defaultGalleries.forEach(defaultGallery => {
+                    if (!usedIds.has(defaultGallery.id)) {
+                        mergedGalleries.push(defaultGallery);
+                        usedIds.add(defaultGallery.id);
+                    }
+                });
+
+                // Update the global galleries array if we have any galleries
+                if (mergedGalleries.length > 0) {
+                    galleries = mergedGalleries;
+
+                    // Keep current active gallery if it exists, otherwise use first
+                    if (!galleries.find(g => g.id === activeGalleryId)) {
+                        activeGalleryId = galleries[0].id;
+                    }
+
+                    console.log('Galleries initialized from API:', {
+                        apiGalleries: Object.keys(apiGalleries).length,
+                        artworkGalleryIds: artworkGalleryIds.size,
+                        defaultsAdded: defaultGalleries.filter(d => mergedGalleries.find(m => m.id === d.id)).length,
+                        total: galleries.length
+                    });
+                }
+
+                // Re-render gallery controls to reflect API galleries
+                renderGalleryControls();
+
+            } catch (error) {
+                console.error('Failed to load galleries from API:', error);
+                // Keep using default galleries on error
+            }
         }
 
         function saveGalleryState() {
@@ -10014,26 +10094,8 @@
                 const galleryFromURL = params.get('gallery');
                 const roomFromURL = params.get('room');
 
-                if (galleryFromURL) {
-                    const existing = galleries.find(g => g.id === galleryFromURL);
-                    if (existing) {
-                        activeGalleryId = galleryFromURL;
-                    } else {
-                        galleries.push({
-                            id: galleryFromURL,
-                            name: `Gallery ${galleryFromURL}`,
-                            homeRoom: 'main-gallery',
-                            colorTemperature: DEFAULT_COLOR_TEMPERATURE
-                        });
-                        activeGalleryId = galleryFromURL;
-                        saveGalleryState();
-                    }
-                }
-
-                const initialGallery = getActiveGallery();
-                const initialRoom = (roomFromURL && ROOMS[roomFromURL]) ? roomFromURL : (initialGallery?.homeRoom || 'main-gallery');
-
-                setActiveGallery(initialGallery?.id, { skipArtReload: true, skipRoomLoad: true, fromURL: true });
+                // Set up initial gallery/room for immediate display
+                const initialRoom = (roomFromURL && ROOMS[roomFromURL]) ? roomFromURL : 'main-gallery';
                 roomManager.loadRoom(initialRoom, { centerCamera: true });
 
                 setupControls();
@@ -10046,7 +10108,31 @@
 
                 navigationMapCanvas = createNavigationMap();
 
-                loadArtworksFromAirtable();
+                // Initialize galleries from API, then handle URL parameters and load artworks
+                initGalleriesFromAPI().then(() => {
+                    // Handle URL gallery parameter after API galleries are loaded
+                    if (galleryFromURL) {
+                        const existing = galleries.find(g => g.id === galleryFromURL);
+                        if (existing) {
+                            activeGalleryId = galleryFromURL;
+                        } else {
+                            // Add custom gallery from URL if not in API
+                            galleries.push({
+                                id: galleryFromURL,
+                                name: `Gallery ${galleryFromURL}`,
+                                homeRoom: 'main-gallery',
+                                colorTemperature: DEFAULT_COLOR_TEMPERATURE
+                            });
+                            activeGalleryId = galleryFromURL;
+                        }
+                        renderGalleryControls();
+                    }
+
+                    // Set up active gallery and load artworks
+                    const activeGallery = getActiveGallery();
+                    setActiveGallery(activeGallery?.id, { skipArtReload: true, skipRoomLoad: true, fromURL: true });
+                    loadArtworksFromEvents();
+                });
 
                 animate();
             } catch (error) {
