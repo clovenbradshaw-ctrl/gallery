@@ -4785,9 +4785,9 @@
                 <div>
                     <label>Color Theme</label>
                     <select id="new-room-theme">
-                        <option value="warm">Warm (Classic Gallery)</option>
-                        <option value="cool">Cool (Modern)</option>
-                        <option value="neutral" selected>Neutral (Contemporary)</option>
+                        <option value="warm">Warm</option>
+                        <option value="cool">Cool</option>
+                        <option value="neutral" selected>Neutral</option>
                     </select>
                 </div>
                 <div class="add-room-actions">
@@ -7445,7 +7445,7 @@
         const ROOMS = {
             'main-gallery': {
                 id: 'main-gallery',
-                name: 'Main Gallery',
+                name: 'Gallery',
                 dimensions: { width: 16, depth: 20, height: 5 },
                 position: { x: 0, y: 0, z: 0 },
                 theme: {
@@ -7530,112 +7530,7 @@
                     }
                 ],
                 floors: [],
-                doors: [
-                    {
-                        id: 'door-to-contemporary',
-                        position: { x: 6, y: 0, z: 10 },
-                        rotation: Math.PI,
-                        targetRoom: 'contemporary-wing',
-                        label: 'Contemporary Art'
-                    }
-                ]
-            },
-            'contemporary-wing': {
-                id: 'contemporary-wing',
-                name: 'Contemporary Wing',
-                dimensions: { width: 20, depth: 16, height: 5 },
-                position: { x: 0, y: 0, z: 28 },
-                theme: {
-                    wallColor: 0xf0f4ff,
-                    floorColor: 0xffffff,
-                    lighting: 'cool',
-                    colorTemperature: DEFAULT_COLOR_TEMPERATURE
-                },
-                walls: [
-                    // North wall (back) - north-1, north-2, north-3
-                    {
-                        id: 'contemporary-wing:north-1',
-                        baseId: 'north-1',
-                        displayName: 'Skyline Panel',
-                        position: wallSpotPosition(-5, -7.9),
-                        wall: 'back',
-                        rotation: 0,
-                        maxWidth: 5,
-                        wallLength: 20 * 0.3048
-                    },
-                    {
-                        id: 'contemporary-wing:north-2',
-                        baseId: 'north-2',
-                        displayName: 'Lightwell',
-                        position: wallSpotPosition(0, -7.9),
-                        wall: 'back',
-                        rotation: 0,
-                        maxWidth: 5,
-                        wallLength: 20 * 0.3048
-                    },
-                    {
-                        id: 'contemporary-wing:north-3',
-                        baseId: 'north-3',
-                        displayName: 'Glass Passage',
-                        position: wallSpotPosition(5, -7.9),
-                        wall: 'back',
-                        rotation: 0,
-                        maxWidth: 5,
-                        wallLength: 20 * 0.3048
-                    },
-                    // West wall (left) - west-1, west-2
-                    {
-                        id: 'contemporary-wing:west-1',
-                        baseId: 'west-1',
-                        displayName: 'Chromatic Stack',
-                        position: wallSpotPosition(-9.9, -3),
-                        wall: 'left',
-                        rotation: Math.PI / 2,
-                        maxWidth: 5,
-                        wallLength: 16 * 0.3048
-                    },
-                    {
-                        id: 'contemporary-wing:west-2',
-                        baseId: 'west-2',
-                        displayName: 'Cascade Wall',
-                        position: wallSpotPosition(-9.9, 3),
-                        wall: 'left',
-                        rotation: Math.PI / 2,
-                        maxWidth: 5,
-                        wallLength: 16 * 0.3048
-                    },
-                    // East wall (right) - east-1, east-2
-                    {
-                        id: 'contemporary-wing:east-1',
-                        baseId: 'east-1',
-                        displayName: 'Spectrum Drift',
-                        position: wallSpotPosition(9.9, -3),
-                        wall: 'right',
-                        rotation: -Math.PI / 2,
-                        maxWidth: 5,
-                        wallLength: 16 * 0.3048
-                    },
-                    {
-                        id: 'contemporary-wing:east-2',
-                        baseId: 'east-2',
-                        displayName: 'Neon Strata',
-                        position: wallSpotPosition(9.9, 3),
-                        wall: 'right',
-                        rotation: -Math.PI / 2,
-                        maxWidth: 5,
-                        wallLength: 16 * 0.3048
-                    }
-                ],
-                floors: [],
-                doors: [
-                    {
-                        id: 'door-to-main',
-                        position: { x: 0, y: 0, z: -8 },
-                        rotation: 0,
-                        targetRoom: 'main-gallery',
-                        label: 'Back to Main Gallery'
-                    }
-                ]
+                doors: []
             }
         };
 
@@ -7649,8 +7544,8 @@
                 {
                     guid: 'room_001',
                     legacyId: 'main-gallery',
-                    name: 'Main Gallery',
-                    description: 'The primary exhibition space',
+                    name: 'Gallery',
+                    description: 'The exhibition space',
                     spaces: [
                         // Wall spots
                         { guid: 'space_001', legacySpotId: 'back-1', name: 'Back Left Wall', wall: 'back', position: 1 },
@@ -7660,22 +7555,6 @@
                         { guid: 'space_005', legacySpotId: 'right-2', name: 'Right Back Wall', wall: 'right', position: 2 },
                         { guid: 'space_006', legacySpotId: 'left-1', name: 'Left Front Wall', wall: 'left', position: 1 },
                         { guid: 'space_007', legacySpotId: 'left-2', name: 'Left Back Wall', wall: 'left', position: 2 }
-                    ]
-                },
-                {
-                    guid: 'room_002',
-                    legacyId: 'contemporary-wing',
-                    name: 'Contemporary Wing',
-                    description: 'Modern and contemporary art collection',
-                    spaces: [
-                        // Wall spots
-                        { guid: 'space_013', legacySpotId: 'north-1', name: 'Skyline Panel', wall: 'back', position: 1 },
-                        { guid: 'space_014', legacySpotId: 'north-2', name: 'Lightwell', wall: 'back', position: 2 },
-                        { guid: 'space_015', legacySpotId: 'north-3', name: 'Glass Passage', wall: 'back', position: 3 },
-                        { guid: 'space_016', legacySpotId: 'west-1', name: 'Chromatic Stack', wall: 'left', position: 1 },
-                        { guid: 'space_017', legacySpotId: 'west-2', name: 'Cascade Wall', wall: 'left', position: 2 },
-                        { guid: 'space_018', legacySpotId: 'east-1', name: 'Spectrum Drift', wall: 'right', position: 1 },
-                        { guid: 'space_019', legacySpotId: 'east-2', name: 'Neon Strata', wall: 'right', position: 2 }
                     ]
                 }
             ]
@@ -8698,7 +8577,7 @@
         function saveCustomRooms() {
             const customRooms = {};
             Object.keys(ROOMS).forEach(roomId => {
-                if (roomId !== 'main-gallery' && roomId !== 'contemporary-wing') {
+                if (roomId !== 'main-gallery') {
                     customRooms[roomId] = ROOMS[roomId];
                 }
             });
@@ -11947,7 +11826,7 @@
             if (!locationId) return null;
             const fullName = LOCATION_ID_TO_NAME_MAP[locationId];
             if (!fullName) return null;
-            // LOCATION_ID_TO_NAME_MAP already contains the full name like "Main Gallery - 1"
+            // LOCATION_ID_TO_NAME_MAP already contains the full location name
             return fullName;
         }
         
