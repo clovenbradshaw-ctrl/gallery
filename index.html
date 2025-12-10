@@ -8879,6 +8879,10 @@
                 }
 
                 if (this.currentRoom && this.currentRoom !== roomId) {
+                    // Clear artworks from the previous room BEFORE switching wallSpots
+                    // This ensures we can properly reset the old room's wall spots
+                    this.clearCurrentRoomArtworks();
+
                     const currentMesh = this.roomMeshes.get(this.currentRoom);
                     if (currentMesh) {
                         currentMesh.visible = false;
@@ -9197,6 +9201,73 @@
                 }
 
                 this.pendingArtworks[roomId] = remaining;
+            }
+
+            clearCurrentRoomArtworks() {
+                // Clear artworks that belong to the current room
+                // This is called BEFORE wallSpots is reassigned, so we can properly reset spot states
+                console.log('[clearCurrentRoomArtworks] Clearing artworks for room:', this.currentRoom);
+
+                const artworksToRemove = [];
+                const artworksToKeep = [];
+
+                for (const artworkMesh of artworks) {
+                    // Check if this artwork belongs to the current room by checking its spotId
+                    const spotId = artworkMesh.userData.spotId;
+                    const belongsToCurrentRoom = spotId && spotId.startsWith(this.currentRoom + ':');
+
+                    if (belongsToCurrentRoom) {
+                        artworksToRemove.push(artworkMesh);
+                    } else {
+                        artworksToKeep.push(artworkMesh);
+                    }
+                }
+
+                console.log('[clearCurrentRoomArtworks] Removing', artworksToRemove.length, 'artworks');
+
+                for (const artworkMesh of artworksToRemove) {
+                    // Free up the wall spot
+                    const wallSpot = wallSpots.find(s => s.userData.id === artworkMesh.userData.spotId);
+                    if (wallSpot) {
+                        wallSpot.userData.occupied = false;
+                        wallSpot.userData.currentWidth = 0;
+                        wallSpot.material.color.setHex(0x667eea);
+                        wallSpot.material.emissive.setHex(0x667eea);
+                    }
+
+                    // Remove wire if exists
+                    if (artworkMesh.userData.wire && artworkMesh.userData.wire.parent) {
+                        artworkMesh.userData.wire.parent.remove(artworkMesh.userData.wire);
+                    }
+
+                    // Remove placard if exists
+                    if (artworkMesh.userData.placardIndex !== undefined &&
+                        placards[artworkMesh.userData.placardIndex]) {
+                        const placard = placards[artworkMesh.userData.placardIndex];
+                        if (placard && placard.parent) {
+                            placard.parent.remove(placard);
+                        }
+                        placards[artworkMesh.userData.placardIndex] = null;
+                    }
+
+                    // Remove from scene
+                    if (artworkMesh.parent) {
+                        artworkMesh.parent.remove(artworkMesh);
+                    }
+
+                    // Remove from loadedArtworkIds so it can be reloaded when returning
+                    const artworkId = artworkMesh.userData.artworkId;
+                    if (artworkId) {
+                        this.loadedArtworkIds.delete(artworkId);
+                    }
+                }
+
+                // Update the global artworks array
+                artworks.length = 0;
+                artworks.push(...artworksToKeep);
+
+                // Clean up placards array (remove null entries)
+                placards = placards.filter(p => p !== null);
             }
 
             async addArtwork(entry) {
