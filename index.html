@@ -9620,7 +9620,11 @@
                         spaceId: artwork.spaceId || null,
                         roomGuid: artwork.roomGuid || null,
                         locationId: parsedLocation.locationId,
-                        locationName: artwork.locationName || ''
+                        locationName: artwork.locationName || '',
+                        // E-commerce fields from API
+                        productUrl: artwork.productUrl || '',
+                        price: artwork.price,
+                        currency: artwork.currency || 'USD'
                     };
 
                     // Height in meters (default 36 inches = 0.9144m)
