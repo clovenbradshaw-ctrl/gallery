@@ -9389,9 +9389,43 @@
             const canvas = document.createElement('canvas');
             canvas.width = 180;
             canvas.height = 180;
-            canvas.style.cssText = 'width: 100%; height: 100%;';
+            canvas.style.cssText = 'width: 100%; height: 100%; cursor: pointer;';
             mapContainer.appendChild(canvas);
             document.body.appendChild(mapContainer);
+
+            // Add click handler to navigate to clicked room
+            canvas.addEventListener('click', (event) => {
+                const rect = canvas.getBoundingClientRect();
+                const scaleX = canvas.width / rect.width;
+                const scaleY = canvas.height / rect.height;
+                const canvasX = (event.clientX - rect.left) * scaleX;
+                const canvasY = (event.clientY - rect.top) * scaleY;
+
+                const scale = 3;
+                const offsetX = canvas.width / 2;
+                const offsetY = canvas.height / 2;
+
+                // Convert canvas coordinates to world coordinates
+                const worldX = (canvasX - offsetX) / scale;
+                const worldZ = (canvasY - offsetY) / scale;
+
+                // Find which room was clicked
+                for (const room of Object.values(ROOMS)) {
+                    const roomX = room.position.x;
+                    const roomZ = room.position.z;
+                    const halfWidth = room.dimensions.width / 2;
+                    const halfDepth = room.dimensions.depth / 2;
+
+                    if (worldX >= roomX - halfWidth && worldX <= roomX + halfWidth &&
+                        worldZ >= roomZ - halfDepth && worldZ <= roomZ + halfDepth) {
+                        // Navigate to the clicked room
+                        if (roomManager && room.id !== roomManager.currentRoom) {
+                            roomManager.transitionToRoom(room.id);
+                        }
+                        break;
+                    }
+                }
+            });
 
             return canvas;
         }
