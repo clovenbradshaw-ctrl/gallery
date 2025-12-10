@@ -5791,6 +5791,12 @@
                                 roomGuid: normalizedData.roomGuid !== undefined ? normalizedData.roomGuid : this.state.artworks[object_id].roomGuid,
                                 updated_at: event.created_at || event.published
                             };
+                            // If location fields are cleared (set to null), mark as unplaced
+                            const artwork = this.state.artworks[object_id];
+                            const hasLocation = artwork.locationId || artwork.location || artwork.spaceId;
+                            if (!hasLocation) {
+                                artwork.placed = false;
+                            }
                         }
                         break;
                     case 'delete':
