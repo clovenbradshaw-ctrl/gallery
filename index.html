@@ -6389,24 +6389,8 @@
             document.getElementById('catalogue-description').value = item.description || '';
             document.getElementById('catalogue-height').value = 36;
 
-            // Populate gallery dropdown - always ensure active gallery is selected
-            const gallerySelect = document.getElementById('catalogue-gallery');
-            const storedGalleries = JSON.parse(localStorage.getItem('vr-gallery:galleries') || '[]');
-            const activeGallery = getActiveGallery();
-            const currentGalleryId = activeGallery?.id || localStorage.getItem('vr-gallery:activeGallery');
-
-            if (storedGalleries.length > 0) {
-                gallerySelect.innerHTML = storedGalleries.map(g =>
-                    `<option value="${g.id}" ${g.id === currentGalleryId ? 'selected' : ''}>${g.name}</option>`
-                ).join('');
-            } else if (currentGalleryId) {
-                // No galleries in list but we have an active gallery ID - use it
-                gallerySelect.innerHTML = `<option value="${currentGalleryId}" selected>${activeGallery?.name || 'Current Gallery'}</option>`;
-            } else {
-                // No galleries at all - generate a unique ID to prevent cross-gallery pollution
-                const uniqueId = 'gallery-' + Date.now().toString(36);
-                gallerySelect.innerHTML = `<option value="${uniqueId}" selected>Default Gallery</option>`;
-            }
+            // Populate gallery dropdown using in-memory galleries (not stale localStorage)
+            populateCatalogueGalleryDropdown();
 
             // Populate room tag dropdown
             const roomTagSelect = document.getElementById('catalogue-room-tag');
@@ -6474,6 +6458,28 @@
 
                 // Refresh the location dropdown to show preferred spots
                 populateCatalogueLocations(roomTag);
+            }
+        }
+
+        // Populate gallery dropdown using in-memory galleries (not stale localStorage)
+        // This ensures the dropdown always shows current gallery data
+        function populateCatalogueGalleryDropdown() {
+            const gallerySelect = document.getElementById('catalogue-gallery');
+            if (!gallerySelect) return;
+
+            const activeGallery = getActiveGallery();
+            const currentGalleryId = activeGallery?.id;
+
+            // Filter to only show valid galleries (exclude room IDs and invalid fallbacks)
+            const validGalleries = galleries.filter(g => isValidGalleryId(g.id));
+
+            if (validGalleries.length > 0) {
+                gallerySelect.innerHTML = validGalleries.map(g =>
+                    `<option value="${g.id}" ${g.id === currentGalleryId ? 'selected' : ''}>${g.name}</option>`
+                ).join('');
+            } else {
+                // No valid galleries exist - show a placeholder that will trigger gallery creation
+                gallerySelect.innerHTML = '<option value="" selected>-- Create a gallery to place artwork --</option>';
             }
         }
 
@@ -7193,7 +7199,7 @@
             const title = document.getElementById('catalogue-title').value.trim();
             const artist = document.getElementById('catalogue-artist').value.trim();
             const description = document.getElementById('catalogue-description').value.trim();
-            const galleryId = document.getElementById('catalogue-gallery').value;
+            const dropdownGalleryId = document.getElementById('catalogue-gallery').value;
             const heightInches = parseFloat(document.getElementById('catalogue-height').value) || 36;
 
             // Use pre-selected spot from spot click, or fall back to dropdown
@@ -7208,6 +7214,24 @@
             if (!locationId) {
                 alert('Please select a location for the artwork.');
                 return;
+            }
+
+            // Validate gallery ID - must be a real gallery GUID, not a room ID or fallback
+            let galleryId = dropdownGalleryId;
+            if (!isValidGalleryId(galleryId)) {
+                // Try to get or create a valid gallery
+                const validGallery = await ensureValidGalleryForPlacement();
+                if (!validGallery) {
+                    // User cancelled - abort placement
+                    return;
+                }
+                galleryId = validGallery.id;
+                // Update the dropdown to show the new gallery
+                const gallerySelect = document.getElementById('catalogue-gallery');
+                if (gallerySelect) {
+                    populateCatalogueGalleryDropdown();
+                    gallerySelect.value = galleryId;
+                }
             }
 
             // Clear the pre-selected spot after use
@@ -7286,7 +7310,7 @@
                     locationId: locationId,
                     locationName: locationName,
                     roomId: roomId,
-                    galleryId: galleryId || getActiveGallery()?.id || ('gallery-' + Date.now().toString(36)),
+                    galleryId: galleryId, // Already validated above - must be a real gallery GUID
                     catalogueId: item.id,
                     productUrl: item.product_url,
                     price: item.price,
@@ -8238,6 +8262,79 @@
 
         function getActiveGallery() {
             return galleries.find(g => g.id === activeGalleryId) || galleries[0];
+        }
+
+        // Validate that a galleryId is a real gallery GUID, not a room ID or invalid fallback
+        function isValidGalleryId(galleryId) {
+            if (!galleryId || typeof galleryId !== 'string') return false;
+            // Reject empty strings
+            if (galleryId.trim() === '') return false;
+            // Reject known invalid fallbacks
+            if (galleryId === 'default') return false;
+            // Reject room IDs (these are physical spaces, not gallery collections)
+            const roomIds = Object.keys(ROOMS);
+            if (roomIds.includes(galleryId)) return false;
+            // Must exist in the galleries array
+            return galleries.some(g => g.id === galleryId);
+        }
+
+        // Get a valid gallery for placing artwork, or prompt to create one
+        // Returns the gallery object, or null if user cancels
+        async function ensureValidGalleryForPlacement() {
+            const activeGallery = getActiveGallery();
+
+            // If we have a valid active gallery, use it
+            if (activeGallery && isValidGalleryId(activeGallery.id)) {
+                return activeGallery;
+            }
+
+            // No valid gallery exists - prompt user to create one
+            const shouldCreate = confirm(
+                'You need to create a gallery before placing artwork.\n\n' +
+                'Galleries help organize your art collection and ensure artwork stays in the right place.\n\n' +
+                'Would you like to create a new gallery now?'
+            );
+
+            if (!shouldCreate) {
+                return null;
+            }
+
+            // Prompt for gallery name
+            const galleryName = prompt('Enter a name for your new gallery:', 'My Gallery');
+            if (!galleryName || !galleryName.trim()) {
+                return null;
+            }
+
+            // Create the gallery
+            const id = generateGUID();
+            const newGallery = {
+                id,
+                name: galleryName.trim(),
+                colorTemperature: DEFAULT_COLOR_TEMPERATURE
+            };
+
+            galleries.push(newGallery);
+            activeGalleryId = id;
+
+            // Post creation event
+            if (eventStore) {
+                await eventStore.postEvent({
+                    verb: 'create',
+                    op: 'gallery_create',
+                    object_type: 'gallery',
+                    object_id: id,
+                    data: {
+                        name: galleryName.trim(),
+                        colorTemperature: DEFAULT_COLOR_TEMPERATURE
+                    }
+                });
+            }
+
+            saveGalleryState();
+            renderGalleryControls();
+            showToast(`Gallery "${galleryName.trim()}" created!`, 'success');
+
+            return newGallery;
         }
 
         function renderGalleryControls() {
@@ -10149,8 +10246,19 @@
             // Generate unique artwork ID
             const objectId = artworkData.artworkId || generateObjectId('art');
 
-            // Get gallery info
-            const gallery = getActiveGallery();
+            // Get gallery info - must be a valid gallery GUID
+            let gallery = getActiveGallery();
+
+            // Validate gallery ID - must be a real gallery GUID, not a room ID or fallback
+            if (!gallery || !isValidGalleryId(gallery.id)) {
+                // Try to get or create a valid gallery
+                gallery = await ensureValidGalleryForPlacement();
+                if (!gallery) {
+                    // User cancelled - abort placement
+                    console.log('No valid gallery available, aborting artwork creation');
+                    return null;
+                }
+            }
 
             // Normalize locationId to always include room prefix for consistency
             const roomId = artworkData.roomId || roomManager?.currentRoom || 'main-gallery';
@@ -10180,8 +10288,8 @@
                     locationId: normalizedLocationId || '',
                     locationName: artworkData.locationName || '',
                     roomId: roomId,
-                    galleryId: gallery?.id || '',
-                    galleryName: gallery?.name || '',
+                    galleryId: gallery.id, // Already validated above - must be a real gallery GUID
+                    galleryName: gallery.name || '',
                     tags: Array.isArray(artworkData.tags) ? artworkData.tags : [],
                     notes: artworkData.notes || '',
                     // Gateway feature: artwork can transport to another room
