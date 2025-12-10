@@ -9929,6 +9929,12 @@
             return Math.round(value * 100) / 100;
         }
 
+        // Helper function to detect base64/data URL images
+        function isBase64Image(url) {
+            if (!url || typeof url !== 'string') return false;
+            return url.startsWith('data:') || url.includes(';base64,');
+        }
+
         async function createArtworkEvent(artworkData) {
             console.log('=== CREATE ARTWORK EVENT ===');
             console.log('Is Admin?:', isAdmin);
@@ -9937,6 +9943,13 @@
             if (!isAdmin) {
                 console.log('Not admin, skipping event creation');
                 return null;
+            }
+
+            // Block base64/data URL images from being stored
+            if (artworkData.imageUrl && isBase64Image(artworkData.imageUrl)) {
+                console.error('Attempted to store base64 image - blocked');
+                alert('Cannot save artwork: Base64 images are not supported. Please use a direct image URL from a web host or CDN.');
+                throw new Error('Base64 images are not allowed');
             }
 
             const heightFeet = typeof artworkData.heightFeet === 'number' ? artworkData.heightFeet : undefined;
@@ -10019,6 +10032,13 @@
 
         async function updateArtworkEvent(artworkData) {
             if (!isAdmin) return null;
+
+            // Block base64/data URL images from being stored
+            if (artworkData.imageUrl && isBase64Image(artworkData.imageUrl)) {
+                console.error('Attempted to store base64 image in update - blocked');
+                alert('Cannot update artwork: Base64 images are not supported. Please use a direct image URL from a web host or CDN.');
+                throw new Error('Base64 images are not allowed');
+            }
 
             const objectId = artworkData.id || artworkData.eventId;
             if (!objectId) {
@@ -10722,12 +10742,18 @@
             if (!isAdmin) return;
 
             const url = document.getElementById('image-url-input').value.trim();
-            
+
             if (!url) {
                 alert('Please enter an image URL');
                 return;
             }
-            
+
+            // Block base64/data URLs
+            if (isBase64Image(url)) {
+                alert('Base64 and data: URLs are not supported. Please provide a direct image URL (e.g., https://example.com/image.jpg).');
+                return;
+            }
+
             // Validate URL format
             try {
                 new URL(url);
@@ -10735,9 +10761,9 @@
                 alert('Please enter a valid URL');
                 return;
             }
-            
+
             console.log('Preparing to add artwork from URL:', url);
-            
+
             // Show placement dialog immediately with metadata fields
             // We'll try to load the image in the background to get aspect ratio
             showPlacementDialogWithURL(url);
@@ -10745,6 +10771,12 @@
         
         function showPlacementDialogWithURL(imageUrl) {
             if (!isAdmin) return;
+
+            // Block base64/data URL images
+            if (isBase64Image(imageUrl)) {
+                alert('Base64 images are not supported. Please use a direct image URL from a web host or CDN.');
+                return;
+            }
 
             const dialog = document.getElementById('placement-dialog');
             document.getElementById('artwork-name').textContent = `Add New Artwork`;
@@ -10923,16 +10955,10 @@
         function handleFiles(files) {
             if (!isAdmin) return;
 
-            for (let file of files) {
-                if (file.type.startsWith('image/')) {
-                    const reader = new FileReader();
-                    reader.onload = (e) => {
-                        // Show crop dialog before placement
-                        showCropDialog(file, e.target.result, false, null);
-                    };
-                    reader.readAsDataURL(file);
-                }
-            }
+            // Block local file uploads - they would be converted to base64
+            // Users must provide an image URL instead
+            alert('Local file uploads are not supported. Please use "Add from URL" to add artwork using an image URL (e.g., from a CDN or image hosting service).');
+            return;
         }
 
         function filterPlacementLocations() {
@@ -11011,6 +11037,12 @@
 
         function showPlacementDialog(file, type, aspectRatio = null, imageUrl = null) {
             if (!isAdmin) return;
+
+            // Block base64/data URL images
+            if (imageUrl && isBase64Image(imageUrl)) {
+                alert('Base64 images are not supported. Please use an image URL from a web host or CDN.');
+                return;
+            }
 
             currentPendingArt = { file, type, aspectRatio, imageUrl };
             const dialog = document.getElementById('placement-dialog');
@@ -11119,6 +11151,12 @@
         };
 
         function showCropDialog(file, imageDataUrl, fromEdit = false, artworkMesh = null) {
+            // Block base64/data URLs - cropping produces base64 output which is not allowed
+            if (isBase64Image(imageDataUrl)) {
+                alert('Cropping is not supported for this image format. Please use an image URL from a web host or CDN.');
+                return;
+            }
+
             const dialog = document.getElementById('crop-dialog');
             const canvas = document.getElementById('crop-canvas');
             const ctx = canvas.getContext('2d');
@@ -11447,6 +11485,13 @@
         }
 
         function updateArtworkWithCroppedImage(artworkMesh, imageUrl, aspectRatio) {
+            // Block base64/data URL images
+            if (isBase64Image(imageUrl)) {
+                console.error('Attempted to update artwork with base64 image - blocked');
+                alert('Cannot update artwork: Base64 images are not supported. Please use a direct image URL from a web host or CDN.');
+                return;
+            }
+
             // Load new texture
             const textureLoader = new THREE.TextureLoader();
             textureLoader.load(imageUrl, (texture) => {
@@ -12598,6 +12643,12 @@
             }
 
             const imageUrl = currentEditingArtwork.userData.imageUrl;
+
+            // Block cropping base64 images - cropping produces base64 output
+            if (isBase64Image(imageUrl)) {
+                alert('Cannot crop this image. The image appears to be stored in an unsupported format (base64). Please replace the artwork with a new image URL.');
+                return;
+            }
 
             // Close edit dialog temporarily
             document.getElementById('edit-dialog').classList.remove('active');
