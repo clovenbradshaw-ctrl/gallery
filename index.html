@@ -7970,12 +7970,17 @@
         }
 
         function getDefaultGalleries() {
-            return Object.values(ROOMS).map(room => ({
-                id: room.id,
-                name: room.name,
-                homeRoom: room.id,
-                colorTemperature: room.theme?.colorTemperature || DEFAULT_COLOR_TEMPERATURE
-            }));
+            // Create 8 default galleries with numbered names, each with 12 art spaces
+            const defaultGalleries = [];
+            for (let i = 1; i <= 8; i++) {
+                defaultGalleries.push({
+                    id: `gallery-${i}`,
+                    name: `Gallery ${i}`,
+                    homeRoom: 'main-gallery',  // main-gallery has 12 wall spots
+                    colorTemperature: DEFAULT_COLOR_TEMPERATURE
+                });
+            }
+            return defaultGalleries;
         }
 
         function loadGalleryState() {
