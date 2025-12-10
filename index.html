@@ -10020,7 +10020,15 @@
                 const img = new Image();
                 img.crossOrigin = 'anonymous';
                 img.onload = () => {
-                    const aspectRatio = img.width / img.height;
+                    // Use saved aspectRatio if crop data exists, otherwise calculate from image
+                    let aspectRatio;
+                    if (artworkData?.cropData && artworkData?.aspectRatio) {
+                        // Use the stored aspect ratio from crop data
+                        aspectRatio = artworkData.aspectRatio;
+                    } else {
+                        // Calculate from full image dimensions
+                        aspectRatio = img.width / img.height;
+                    }
                     const textureLoader = new THREE.TextureLoader();
                     textureLoader.setCrossOrigin('anonymous');
                     textureLoader.load(url, (texture) => {
@@ -10147,7 +10155,9 @@
                     // E-commerce fields
                     productUrl: artworkData.productUrl || artworkData.product_url || '',
                     price: typeof artworkData.price === 'number' ? artworkData.price : (artworkData.price || undefined),
-                    currency: artworkData.currency || 'USD'
+                    currency: artworkData.currency || 'USD',
+                    // Display-only crop data (stored as percentages 0-1)
+                    cropData: artworkData.cropData || null
                 }
             };
 
@@ -10222,6 +10232,7 @@
             // Handle image updates (for cropping)
             if (artworkData.imageUrl !== undefined) updateData.imageUrl = artworkData.imageUrl;
             if (artworkData.aspectRatio !== undefined) updateData.aspectRatio = artworkData.aspectRatio;
+            if (artworkData.cropData !== undefined) updateData.cropData = artworkData.cropData;
 
             const eventData = {
                 verb: 'update',
@@ -11332,16 +11343,10 @@
             }
         }
 
-        function showPlacementDialog(file, type, aspectRatio = null, imageUrl = null) {
+        function showPlacementDialog(file, type, aspectRatio = null, imageUrl = null, cropData = null) {
             if (!isAdmin) return;
 
-            // Block base64/data URL images
-            if (imageUrl && isBase64Image(imageUrl)) {
-                alert('Base64 images are not supported. Please use an image URL from a web host or CDN.');
-                return;
-            }
-
-            currentPendingArt = { file, type, aspectRatio, imageUrl };
+            currentPendingArt = { file, type, aspectRatio, imageUrl, cropData };
             const dialog = document.getElementById('placement-dialog');
             const fileName = typeof file === 'string' ? file : (file.name || 'Untitled');
             document.getElementById('artwork-name').textContent = `Artwork: ${fileName}`;
@@ -11448,12 +11453,6 @@
         };
 
         function showCropDialog(file, imageDataUrl, fromEdit = false, artworkMesh = null) {
-            // Block base64/data URLs - cropping produces base64 output which is not allowed
-            if (isBase64Image(imageDataUrl)) {
-                alert('Cropping is not supported for this image format. Please use an image URL from a web host or CDN.');
-                return;
-            }
-
             const dialog = document.getElementById('crop-dialog');
             const canvas = document.getElementById('crop-canvas');
             const ctx = canvas.getContext('2d');
@@ -11752,102 +11751,107 @@
             const srcW = width / scale;
             const srcH = height / scale;
 
-            // Create cropped image
-            const croppedCanvas = document.createElement('canvas');
-            croppedCanvas.width = srcW;
-            croppedCanvas.height = srcH;
-            const croppedCtx = croppedCanvas.getContext('2d');
+            // Calculate crop data as percentages of original image (0-1 range)
+            // This allows display-only cropping without modifying the actual image
+            const originalWidth = cropState.image.width;
+            const originalHeight = cropState.image.height;
+            const cropData = {
+                x: srcX / originalWidth,
+                y: srcY / originalHeight,
+                width: srcW / originalWidth,
+                height: srcH / originalHeight
+            };
 
-            croppedCtx.drawImage(
-                cropState.image,
-                srcX, srcY, srcW, srcH,
-                0, 0, srcW, srcH
-            );
-
-            const croppedUrl = croppedCanvas.toDataURL('image/png');
             const aspectRatio = srcW / srcH;
 
             dialog.classList.remove('active');
 
             if (cropState.isFromEdit && cropState.editArtworkMesh) {
-                // Update existing artwork with cropped image
-                updateArtworkWithCroppedImage(cropState.editArtworkMesh, croppedUrl, aspectRatio);
+                // Update existing artwork with crop parameters (display-only cropping)
+                updateArtworkWithCropData(cropState.editArtworkMesh, cropData, aspectRatio);
             } else {
-                // Proceed to placement dialog with cropped image
-                showPlacementDialog(cropState.file, 'image', aspectRatio, croppedUrl);
+                // Proceed to placement dialog with crop data
+                showPlacementDialog(cropState.file, 'image', aspectRatio, cropState.image.src, cropData);
             }
 
             // Reset crop state
             cancelCrop();
         }
 
-        function updateArtworkWithCroppedImage(artworkMesh, imageUrl, aspectRatio) {
-            // Block base64/data URL images
-            if (isBase64Image(imageUrl)) {
-                console.error('Attempted to update artwork with base64 image - blocked');
-                alert('Cannot update artwork: Base64 images are not supported. Please use a direct image URL from a web host or CDN.');
-                return;
+        function updateArtworkWithCropData(artworkMesh, cropData, aspectRatio) {
+            // Get the original image URL (we're not changing the URL, just the crop)
+            const imageUrl = artworkMesh.userData.imageUrl;
+
+            // Calculate new dimensions based on the new aspect ratio
+            const userData = artworkMesh.userData;
+            const heightFeet = userData.heightFeet || userData.metadata?.heightFeet || 3;
+            const heightMeters = heightFeet * 0.3048;
+            const widthMeters = heightMeters * aspectRatio;
+
+            // Update the frame (children[0]) geometry
+            const frame = artworkMesh.children[0];
+            if (frame && frame.geometry) {
+                frame.geometry.dispose();
+                frame.geometry = new THREE.BoxGeometry(widthMeters + 0.1, heightMeters + 0.1, 0.05);
             }
 
-            // Load new texture
-            const textureLoader = new THREE.TextureLoader();
-            textureLoader.load(imageUrl, (texture) => {
-                texture.colorSpace = THREE.SRGBColorSpace;
-
-                // Calculate new dimensions
-                const userData = artworkMesh.userData;
-                const heightFeet = userData.heightFeet || 3;
-                const heightMeters = heightFeet * 0.3048;
-                const widthMeters = heightMeters * aspectRatio;
-
-                // Update the frame (children[0]) geometry
-                const frame = artworkMesh.children[0];
-                if (frame && frame.geometry) {
-                    frame.geometry.dispose();
-                    frame.geometry = new THREE.BoxGeometry(widthMeters + 0.1, heightMeters + 0.1, 0.05);
-                }
-
-                // Find the painted surface in the artwork mesh and update it
-                artworkMesh.traverse((child) => {
-                    if (child.isMesh && child.material && child.material.map) {
-                        // Dispose old texture
-                        if (child.material.map) {
-                            child.material.map.dispose();
-                        }
-
-                        // Apply new texture
-                        child.material.map = texture;
-                        child.material.needsUpdate = true;
-
-                        // Update the plane geometry
-                        if (child.geometry) {
-                            child.geometry.dispose();
-                            child.geometry = new THREE.PlaneGeometry(widthMeters, heightMeters);
-                        }
+            // Find the painted surface in the artwork mesh and update UV coordinates for cropping
+            artworkMesh.traverse((child) => {
+                if (child.isMesh && child.material && child.material.map) {
+                    // Update the plane geometry
+                    if (child.geometry) {
+                        child.geometry.dispose();
+                        child.geometry = new THREE.PlaneGeometry(widthMeters, heightMeters);
                     }
-                });
 
-                // Update stored data
-                artworkMesh.userData.aspectRatio = aspectRatio;
-                artworkMesh.userData.imageUrl = imageUrl;
-                artworkMesh.userData.width = widthMeters;
+                    // Apply crop via UV mapping
+                    // UV coordinates: (0,0) is bottom-left, (1,1) is top-right
+                    // cropData: x, y are from top-left as percentages (0-1)
+                    const uvAttribute = child.geometry.attributes.uv;
+                    const uvArray = uvAttribute.array;
 
-                // Update the event in storage if admin
-                if (isAdmin && (artworkMesh.userData.artworkId || artworkMesh.userData.eventId)) {
-                    const objectId = artworkMesh.userData.artworkId || artworkMesh.userData.eventId;
-                    // Update via event store
-                    updateArtworkEvent({
-                        id: objectId,
-                        imageUrl: imageUrl,
-                        aspectRatio: aspectRatio
-                    });
+                    // Calculate UV bounds from crop data
+                    // Note: UV y is inverted (0 = bottom, 1 = top), but cropData.y is from top
+                    const u0 = cropData.x;
+                    const u1 = cropData.x + cropData.width;
+                    const v0 = 1 - (cropData.y + cropData.height); // bottom
+                    const v1 = 1 - cropData.y; // top
+
+                    // PlaneGeometry UV layout: [0,1, 1,1, 0,0, 1,0] (top-left, top-right, bottom-left, bottom-right)
+                    // Index 0: top-left
+                    uvArray[0] = u0; uvArray[1] = v1;
+                    // Index 1: top-right
+                    uvArray[2] = u1; uvArray[3] = v1;
+                    // Index 2: bottom-left
+                    uvArray[4] = u0; uvArray[5] = v0;
+                    // Index 3: bottom-right
+                    uvArray[6] = u1; uvArray[7] = v0;
+
+                    uvAttribute.needsUpdate = true;
+                    child.material.needsUpdate = true;
                 }
-
-                // Close edit dialog if open
-                document.getElementById('edit-dialog').classList.remove('active');
-
-                console.log('Artwork updated with cropped image');
             });
+
+            // Update stored data
+            artworkMesh.userData.aspectRatio = aspectRatio;
+            artworkMesh.userData.cropData = cropData;
+            artworkMesh.userData.width = widthMeters;
+
+            // Update the event in storage if admin
+            if (isAdmin && (artworkMesh.userData.artworkId || artworkMesh.userData.eventId)) {
+                const objectId = artworkMesh.userData.artworkId || artworkMesh.userData.eventId;
+                // Update via event store - store crop data, not a new image URL
+                updateArtworkEvent({
+                    id: objectId,
+                    cropData: cropData,
+                    aspectRatio: aspectRatio
+                });
+            }
+
+            // Close edit dialog if open
+            document.getElementById('edit-dialog').classList.remove('active');
+
+            console.log('Artwork updated with crop data (display-only cropping)');
         }
         // =========================================
         // END CROP FUNCTIONALITY
@@ -12025,7 +12029,8 @@
                 const aspectRatio = currentPendingArt.aspectRatio || 1.5;
                 const artData = {
                     imageUrl: currentPendingArt.imageUrl,
-                    aspectRatio: aspectRatio
+                    aspectRatio: aspectRatio,
+                    cropData: currentPendingArt.cropData || null
                 };
                 const fileName = title; // Use title as filename
                 loadImageArtwork(artData, selectedLocation, heightMeters, metadata, heightFeet, fileName);
@@ -12223,7 +12228,8 @@
                                 originalFileName: fileName,
                                 productUrl: metadata.productUrl,
                                 price: metadata.price,
-                                currency: metadata.currency
+                                currency: metadata.currency,
+                                cropData: artData.cropData || null
                             });
 
                             console.log('Returned artwork ID:', artworkId);
@@ -12232,7 +12238,7 @@
                         }
 
                         createArtworkMesh(texture, fileName, wallSpot,
-                            { width: scaledWidth, height: scaledHeight }, metadata, artData.imageUrl, artworkId);
+                            { width: scaledWidth, height: scaledHeight }, metadata, artData.imageUrl, artworkId, artData);
                         updateArtQueue(fileName, artData.imageUrl, 'Placed on wall');
 
                         // Show success toast
@@ -12261,6 +12267,31 @@
             frame.castShadow = true;
 
             const artGeometry = new THREE.PlaneGeometry(width, height);
+
+            // Apply crop data via UV mapping if present
+            const cropData = artworkData?.cropData;
+            if (cropData && cropData.x !== undefined && cropData.y !== undefined &&
+                cropData.width !== undefined && cropData.height !== undefined) {
+                const uvAttribute = artGeometry.attributes.uv;
+                const uvArray = uvAttribute.array;
+
+                // Calculate UV bounds from crop data
+                // UV coordinates: (0,0) is bottom-left, (1,1) is top-right
+                // cropData: x, y are from top-left as percentages (0-1)
+                const u0 = cropData.x;
+                const u1 = cropData.x + cropData.width;
+                const v0 = 1 - (cropData.y + cropData.height); // bottom
+                const v1 = 1 - cropData.y; // top
+
+                // PlaneGeometry UV layout: [0,1, 1,1, 0,0, 1,0] (top-left, top-right, bottom-left, bottom-right)
+                uvArray[0] = u0; uvArray[1] = v1; // top-left
+                uvArray[2] = u1; uvArray[3] = v1; // top-right
+                uvArray[4] = u0; uvArray[5] = v0; // bottom-left
+                uvArray[6] = u1; uvArray[7] = v0; // bottom-right
+
+                uvAttribute.needsUpdate = true;
+            }
+
             const artMaterial = new THREE.MeshStandardMaterial({ map: texture, roughness: 0.3, metalness: 0.1 });
             const art = new THREE.Mesh(artGeometry, artMaterial);
             art.position.z = 0.026;
@@ -12280,7 +12311,9 @@
                 gatewayTo: artworkData?.gatewayTo || '',
                 displayMode: artworkData?.displayMode || 'single',
                 images: artworkData?.images || [],
-                currentImageIndex: artworkData?.currentImageIndex || 0
+                currentImageIndex: artworkData?.currentImageIndex || 0,
+                // Store crop data for reference
+                cropData: cropData || null
             };
             
             artworkGroup.position.copy(spot.position);
@@ -13169,12 +13202,6 @@
             }
 
             const imageUrl = currentEditingArtwork.userData.imageUrl;
-
-            // Block cropping base64 images - cropping produces base64 output
-            if (isBase64Image(imageUrl)) {
-                alert('Cannot crop this image. The image appears to be stored in an unsupported format (base64). Please replace the artwork with a new image URL.');
-                return;
-            }
 
             // Close edit dialog temporarily
             document.getElementById('edit-dialog').classList.remove('active');
