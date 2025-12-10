@@ -2048,81 +2048,6 @@
             }
         }
 
-        /* View Toggle Buttons */
-        .catalogue-view-toggle {
-            display: flex;
-            gap: 4px;
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 8px;
-            padding: 4px;
-        }
-
-        .view-toggle-btn {
-            background: transparent;
-            border: none;
-            color: rgba(255, 255, 255, 0.5);
-            padding: 8px 12px;
-            border-radius: 6px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            font-size: 13px;
-            transition: all 0.2s;
-        }
-
-        .view-toggle-btn:hover {
-            color: rgba(255, 255, 255, 0.8);
-            background: rgba(255, 255, 255, 0.05);
-        }
-
-        .view-toggle-btn.active {
-            background: rgba(102, 126, 234, 0.3);
-            color: #667eea;
-        }
-
-        .view-toggle-btn svg {
-            width: 16px;
-            height: 16px;
-        }
-
-        /* 9x16 Card View (Portrait Cards) */
-        .catalogue-grid.card-view {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-            gap: 20px;
-        }
-
-        .catalogue-grid.card-view .catalogue-item {
-            display: flex;
-            flex-direction: column;
-        }
-
-        .catalogue-grid.card-view .catalogue-item-image {
-            aspect-ratio: 9 / 16 !important;
-            object-fit: cover;
-            width: 100%;
-            height: auto;
-        }
-
-        .catalogue-grid.card-view .catalogue-item-info {
-            padding: 12px;
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .catalogue-grid.card-view .catalogue-item-artist {
-            color: rgba(255, 255, 255, 0.6);
-            font-size: 12px;
-            margin-bottom: 4px;
-        }
-
-        .catalogue-grid.card-view .catalogue-item-room-tag {
-            margin-top: auto;
-            padding-top: 8px;
-        }
-
         /* Table View */
         .catalogue-grid.table-view {
             display: flex;
@@ -3021,10 +2946,6 @@
         }
 
         @media (max-width: 640px) {
-            .catalogue-view-toggle {
-                display: none;
-            }
-
             .catalogue-grid.table-view {
                 display: grid;
                 grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
@@ -4978,31 +4899,9 @@
                 <select class="catalogue-room-filter" id="catalogue-room-filter" onchange="filterCatalogue()">
                     <option value="all">All Galleries</option>
                 </select>
-                <div class="catalogue-view-toggle">
-                    <button class="view-toggle-btn active" id="card-view-btn" onclick="setCatalogueView('card')" title="Card View">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <rect x="3" y="3" width="7" height="10" rx="1"/>
-                            <rect x="14" y="3" width="7" height="10" rx="1"/>
-                            <rect x="3" y="15" width="7" height="6" rx="1"/>
-                            <rect x="14" y="15" width="7" height="6" rx="1"/>
-                        </svg>
-                        Cards
-                    </button>
-                    <button class="view-toggle-btn" id="table-view-btn" onclick="setCatalogueView('table')" title="Table View">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <line x1="3" y1="6" x2="21" y2="6"/>
-                            <line x1="3" y1="12" x2="21" y2="12"/>
-                            <line x1="3" y1="18" x2="21" y2="18"/>
-                            <rect x="3" y="4" width="4" height="4" rx="0.5"/>
-                            <rect x="3" y="10" width="4" height="4" rx="0.5"/>
-                            <rect x="3" y="16" width="4" height="4" rx="0.5"/>
-                        </svg>
-                        Table
-                    </button>
-                </div>
                 <div class="catalogue-stats" id="catalogue-stats">0 items</div>
             </div>
-            <div class="catalogue-grid card-view" id="catalogue-grid">
+            <div class="catalogue-grid table-view" id="catalogue-grid">
                 <!-- Catalogue items will be rendered here -->
             </div>
         </div>
@@ -6140,7 +6039,6 @@
         const CATALOGUE_STORAGE_KEY = 'vr-gallery:catalogue';
         let artCatalogue = [];
         let selectedCatalogueItem = null;
-        let currentCatalogueView = 'card'; // 'card' or 'table'
 
         // Default catalogue with Morning Coffee Artist products
         const DEFAULT_CATALOGUE = [
@@ -6254,22 +6152,6 @@
             roomFilter.innerHTML = options;
         }
 
-        // Set catalogue view mode
-        function setCatalogueView(view) {
-            currentCatalogueView = view;
-
-            // Update button states
-            document.getElementById('card-view-btn').classList.toggle('active', view === 'card');
-            document.getElementById('table-view-btn').classList.toggle('active', view === 'table');
-
-            // Update grid class
-            const grid = document.getElementById('catalogue-grid');
-            grid.classList.remove('card-view', 'table-view');
-            grid.classList.add(view + '-view');
-
-            renderCatalogue();
-        }
-
         // Get room name by ID
         function getRoomNameById(roomId) {
             if (!roomId) return null;
@@ -6335,12 +6217,8 @@
                     stats.textContent = `${filteredItems.length} of ${artCatalogue.length} items (${placedCount} placed)`;
                 }
 
-                // Render based on current view
-                if (currentCatalogueView === 'table') {
-                    renderTableView(grid, filteredItems);
-                } else {
-                    renderCardView(grid, filteredItems);
-                }
+                // Render table view
+                renderTableView(grid, filteredItems);
             } catch (error) {
                 console.error('Error rendering catalogue:', error);
                 const grid = document.getElementById('catalogue-grid');
@@ -6348,39 +6226,6 @@
                     grid.innerHTML = '<div style="padding: 20px; color: #ff6b6b; text-align: center;">Error loading catalogue. Please try again.</div>';
                 }
             }
-        }
-
-        // Render card view (9x16 portrait cards)
-        function renderCardView(grid, items) {
-            grid.innerHTML = items.map(item => {
-                const isPlaced = isCatalogueItemPlaced(item.id);
-                const priceDisplay = item.price > 0 ? `$${item.price.toFixed(2)}` : 'Price on request';
-                const roomName = getRoomNameById(item.roomTag);
-                const roomTagHtml = roomName
-                    ? `<span class="room-tag-badge">${roomName}</span>`
-                    : `<span class="room-tag-badge untagged">No gallery</span>`;
-
-                return `
-                    <div class="catalogue-item ${isPlaced ? 'placed' : ''}" onclick="openCatalogueDetail('${item.id}')">
-                        <img class="catalogue-item-image"
-                             src="${item.image_url}"
-                             alt="${item.title}"
-                             loading="lazy"
-                             onerror="this.style.display='none'; this.nextElementSibling.style.paddingTop='20px';">
-                        <div class="catalogue-item-info">
-                            <div class="catalogue-item-artist">${item.artist || 'Unknown Artist'}</div>
-                            <div class="catalogue-item-title">${item.title}</div>
-                            <div class="catalogue-item-price">${priceDisplay}</div>
-                            <div class="catalogue-item-room-tag">${roomTagHtml}</div>
-                        </div>
-                        <div class="catalogue-item-actions">
-                            <button class="catalogue-btn primary" onclick="event.stopPropagation(); openCatalogueDetail('${item.id}')">
-                                ${isPlaced ? 'View' : 'Place'}
-                            </button>
-                        </div>
-                    </div>
-                `;
-            }).join('');
         }
 
         // Render table view with inline editing
