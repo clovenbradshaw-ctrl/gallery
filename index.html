@@ -5865,7 +5865,10 @@
                         };
                         break;
                     case 'delete':
-                        delete this.state.galleries[object_id];
+                        // Soft delete: mark as deleted but keep the data
+                        if (this.state.galleries[object_id]) {
+                            this.state.galleries[object_id].deleted_at = event.created_at || event.published;
+                        }
                         break;
                 }
             }
@@ -8257,11 +8260,17 @@
 
                 // First: Add galleries from API state (explicit gallery events)
                 Object.values(apiGalleries).forEach(gallery => {
+                    // Skip deleted galleries for public users (non-admin)
+                    if (gallery.deleted_at && !isAdmin) {
+                        usedIds.add(gallery.id); // Still mark as used to prevent implicit creation
+                        return;
+                    }
                     mergedGalleries.push({
                         id: gallery.id,
                         name: gallery.name || `Gallery ${gallery.id}`,
                         colorTemperature: gallery.colorTemperature || DEFAULT_COLOR_TEMPERATURE,
-                        order: gallery.order !== undefined ? gallery.order : null
+                        order: gallery.order !== undefined ? gallery.order : null,
+                        deleted_at: gallery.deleted_at || null
                     });
                     usedIds.add(gallery.id);
                 });
@@ -8425,7 +8434,8 @@
                 galleries.forEach(gallery => {
                     const option = document.createElement('option');
                     option.value = gallery.id;
-                    option.textContent = gallery.name;
+                    // Show "(Deleted)" indicator for admins viewing deleted galleries
+                    option.textContent = gallery.deleted_at ? `${gallery.name} (Deleted)` : gallery.name;
                     gallerySelect.appendChild(option);
                 });
             }
@@ -8646,8 +8656,11 @@
                 const artworkCount = eventStore.getDisplayableArtworks(gallery.id).length;
                 const artworkText = artworkCount === 1 ? '1 piece' : `${artworkCount} pieces`;
 
+                // Show "(Deleted)" indicator for admins viewing deleted galleries
+                const displayName = gallery.deleted_at ? `${gallery.name} (Deleted)` : gallery.name;
+                const deletedClass = gallery.deleted_at ? ' deleted' : '';
                 item.innerHTML = `
-                    <div class="gallery-map-item-name">${escapeHtml(gallery.name)}</div>
+                    <div class="gallery-map-item-name${deletedClass}">${escapeHtml(displayName)}</div>
                     <div class="gallery-map-item-info">${artworkText}</div>
                 `;
 
@@ -8697,6 +8710,8 @@
                     item.classList.add('current');
                 }
 
+                // Show "(Deleted)" indicator for admins viewing deleted galleries
+                const displayName = gallery.deleted_at ? `${gallery.name} (Deleted)` : gallery.name;
                 item.innerHTML = `
                     <div class="gallery-order-drag-handle" title="Drag to reorder">
                         <svg viewBox="0 0 24 24" fill="currentColor">
@@ -8709,7 +8724,7 @@
                         </svg>
                     </div>
                     <div class="gallery-order-number">${index + 1}</div>
-                    <div class="gallery-order-name">${escapeHtml(gallery.name)}</div>
+                    <div class="gallery-order-name">${escapeHtml(displayName)}</div>
                 `;
 
                 // Drag event handlers
@@ -10973,13 +10988,22 @@
                         if (existing) {
                             activeGalleryId = galleryFromURL;
                         } else {
-                            // Add custom gallery from URL if not in API
-                            galleries.push({
-                                id: galleryFromURL,
-                                name: `Gallery ${galleryFromURL}`,
-                                colorTemperature: DEFAULT_COLOR_TEMPERATURE
-                            });
-                            activeGalleryId = galleryFromURL;
+                            // Check if the gallery exists in API but was filtered out (e.g., deleted)
+                            const apiGallery = eventStore.state.galleries[galleryFromURL];
+                            // Only allow URL access to deleted galleries for admins
+                            if (apiGallery && apiGallery.deleted_at && !isAdmin) {
+                                // Gallery is deleted - don't allow public access via URL
+                                console.log('Gallery from URL is deleted, ignoring for public user');
+                            } else {
+                                // Add custom gallery from URL if not in API
+                                galleries.push({
+                                    id: galleryFromURL,
+                                    name: apiGallery?.name || `Gallery ${galleryFromURL}`,
+                                    colorTemperature: apiGallery?.colorTemperature || DEFAULT_COLOR_TEMPERATURE,
+                                    deleted_at: apiGallery?.deleted_at || null
+                                });
+                                activeGalleryId = galleryFromURL;
+                            }
                         }
                         renderGalleryControls();
                     }
