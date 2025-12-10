@@ -8281,8 +8281,13 @@
                     item.classList.add('current');
                 }
 
+                // Count artworks for this gallery
+                const artworkCount = eventStore.getPlacedArtworks(gallery.id).length;
+                const artworkText = artworkCount === 1 ? '1 piece' : `${artworkCount} pieces`;
+
                 item.innerHTML = `
                     <div class="gallery-map-item-name">${escapeHtml(gallery.name)}</div>
+                    <div class="gallery-map-item-info">${artworkText}</div>
                 `;
 
                 item.onclick = () => {
