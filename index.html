@@ -8112,11 +8112,108 @@
             activeGalleryId = null;
         }
 
+        // Helper to get theme config from theme name
+        function getThemeConfig(theme, colorTemperature) {
+            switch (theme) {
+                case 'warm':
+                    return {
+                        wallColor: 0xfaf8f5,
+                        floorColor: 0xf5f0e8,
+                        lighting: 'warm',
+                        colorTemperature: colorTemperature || 3200
+                    };
+                case 'cool':
+                    return {
+                        wallColor: 0xf0f4ff,
+                        floorColor: 0xffffff,
+                        lighting: 'cool',
+                        colorTemperature: colorTemperature || 4500
+                    };
+                default: // neutral
+                    return {
+                        wallColor: 0xf5f5f5,
+                        floorColor: 0xfafafa,
+                        lighting: 'neutral',
+                        colorTemperature: colorTemperature || DEFAULT_COLOR_TEMPERATURE
+                    };
+            }
+        }
+
+        // Load rooms from API and merge into ROOMS object
+        function initRoomsFromAPI() {
+            const apiRooms = eventStore.state.rooms || {};
+            const loadedRoomIds = [];
+
+            Object.values(apiRooms).forEach(roomData => {
+                const roomId = roomData.id;
+
+                // Skip if this room already exists (hardcoded or from localStorage)
+                if (ROOMS[roomId]) {
+                    return;
+                }
+
+                // Get dimensions (default to medium if not specified)
+                let dimensions = roomData.dimensions;
+                if (!dimensions) {
+                    switch (roomData.size) {
+                        case 'small':
+                            dimensions = { width: 12, depth: 12, height: 5 };
+                            break;
+                        case 'large':
+                            dimensions = { width: 20, depth: 24, height: 5 };
+                            break;
+                        default: // medium
+                            dimensions = { width: 16, depth: 20, height: 5 };
+                    }
+                }
+
+                // Get theme config
+                const themeConfig = getThemeConfig(roomData.theme, roomData.colorTemperature);
+
+                // Generate wall spots
+                const wallSpotCount = roomData.wallSpotCount || 6;
+                const walls = generateWallSpots(roomId, wallSpotCount, dimensions);
+
+                // Create the room configuration
+                const newRoom = {
+                    id: roomId,
+                    name: roomData.name || `Room ${roomId}`,
+                    dimensions: dimensions,
+                    position: { x: 0, y: 0, z: 0 },
+                    theme: themeConfig,
+                    walls: walls,
+                    floors: [],
+                    doors: []
+                };
+
+                // Add to ROOMS
+                ROOMS[roomId] = newRoom;
+
+                // Update location maps
+                ROOM_ID_TO_NAME_MAP[roomId] = newRoom.name;
+                walls.forEach(wall => {
+                    const fullName = `${newRoom.name} - ${wall.displayName}`;
+                    LOCATION_ID_TO_NAME_MAP[wall.id] = fullName;
+                    LOCATION_NAME_TO_ID_MAP[fullName] = wall.id;
+                    LOCATION_NAME_TO_ID_MAP[wall.displayName] = wall.id;
+                });
+
+                loadedRoomIds.push(roomId);
+            });
+
+            if (loadedRoomIds.length > 0) {
+                console.log('Rooms initialized from API:', loadedRoomIds);
+            }
+        }
+
         // Async function to load galleries from API and merge with defaults
         async function initGalleriesFromAPI() {
             try {
                 // Fetch events from API
                 await eventStore.fetchEvents();
+
+                // Load rooms from API into ROOMS object
+                initRoomsFromAPI();
 
                 // Collect galleries from API state
                 const apiGalleries = { ...eventStore.state.galleries };
