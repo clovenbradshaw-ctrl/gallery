@@ -7432,7 +7432,7 @@
         const ROOMS = {
             'main-gallery': {
                 id: 'main-gallery',
-                name: 'Main Gallery',
+                name: 'Room 1',
                 dimensions: { width: 16, depth: 20, height: 5 },
                 position: { x: 0, y: 0, z: 0 },
                 theme: {
@@ -7576,13 +7576,13 @@
                         position: { x: 6, y: 0, z: 10 },
                         rotation: Math.PI,
                         targetRoom: 'contemporary-wing',
-                        label: 'Contemporary Art'
+                        label: 'Room 2'
                     }
                 ]
             },
             'contemporary-wing': {
                 id: 'contemporary-wing',
-                name: 'Contemporary Wing',
+                name: 'Room 2',
                 dimensions: { width: 20, depth: 16, height: 5 },
                 position: { x: 0, y: 0, z: 28 },
                 theme: {
@@ -7726,7 +7726,7 @@
                         position: { x: 0, y: 0, z: -8 },
                         rotation: 0,
                         targetRoom: 'main-gallery',
-                        label: 'Back to Main Gallery'
+                        label: 'Room 1'
                     }
                 ]
             }
@@ -7742,7 +7742,7 @@
                 {
                     guid: 'room_001',
                     legacyId: 'main-gallery',
-                    name: 'Main Gallery',
+                    name: 'Room 1',
                     description: 'The primary exhibition space',
                     spaces: [
                         // Wall spots
@@ -7763,8 +7763,8 @@
                 {
                     guid: 'room_002',
                     legacyId: 'contemporary-wing',
-                    name: 'Contemporary Wing',
-                    description: 'Modern and contemporary art collection',
+                    name: 'Room 2',
+                    description: 'Secondary exhibition space',
                     spaces: [
                         // Wall spots
                         { guid: 'space_013', legacySpotId: 'north-1', name: 'Skyline Panel', wall: 'back', position: 1 },
@@ -8128,16 +8128,8 @@
         }
 
         function getDefaultGalleries() {
-            // Create 8 default galleries with numbered names
-            const defaultGalleries = [];
-            for (let i = 1; i <= 8; i++) {
-                defaultGalleries.push({
-                    id: `gallery-${i}`,
-                    name: `Gallery ${i}`,
-                    colorTemperature: DEFAULT_COLOR_TEMPERATURE
-                });
-            }
-            return defaultGalleries;
+            // No default galleries - only user-defined galleries are shown
+            return [];
         }
 
         function loadGalleryState() {
@@ -8149,9 +8141,9 @@
                 // Ignore errors if localStorage is not available
             }
 
-            // Start with default galleries - will be updated after API fetch
-            galleries = getDefaultGalleries();
-            activeGalleryId = galleries[0]?.id || null;
+            // Start with empty galleries array - will be populated from API only
+            galleries = [];
+            activeGalleryId = null;
         }
 
         // Async function to load galleries from API and merge with defaults
@@ -8197,39 +8189,32 @@
                     }
                 });
 
-                // Third: Only add default galleries as fallback if NO galleries came from API
-                // This prevents the 8 default galleries from being added alongside API galleries
-                if (mergedGalleries.length === 0) {
-                    const defaultGalleries = getDefaultGalleries();
-                    defaultGalleries.forEach(defaultGallery => {
-                        mergedGalleries.push(defaultGallery);
-                        usedIds.add(defaultGallery.id);
-                    });
-                }
+                // No default galleries fallback - only user-defined galleries are shown
 
-                // Update the global galleries array if we have any galleries
-                if (mergedGalleries.length > 0) {
-                    galleries = mergedGalleries;
+                // Update the global galleries array (can be empty if no user galleries exist)
+                galleries = mergedGalleries;
 
-                    // Keep current active gallery if it exists, otherwise use first
+                // Keep current active gallery if it exists, otherwise use first (or null if empty)
+                if (galleries.length > 0) {
                     if (!galleries.find(g => g.id === activeGalleryId)) {
                         activeGalleryId = galleries[0].id;
                     }
-
-                    console.log('Galleries initialized from API:', {
-                        apiGalleries: Object.keys(apiGalleries).length,
-                        artworkGalleryIds: artworkGalleryIds.size,
-                        defaultsAdded: defaultGalleries.filter(d => mergedGalleries.find(m => m.id === d.id)).length,
-                        total: galleries.length
-                    });
+                } else {
+                    activeGalleryId = null;
                 }
+
+                console.log('Galleries initialized from API:', {
+                    apiGalleries: Object.keys(apiGalleries).length,
+                    artworkGalleryIds: artworkGalleryIds.size,
+                    total: galleries.length
+                });
 
                 // Re-render gallery controls to reflect API galleries
                 renderGalleryControls();
 
             } catch (error) {
                 console.error('Failed to load galleries from API:', error);
-                // Keep using default galleries on error
+                // Keep empty galleries array on error - no defaults
             }
         }
 
@@ -9330,30 +9315,26 @@
             }
 
             clearCurrentRoomArtworks() {
-                // Clear artworks that belong to the current room
-                // This is called BEFORE wallSpots is reassigned, so we can properly reset spot states
-                console.log('[clearCurrentRoomArtworks] Clearing artworks for room:', this.currentRoom);
-
-                const artworksToRemove = [];
-                const artworksToKeep = [];
+                // Clear ALL artworks when transitioning rooms to ensure a clean slate
+                // This prevents art from one room persisting visually in another room
+                console.log('[clearCurrentRoomArtworks] Clearing ALL artworks for room transition, current room:', this.currentRoom);
+                console.log('[clearCurrentRoomArtworks] Removing', artworks.length, 'artworks');
 
                 for (const artworkMesh of artworks) {
-                    // Check if this artwork belongs to the current room by checking its spotId
+                    // Free up the wall spot - need to find it in ALL room spots, not just current wallSpots
                     const spotId = artworkMesh.userData.spotId;
-                    const belongsToCurrentRoom = spotId && spotId.startsWith(this.currentRoom + ':');
 
-                    if (belongsToCurrentRoom) {
-                        artworksToRemove.push(artworkMesh);
-                    } else {
-                        artworksToKeep.push(artworkMesh);
+                    // Try to find the spot in current wallSpots first
+                    let wallSpot = wallSpots.find(s => s.userData.id === spotId);
+
+                    // If not found, search in all room spots
+                    if (!wallSpot && spotId) {
+                        for (const [roomId, spots] of this.roomSpots.entries()) {
+                            wallSpot = spots.wallSpots.find(s => s.userData.id === spotId);
+                            if (wallSpot) break;
+                        }
                     }
-                }
 
-                console.log('[clearCurrentRoomArtworks] Removing', artworksToRemove.length, 'artworks');
-
-                for (const artworkMesh of artworksToRemove) {
-                    // Free up the wall spot
-                    const wallSpot = wallSpots.find(s => s.userData.id === artworkMesh.userData.spotId);
                     if (wallSpot) {
                         wallSpot.userData.occupied = false;
                         wallSpot.userData.currentWidth = 0;
@@ -9388,12 +9369,13 @@
                     }
                 }
 
-                // Update the global artworks array
+                // Clear the global artworks array completely
                 artworks.length = 0;
-                artworks.push(...artworksToKeep);
 
                 // Clean up placards array (remove null entries)
                 placards = placards.filter(p => p !== null);
+
+                console.log('[clearCurrentRoomArtworks] Scene cleared, artworks remaining:', artworks.length);
             }
 
             async addArtwork(entry) {
@@ -9504,25 +9486,65 @@
                     height: 100%;
                     background: black;
                     opacity: 0;
-                    transition: opacity 0.5s;
+                    transition: opacity 0.6s ease-in-out;
                     z-index: 9999;
                     pointer-events: none;
                 `;
                 document.body.appendChild(overlay);
 
+                // Animate lights dimming down
+                const dimDuration = 500; // ms
+                const dimStartTime = performance.now();
+                const initialLightFactor = currentLightFactor;
+
+                const animateDimDown = (timestamp) => {
+                    const elapsed = timestamp - dimStartTime;
+                    const progress = Math.min(elapsed / dimDuration, 1);
+                    // Ease out: faster at start, slower at end
+                    const easeProgress = 1 - Math.pow(1 - progress, 2);
+                    const newFactor = initialLightFactor * (1 - easeProgress * 0.95); // Dim to 5% brightness
+                    setGalleryLightFactor(newFactor);
+
+                    if (progress < 1) {
+                        requestAnimationFrame(animateDimDown);
+                    }
+                };
+
                 requestAnimationFrame(() => {
                     overlay.style.opacity = '1';
+                    requestAnimationFrame(animateDimDown);
                 });
 
                 setTimeout(async () => {
                     await callback();
+
+                    // Animate lights brightening back up
+                    const brightenStartTime = performance.now();
+                    const animateBrightenUp = (timestamp) => {
+                        const elapsed = timestamp - brightenStartTime;
+                        const progress = Math.min(elapsed / dimDuration, 1);
+                        // Ease in: slower at start, faster at end
+                        const easeProgress = progress * progress;
+                        const newFactor = 0.05 + easeProgress * (initialLightFactor - 0.05);
+                        setGalleryLightFactor(newFactor);
+
+                        if (progress < 1) {
+                            requestAnimationFrame(animateBrightenUp);
+                        } else {
+                            // Ensure we end at exactly the initial factor
+                            setGalleryLightFactor(initialLightFactor);
+                        }
+                    };
+
                     overlay.style.opacity = '0';
+                    requestAnimationFrame(animateBrightenUp);
+
                     setTimeout(() => {
                         if (overlay.parentElement) {
                             overlay.parentElement.removeChild(overlay);
                         }
-                    }, 500);
-                }, 500);
+                    }, 600);
+                }, 600);
             }
         }
 
