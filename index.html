@@ -9151,8 +9151,10 @@
                 const wallSpotsForRoom = [];
 
                 roomConfig.walls.forEach(spot => {
+                    // Make spot mesh 3x3 meters to better match the spotlight illumination area
+                    // This provides a larger clickable target for adding artwork
                     const spotMesh = new THREE.Mesh(
-                        new THREE.BoxGeometry(2, 2, 0.05),
+                        new THREE.BoxGeometry(3, 3, 0.1),
                         new THREE.MeshStandardMaterial({
                             color: 0x667eea,
                             emissive: 0x667eea,
@@ -12709,10 +12711,18 @@
                 return;
             }
 
-            // Check for wall spot clicks (admin only, spots mode)
-            if (isAdmin && viewMode === 'spots') {
+            // Check for wall spot clicks (admin only)
+            // Allow clicking on spots even when not in 'spots' mode for better UX
+            if (isAdmin) {
+                // Check visible spots first (when in spots mode)
                 const visibleSpots = wallSpots.filter(s => s.visible);
-                const spotIntersects = raycaster.intersectObjects(visibleSpots, false);
+                let spotIntersects = raycaster.intersectObjects(visibleSpots, false);
+
+                // If no visible spots hit, check ALL unoccupied spots (allows clicking on empty wall areas)
+                if (spotIntersects.length === 0) {
+                    const unoccupiedSpots = wallSpots.filter(s => !s.userData.occupied);
+                    spotIntersects = raycaster.intersectObjects(unoccupiedSpots, false);
+                }
 
                 if (spotIntersects.length > 0) {
                     const clickedSpot = spotIntersects[0].object;
