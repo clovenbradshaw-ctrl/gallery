@@ -9238,6 +9238,7 @@
 
                     const entryDoorConfig = (targetRoom.doors || []).find(d => d.targetRoom === previousRoom);
                     if (entryDoorConfig) {
+                        // Enter through connected door
                         const entryPos = new THREE.Vector3(
                             targetRoom.position.x + entryDoorConfig.position.x,
                             1.6,
@@ -9261,6 +9262,9 @@
                             roomCenter.z - entryPos.z
                         );
                         camera.rotation.y = Math.atan2(-directionToCenter.x, -directionToCenter.y);
+                    } else {
+                        // Teleport to room center (no door connection - clicked from map)
+                        this.centerCameraInRoom(targetRoom);
                     }
                 });
             }
