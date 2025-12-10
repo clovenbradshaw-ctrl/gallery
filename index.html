@@ -1143,29 +1143,6 @@
             color: #fbbf24;
         }
 
-        .legacy-warning {
-            display: flex;
-            align-items: flex-start;
-            gap: 8px;
-            padding: 8px 12px;
-            background: rgba(255, 107, 107, 0.1);
-            border: 1px solid rgba(255, 107, 107, 0.3);
-            border-radius: 6px;
-            margin-bottom: 12px;
-        }
-
-        .legacy-warning .warning-icon {
-            font-size: 1em;
-            color: #ff6b6b;
-            flex-shrink: 0;
-        }
-
-        .legacy-warning .warning-text {
-            font-size: 0.8em;
-            color: rgba(255, 255, 255, 0.8);
-            line-height: 1.4;
-        }
-
         .space-selectors {
             display: flex;
             flex-direction: column;
@@ -4852,12 +4829,6 @@
                     <span class="location-text">
                         <span class="location-name" id="current-location-name">Not assigned</span>
                     </span>
-                </div>
-
-                <!-- Legacy Warning (shown when using old location format) -->
-                <div class="legacy-warning" id="legacy-location-warning" style="display: none;">
-                    <span class="warning-icon">⚠️</span>
-                    <span class="warning-text">This artwork uses a legacy location format. Reassign to use permanent GUIDs for more reliable placement.</span>
                 </div>
 
                 <!-- Space Selection UI (hidden by default) -->
@@ -13055,7 +13026,6 @@
 
             const locationDisplay = document.getElementById('current-location-display');
             const locationName = document.getElementById('current-location-name');
-            const legacyWarning = document.getElementById('legacy-location-warning');
             const roomSelector = document.getElementById('viewer-room-selector');
             const spaceSelector = document.getElementById('viewer-space-selector');
 
@@ -13080,7 +13050,6 @@
                 if (space) {
                     locationName.textContent = getFullLocationName(spaceId);
                     locationDisplay.classList.remove('unassigned');
-                    legacyWarning.style.display = 'none';
 
                     // Pre-select current room and space
                     selectedRoomGuid = space.roomGuid;
@@ -13088,7 +13057,6 @@
                 } else {
                     locationName.textContent = `Unknown space (${spaceId})`;
                     locationDisplay.classList.add('unassigned');
-                    legacyWarning.style.display = 'none';
                 }
             } else if (locationId) {
                 // Using legacy location format
@@ -13097,7 +13065,6 @@
                     const space = findSpaceById(spaceGuid);
                     locationName.textContent = getFullLocationName(spaceGuid);
                     locationDisplay.classList.remove('unassigned');
-                    legacyWarning.style.display = 'flex';
 
                     // Pre-select based on legacy mapping
                     selectedRoomGuid = space?.roomGuid;
@@ -13105,17 +13072,14 @@
                 } else if (legacyLocationName) {
                     locationName.textContent = legacyLocationName + ' (legacy)';
                     locationDisplay.classList.remove('unassigned');
-                    legacyWarning.style.display = 'flex';
                 } else {
                     locationName.textContent = locationId + ' (legacy)';
                     locationDisplay.classList.remove('unassigned');
-                    legacyWarning.style.display = 'flex';
                 }
             } else {
                 // Not assigned
                 locationName.textContent = 'Not assigned to a space';
                 locationDisplay.classList.add('unassigned');
-                legacyWarning.style.display = 'none';
             }
 
             // Update apply button state
@@ -13258,11 +13222,9 @@
                 // Update the location display
                 const locationName = document.getElementById('current-location-name');
                 const locationDisplay = document.getElementById('current-location-display');
-                const legacyWarning = document.getElementById('legacy-location-warning');
 
                 locationName.textContent = getFullLocationName(newSpaceGuid);
                 locationDisplay.classList.remove('unassigned');
-                legacyWarning.style.display = 'none';
 
                 // === SCENE REFRESH: Move artwork to new location ===
                 // 1. Remove artwork from old scene position
