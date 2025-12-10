@@ -5361,141 +5361,39 @@
             }
 
             async _doFetchEvents() {
-                try {
-                    return await this._retryWithBackoff(async () => {
-                        const response = await fetch(XANO_API_URL);
-                        if (!response.ok) {
-                            const error = new Error(`Failed to fetch events: ${response.status}`);
-                            error.status = response.status;
-                            throw error;
-                        }
-                        const jsonData = await response.json();
-
-                        // Handle both array response and wrapped response (e.g., { items: [...] } or { data: [...] })
-                        let fetchedEvents = [];
-                        if (Array.isArray(jsonData)) {
-                            fetchedEvents = jsonData;
-                        } else if (jsonData && typeof jsonData === 'object') {
-                            // Try common wrapper properties
-                            fetchedEvents = jsonData.items || jsonData.data || jsonData.events || jsonData.records || [];
-                            if (!Array.isArray(fetchedEvents)) {
-                                console.warn('Unexpected API response structure:', Object.keys(jsonData));
-                                fetchedEvents = [];
-                            }
-                        }
-
-                        // Validate and normalize events before storing
-                        this.events = fetchedEvents.map(e => this._normalizeEvent(e)).filter(e => e !== null);
-
-                        console.log('Fetched events from Xano:', this.events.length);
-                        if (this.events.length > 0) {
-                            const sample = this.events[0];
-                            console.log('Sample event structure:', JSON.stringify(sample, null, 2));
-                        }
-                        this.reconstructState();
-                        return this.events;
-                    });
-                } catch (error) {
-                    console.warn('API fetch failed, attempting to load from local CSV fallback:', error.message);
-                    return await this._loadFromCSVFallback();
-                }
-            }
-
-            // Fallback: Load events from local data.csv file
-            async _loadFromCSVFallback() {
-                try {
-                    const response = await fetch('data.csv');
+                return await this._retryWithBackoff(async () => {
+                    const response = await fetch(XANO_API_URL);
                     if (!response.ok) {
-                        throw new Error(`Failed to fetch data.csv: ${response.status}`);
+                        const error = new Error(`Failed to fetch events from API: ${response.status} ${response.statusText}`);
+                        error.status = response.status;
+                        throw error;
                     }
-                    const csvText = await response.text();
-                    const events = this._parseCSV(csvText);
+                    const jsonData = await response.json();
+
+                    // Handle both array response and wrapped response (e.g., { items: [...] } or { data: [...] })
+                    let fetchedEvents = [];
+                    if (Array.isArray(jsonData)) {
+                        fetchedEvents = jsonData;
+                    } else if (jsonData && typeof jsonData === 'object') {
+                        // Try common wrapper properties
+                        fetchedEvents = jsonData.items || jsonData.data || jsonData.events || jsonData.records || [];
+                        if (!Array.isArray(fetchedEvents)) {
+                            console.warn('Unexpected API response structure:', Object.keys(jsonData));
+                            fetchedEvents = [];
+                        }
+                    }
 
                     // Validate and normalize events before storing
-                    this.events = events.map(e => this._normalizeEvent(e)).filter(e => e !== null);
+                    this.events = fetchedEvents.map(e => this._normalizeEvent(e)).filter(e => e !== null);
 
-                    console.log('Loaded events from CSV fallback:', this.events.length);
+                    console.log('Fetched events from API:', this.events.length);
                     if (this.events.length > 0) {
                         const sample = this.events[0];
-                        console.log('Sample event structure from CSV:', JSON.stringify(sample, null, 2));
+                        console.log('Sample event structure:', JSON.stringify(sample, null, 2));
                     }
                     this.reconstructState();
                     return this.events;
-                } catch (csvError) {
-                    console.error('CSV fallback also failed:', csvError.message);
-                    throw csvError;
-                }
-            }
-
-            // Parse CSV text into event objects
-            _parseCSV(csvText) {
-                const lines = csvText.trim().split('\n');
-                if (lines.length < 2) {
-                    console.warn('CSV file is empty or has no data rows');
-                    return [];
-                }
-
-                // Parse header row
-                const headers = this._parseCSVLine(lines[0]);
-                const events = [];
-
-                // Parse data rows
-                for (let i = 1; i < lines.length; i++) {
-                    const line = lines[i].trim();
-                    if (!line) continue;
-
-                    const values = this._parseCSVLine(line);
-                    const event = {};
-
-                    headers.forEach((header, index) => {
-                        event[header] = values[index] || '';
-                    });
-
-                    // Parse the data field as JSON if present
-                    if (event.data && typeof event.data === 'string') {
-                        try {
-                            event.data = JSON.parse(event.data);
-                        } catch (e) {
-                            // Keep as string if not valid JSON
-                        }
-                    }
-
-                    events.push(event);
-                }
-
-                return events;
-            }
-
-            // Parse a single CSV line, handling quoted fields with commas
-            _parseCSVLine(line) {
-                const values = [];
-                let current = '';
-                let inQuotes = false;
-
-                for (let i = 0; i < line.length; i++) {
-                    const char = line[i];
-                    const nextChar = line[i + 1];
-
-                    if (char === '"' && !inQuotes) {
-                        inQuotes = true;
-                    } else if (char === '"' && inQuotes) {
-                        if (nextChar === '"') {
-                            // Escaped quote
-                            current += '"';
-                            i++;
-                        } else {
-                            inQuotes = false;
-                        }
-                    } else if (char === ',' && !inQuotes) {
-                        values.push(current);
-                        current = '';
-                    } else {
-                        current += char;
-                    }
-                }
-                values.push(current);
-
-                return values;
+                });
             }
 
             // Normalize event data to ensure consistent structure
