@@ -8275,7 +8275,10 @@
             // Always use main-gallery room
             if (roomManager && !options.skipRoomLoad) {
                 roomManager.loadRoom('main-gallery', { centerCamera: true });
-                // Update wall sign to show actual gallery name
+            }
+
+            // Always update wall sign to show actual gallery name
+            if (roomManager) {
                 updateRoomNameSign('main-gallery', gallery.name);
             }
 
