@@ -5790,11 +5790,13 @@
             // Get artworks placed on walls only (not floors)
             getWallArtworks(galleryId = null) {
                 return this.getPlacedArtworks(galleryId).filter(artwork => {
-                    if (!artwork.location || !artwork.roomId) return false;
+                    // Support both locationId (from API) and location field names
+                    const location = artwork.locationId || artwork.location;
+                    if (!location || !artwork.roomId) return false;
                     const room = ROOMS[artwork.roomId];
                     if (!room) return false;
                     // Check if the location is a wall spot
-                    return room.walls.some(w => w.id === artwork.location);
+                    return room.walls.some(w => w.id === location);
                 });
             }
 
@@ -8331,8 +8333,8 @@
                     item.classList.add('current');
                 }
 
-                // Count wall artworks for this gallery
-                const artworkCount = eventStore.getWallArtworks(gallery.id).length;
+                // Count all placed artworks for this gallery
+                const artworkCount = eventStore.getPlacedArtworks(gallery.id).length;
                 const artworkText = artworkCount === 1 ? '1 piece' : `${artworkCount} pieces`;
 
                 item.innerHTML = `
