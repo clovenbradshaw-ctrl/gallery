@@ -4454,13 +4454,12 @@
                 <button class="secondary" onclick="renameActiveGallery()">Rename</button>
             </div>
             <div class="settings-row">
-                <select id="gallery-room-select"></select>
                 <button class="primary" onclick="generateNewGallery()">New</button>
             </div>
             <div class="settings-row">
                 <button class="danger" onclick="deleteActiveGallery()" style="flex: 1;">Delete Gallery</button>
             </div>
-            <div class="settings-info">Shareable: ?gallery=&lt;id&gt; or ?gallery=&lt;id&gt;&amp;room=&lt;room-id&gt;</div>
+            <div class="settings-info">Shareable: ?gallery=&lt;id&gt;</div>
         </div>
 
         <div class="settings-section">
@@ -7970,13 +7969,12 @@
         }
 
         function getDefaultGalleries() {
-            // Create 8 default galleries with numbered names, each with 12 art spaces
+            // Create 8 default galleries with numbered names
             const defaultGalleries = [];
             for (let i = 1; i <= 8; i++) {
                 defaultGalleries.push({
                     id: `gallery-${i}`,
                     name: `Gallery ${i}`,
-                    homeRoom: 'main-gallery',  // main-gallery has 12 wall spots
                     colorTemperature: DEFAULT_COLOR_TEMPERATURE
                 });
             }
@@ -8023,7 +8021,6 @@
                     mergedGalleries.push({
                         id: gallery.id,
                         name: gallery.name || `Gallery ${gallery.id}`,
-                        homeRoom: gallery.homeRoom || 'main-gallery',
                         colorTemperature: gallery.colorTemperature || DEFAULT_COLOR_TEMPERATURE
                     });
                     usedIds.add(gallery.id);
@@ -8035,7 +8032,6 @@
                         mergedGalleries.push({
                             id: galleryId,
                             name: `Gallery ${galleryId}`,
-                            homeRoom: 'main-gallery',
                             colorTemperature: DEFAULT_COLOR_TEMPERATURE
                         });
                         usedIds.add(galleryId);
@@ -8088,25 +8084,14 @@
 
         function renderGalleryControls() {
             const gallerySelect = document.getElementById('gallery-select');
-            const roomSelect = document.getElementById('gallery-room-select');
 
             if (gallerySelect) {
                 gallerySelect.innerHTML = '';
                 galleries.forEach(gallery => {
                     const option = document.createElement('option');
                     option.value = gallery.id;
-                    option.textContent = `${gallery.name} (${gallery.id})`;
+                    option.textContent = gallery.name;
                     gallerySelect.appendChild(option);
-                });
-            }
-
-            if (roomSelect) {
-                roomSelect.innerHTML = '';
-                Object.values(ROOMS).forEach(room => {
-                    const option = document.createElement('option');
-                    option.value = room.id;
-                    option.textContent = `${room.name} (${room.id})`;
-                    roomSelect.appendChild(option);
                 });
             }
 
@@ -8115,7 +8100,6 @@
                 if (gallerySelect) gallerySelect.value = activeGallery.id;
                 const nameInput = document.getElementById('gallery-name-input');
                 if (nameInput) nameInput.value = activeGallery.name;
-                if (roomSelect) roomSelect.value = activeGallery.homeRoom;
                 const tempInput = document.getElementById('color-temp-input');
                 if (tempInput) tempInput.value = activeGallery.colorTemperature || DEFAULT_COLOR_TEMPERATURE;
                 applyColorTemperature(activeGallery.colorTemperature || DEFAULT_COLOR_TEMPERATURE);
@@ -8130,8 +8114,9 @@
             saveGalleryState();
             renderGalleryControls();
 
-            if (roomManager && !options.skipRoomLoad && gallery.homeRoom && ROOMS[gallery.homeRoom]) {
-                roomManager.loadRoom(gallery.homeRoom, { centerCamera: true });
+            // Always use main-gallery room
+            if (roomManager && !options.skipRoomLoad) {
+                roomManager.loadRoom('main-gallery', { centerCamera: true });
             }
 
             if (!options.skipArtReload) {
@@ -8141,7 +8126,6 @@
             if (!options.fromURL) {
                 const params = new URLSearchParams(window.location.search);
                 params.set('gallery', gallery.id);
-                params.set('room', gallery.homeRoom || 'main-gallery');
                 window.history.replaceState({}, '', `${window.location.pathname}?${params.toString()}`);
             }
         }
@@ -8150,13 +8134,11 @@
             const nameInput = document.getElementById('gallery-name-input');
             const name = (nameInput?.value || '').trim() || `Gallery ${galleries.length + 1}`;
             const id = generateGUID();
-            const homeRoom = getActiveGallery()?.homeRoom || 'main-gallery';
             const colorTemperature = getActiveGallery()?.colorTemperature || DEFAULT_COLOR_TEMPERATURE;
 
             const newGallery = {
                 id,
                 name,
-                homeRoom,
                 colorTemperature
             };
 
@@ -8175,7 +8157,6 @@
                     object_id: id,
                     data: {
                         name: name,
-                        homeRoom: homeRoom,
                         colorTemperature: colorTemperature
                     }
                 });
@@ -8195,24 +8176,7 @@
             saveGalleryState();
             renderGalleryControls();
 
-            // Also update the room name if this gallery has a corresponding room
-            const roomId = gallery.homeRoom;
-            if (roomId && ROOMS[roomId]) {
-                const oldRoomName = ROOMS[roomId].name;
-                ROOMS[roomId].name = newName;
-
-                // Update room name map
-                ROOM_ID_TO_NAME_MAP[roomId] = newName;
-
-                // Update the visual signage in the 3D scene
-                updateRoomNameSign(roomId, newName);
-
-                // Save custom rooms to localStorage if this is a custom room
-                saveCustomRooms();
-
-                // Show feedback to user
-                showToast(`Renamed to "${newName}"`, 'success');
-            }
+            showToast(`Renamed to "${newName}"`, 'success');
 
             // Log gallery rename to activity store
             if (eventStore) {
@@ -8223,8 +8187,7 @@
                     object_id: gallery.id,
                     data: {
                         name: newName,
-                        previousName: oldName,
-                        roomId: roomId
+                        previousName: oldName
                     }
                 });
             }
@@ -8246,7 +8209,6 @@
             // Store gallery info for logging before deletion
             const deletedGalleryId = gallery.id;
             const deletedGalleryName = gallery.name;
-            const deletedGalleryRoom = gallery.homeRoom;
 
             // Remove the gallery from the list
             const index = galleries.findIndex(g => g.id === gallery.id);
@@ -8273,36 +8235,7 @@
                     object_type: 'gallery',
                     object_id: deletedGalleryId,
                     data: {
-                        name: deletedGalleryName,
-                        homeRoom: deletedGalleryRoom
-                    }
-                });
-            }
-        }
-
-        async function updateActiveGalleryRoom(roomId) {
-            const gallery = getActiveGallery();
-            if (!gallery || !roomId || !ROOMS[roomId]) return;
-
-            const previousRoom = gallery.homeRoom;
-            gallery.homeRoom = roomId;
-            saveGalleryState();
-            if (roomManager) {
-                roomManager.loadRoom(roomId);
-            }
-
-            // Log gallery room change to activity store
-            if (eventStore) {
-                await eventStore.postEvent({
-                    verb: 'update',
-                    op: 'gallery_room_change',
-                    object_type: 'gallery',
-                    object_id: gallery.id,
-                    data: {
-                        homeRoom: roomId,
-                        roomName: ROOMS[roomId]?.name || roomId,
-                        previousRoom: previousRoom,
-                        previousRoomName: ROOMS[previousRoom]?.name || previousRoom
+                        name: deletedGalleryName
                     }
                 });
             }
@@ -8348,12 +8281,8 @@
                     item.classList.add('current');
                 }
 
-                const roomName = ROOMS[gallery.homeRoom]?.name || gallery.homeRoom;
-
                 item.innerHTML = `
                     <div class="gallery-map-item-name">${escapeHtml(gallery.name)}</div>
-                    <div class="gallery-map-item-info">ID: ${escapeHtml(gallery.id)}</div>
-                    <div class="gallery-map-item-room">${escapeHtml(roomName)}</div>
                 `;
 
                 item.onclick = () => {
@@ -8555,7 +8484,6 @@
             const newGallery = {
                 id: roomId,
                 name: name,
-                homeRoom: roomId,
                 colorTemperature: themeConfig.colorTemperature
             };
             galleries.push(newGallery);
@@ -8594,7 +8522,6 @@
                     object_id: roomId,
                     data: {
                         name: name,
-                        homeRoom: roomId,
                         colorTemperature: themeConfig.colorTemperature
                     }
                 });
@@ -10154,7 +10081,6 @@
                             galleries.push({
                                 id: galleryFromURL,
                                 name: `Gallery ${galleryFromURL}`,
-                                homeRoom: 'main-gallery',
                                 colorTemperature: DEFAULT_COLOR_TEMPERATURE
                             });
                             activeGalleryId = galleryFromURL;
@@ -10746,11 +10672,6 @@
             const gallerySelect = document.getElementById('gallery-select');
             if (gallerySelect) {
                 gallerySelect.addEventListener('change', (event) => setActiveGallery(event.target.value));
-            }
-
-            const galleryRoomSelect = document.getElementById('gallery-room-select');
-            if (galleryRoomSelect) {
-                galleryRoomSelect.addEventListener('change', (event) => updateActiveGalleryRoom(event.target.value));
             }
 
             const colorTempInput = document.getElementById('color-temp-input');
