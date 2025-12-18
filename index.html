@@ -6007,7 +6007,11 @@
             { id: "cat_33", title: "Business Card", product_url: "https://morningcoffeeartist.myshopify.com/products/business", price: 50.0, currency: "USD", image_url: "https://morningcoffeeartist.myshopify.com/cdn/shop/files/rn-image_picker_lib_temp_9b376652-a97a-417a-9f8b-4902385cdba6.jpg?v=1752306224", artist: "Morning Coffee Artist" },
             { id: "cat_34", title: "A Splash in Time", product_url: "https://morningcoffeeartist.myshopify.com/products/a-splash-in-time", price: 0.0, currency: "USD", image_url: "https://morningcoffeeartist.myshopify.com/cdn/shop/files/rn-image_picker_lib_temp_6f50cf47-1df7-4bb8-aeec-cbe450d4d8df.jpg?v=1750442756", artist: "Morning Coffee Artist" },
             { id: "cat_35", title: "40,000 FT ABOVE BRAZIL", product_url: "https://morningcoffeeartist.myshopify.com/products/untitled-jun21_14-54", price: 0.0, currency: "USD", image_url: "https://morningcoffeeartist.myshopify.com/cdn/shop/files/rn-image_picker_lib_temp_e5de26a4-c68f-4337-8026-069a030df2de.jpg?v=1750442224", artist: "Morning Coffee Artist" },
-            { id: "cat_36", title: "3rd Shift", product_url: "https://morningcoffeeartist.myshopify.com/products/3rd-shift", price: 0.0, currency: "USD", image_url: "https://morningcoffeeartist.myshopify.com/cdn/shop/files/rn-image_picker_lib_temp_03618faf-0cad-4262-82f9-1fd51931e2b3.jpg?v=1750442756", artist: "Morning Coffee Artist" }
+            { id: "cat_36", title: "3rd Shift", product_url: "https://morningcoffeeartist.myshopify.com/products/3rd-shift", price: 0.0, currency: "USD", image_url: "https://morningcoffeeartist.myshopify.com/cdn/shop/files/rn-image_picker_lib_temp_03618faf-0cad-4262-82f9-1fd51931e2b3.jpg?v=1750442756", artist: "Morning Coffee Artist" },
+            { id: "cat_37", title: "Daniel Holmes", product_url: "https://morningcoffeeartist.myshopify.com/products/daniel-holmes", price: 0.0, currency: "USD", image_url: "https://morningcoffeeartist.myshopify.com/cdn/shop/files/rn-image_picker_lib_temp_ee1833a5-a1a4-4e81-ad5e-e4552fae098a.jpg?v=1765757994", artist: "Morning Coffee Artist" },
+            { id: "cat_38", title: "2 different types of Ellie Kane cards", product_url: "https://morningcoffeeartist.myshopify.com/products/2-different-types-of-ellie-kane-cards", price: 5.0, currency: "USD", image_url: "https://morningcoffeeartist.myshopify.com/cdn/shop/files/rn-image_picker_lib_temp_d72d4f0c-fc74-4ad0-920c-2065fd5322b4.jpg?v=1765760940", artist: "Morning Coffee Artist" },
+            { id: "cat_39", title: "2 different types of David Cline (Clinecasso) cards", product_url: "https://morningcoffeeartist.myshopify.com/products/untitled-dec14_17-51", price: 5.0, currency: "USD", image_url: "https://morningcoffeeartist.myshopify.com/cdn/shop/files/rn-image_picker_lib_temp_b87adec2-7efc-4a0a-a86d-c6dec350d98b.jpg?v=1765761059", artist: "Morning Coffee Artist" },
+            { id: "cat_40", title: "Flying \"W\" With Pumpkin Splatter", product_url: "https://morningcoffeeartist.myshopify.com/products/flying-w-with-pumpkin-splatter", price: 60.0, currency: "USD", image_url: "https://morningcoffeeartist.myshopify.com/cdn/shop/files/rn-image_picker_lib_temp_ea512f96-96f5-4d4c-a780-50132519bf01.jpg?v=1750635332", artist: "Morning Coffee Artist" }
         ];
 
         // Load catalogue from localStorage or use defaults
@@ -7080,8 +7084,41 @@
             });
         }
 
+        // Normalize image URL for duplicate detection (strip query params and protocol)
+        function normalizeImageUrl(url) {
+            if (!url) return '';
+            try {
+                const parsed = new URL(url);
+                // Return just the pathname (filename part) for comparison
+                // This handles cases where the same image has different query params (e.g., ?v=timestamp)
+                return parsed.pathname.toLowerCase();
+            } catch (e) {
+                // If URL parsing fails, just lowercase and return as-is
+                return url.toLowerCase();
+            }
+        }
+
+        // Check if an image URL already exists in the catalogue
+        function isDuplicateImageUrl(imageUrl) {
+            const normalizedUrl = normalizeImageUrl(imageUrl);
+            return artCatalogue.some(item => normalizeImageUrl(item.image_url) === normalizedUrl);
+        }
+
+        // Find existing catalogue item by image URL
+        function findCatalogueItemByImageUrl(imageUrl) {
+            const normalizedUrl = normalizeImageUrl(imageUrl);
+            return artCatalogue.find(item => normalizeImageUrl(item.image_url) === normalizedUrl);
+        }
+
         // Add item to catalogue (for future expansion)
         function addToCatalogue(item) {
+            // Check for duplicate image URL
+            if (isDuplicateImageUrl(item.image_url)) {
+                const existing = findCatalogueItemByImageUrl(item.image_url);
+                console.warn('Duplicate image URL detected, item already exists:', existing?.title);
+                return null; // Return null to indicate duplicate
+            }
+
             const newItem = {
                 id: 'cat_' + Date.now().toString(36),
                 title: item.title || 'Untitled',
@@ -12275,6 +12312,13 @@
             const priceValue = parseFloat(document.getElementById('price-input').value);
             const currency = document.getElementById('currency-input').value;
             const description = document.getElementById('description-input').value.trim();
+
+            // Check for duplicate image URL before adding
+            if (isDuplicateImageUrl(currentPendingArt.imageUrl)) {
+                const existing = findCatalogueItemByImageUrl(currentPendingArt.imageUrl);
+                alert(`This image already exists in the catalogue as "${existing?.title || 'Unknown'}". Duplicate entries are not allowed.`);
+                return;
+            }
 
             // Create catalogue item
             const catalogueItem = {
