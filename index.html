@@ -4337,6 +4337,33 @@
         #viewer-image-container.video-mode {
             display: none;
         }
+
+        /* YouTube container for viewer */
+        #viewer-youtube-container {
+            display: none;
+            position: relative;
+            width: 100%;
+            height: 100%;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #viewer-youtube-container.active {
+            display: flex;
+        }
+
+        #viewer-youtube {
+            width: 100%;
+            height: 100%;
+            max-width: 100%;
+            max-height: 100%;
+            aspect-ratio: 16 / 9;
+        }
+
+        /* Hide image container when YouTube is active */
+        #viewer-image-container.youtube-mode {
+            display: none;
+        }
     </style>
 </head>
 <body>
@@ -4447,7 +4474,7 @@
                 <div class="collapsible-content">
                     <div class="collapsible-inner">
                         <div id="url-panel" class="upload-panel active">
-                            <input type="text" id="image-url-input" class="compact-input" placeholder="https://example.com/image.jpg or video.mp4">
+                            <input type="text" id="image-url-input" class="compact-input" placeholder="Image, video URL, or YouTube link">
                             <button class="primary-btn purple" onclick="loadArtworkFromURL()" style="padding: 10px;">
                                 Add from URL
                             </button>
@@ -4564,8 +4591,8 @@
 
         <div class="section-divider">
             <label><strong>Media URL:</strong> <span class="optional-label">(required)</span></label>
-            <input type="url" id="placement-image-url-input" placeholder="https://example.com/image.jpg or video.mp4">
-            <p style="font-size: 11px; color: #888; margin-top: 4px;">Enter a direct link to an image or video hosted online</p>
+            <input type="url" id="placement-image-url-input" placeholder="Image, video URL, or YouTube link">
+            <p style="font-size: 11px; color: #888; margin-top: 4px;">Enter a direct link to an image, video, or YouTube URL</p>
         </div>
 
         <div class="section-divider">
@@ -4871,6 +4898,13 @@
                     <div class="consent-text">Click to enable audio</div>
                     <div class="consent-subtext">This video contains sound</div>
                 </div>
+            </div>
+            <div id="viewer-youtube-container">
+                <iframe id="viewer-youtube"
+                    frameborder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowfullscreen>
+                </iframe>
             </div>
         </div>
 
@@ -10428,6 +10462,11 @@
                 return loadVideoFromURL(url, locationId, height, metadata, artworkId, artworkData);
             }
 
+            // Check if this is a YouTube URL - delegate to YouTube loader
+            if (isYouTubeUrl(url)) {
+                return loadYouTubeVideo(url, locationId, height, metadata, artworkId, artworkData);
+            }
+
             // Only wall spots are supported
             let spot = wallSpots.find(s => s.userData.id === locationId);
 
@@ -10529,6 +10568,44 @@
             return videoExtensions.some(ext => lowerUrl.endsWith(ext));
         }
 
+        // Helper function to detect YouTube URLs
+        function isYouTubeUrl(url) {
+            if (!url || typeof url !== 'string') return false;
+            const youtubePatterns = [
+                /(?:https?:\/\/)?(?:www\.)?youtube\.com\/watch\?v=([a-zA-Z0-9_-]{11})/,
+                /(?:https?:\/\/)?(?:www\.)?youtube\.com\/embed\/([a-zA-Z0-9_-]{11})/,
+                /(?:https?:\/\/)?(?:www\.)?youtube\.com\/v\/([a-zA-Z0-9_-]{11})/,
+                /(?:https?:\/\/)?youtu\.be\/([a-zA-Z0-9_-]{11})/,
+                /(?:https?:\/\/)?(?:www\.)?youtube\.com\/shorts\/([a-zA-Z0-9_-]{11})/
+            ];
+            return youtubePatterns.some(pattern => pattern.test(url));
+        }
+
+        // Extract YouTube video ID from URL
+        function getYouTubeVideoId(url) {
+            if (!url || typeof url !== 'string') return null;
+            const patterns = [
+                /(?:https?:\/\/)?(?:www\.)?youtube\.com\/watch\?v=([a-zA-Z0-9_-]{11})/,
+                /(?:https?:\/\/)?(?:www\.)?youtube\.com\/embed\/([a-zA-Z0-9_-]{11})/,
+                /(?:https?:\/\/)?(?:www\.)?youtube\.com\/v\/([a-zA-Z0-9_-]{11})/,
+                /(?:https?:\/\/)?youtu\.be\/([a-zA-Z0-9_-]{11})/,
+                /(?:https?:\/\/)?(?:www\.)?youtube\.com\/shorts\/([a-zA-Z0-9_-]{11})/
+            ];
+            for (const pattern of patterns) {
+                const match = url.match(pattern);
+                if (match && match[1]) {
+                    return match[1];
+                }
+            }
+            return null;
+        }
+
+        // Get YouTube thumbnail URL
+        function getYouTubeThumbnailUrl(videoId) {
+            // Use maxresdefault for best quality, fallback to hqdefault
+            return `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
+        }
+
         // Store active video elements for cleanup
         const activeVideoElements = new Map();
 
@@ -10596,6 +10673,81 @@
                     endArtworkLoad();
                     resolve();
                 };
+            });
+        }
+
+        // Load YouTube video - displays thumbnail on wall, plays embed in viewer
+        async function loadYouTubeVideo(url, locationId, height, metadata, artworkId, artworkData = null) {
+            let spot = wallSpots.find(s => s.userData.id === locationId);
+
+            if (!spot) {
+                console.warn(`[loadYouTubeVideo] Spot not found for locationId: "${locationId}"`);
+                return;
+            }
+            if (spot.userData.occupied) {
+                console.warn(`[loadYouTubeVideo] Spot "${locationId}" is already occupied`);
+                return;
+            }
+
+            const videoId = getYouTubeVideoId(url);
+            if (!videoId) {
+                console.error('Could not extract YouTube video ID from URL:', url);
+                return;
+            }
+
+            return new Promise((resolve) => {
+                beginArtworkLoad();
+
+                // Use 16:9 aspect ratio for YouTube videos
+                const aspectRatio = artworkData?.aspectRatio || 16 / 9;
+                const scaledHeight = height * ARTWORK_SCALE_FACTOR;
+                const scaledWidth = scaledHeight * aspectRatio;
+
+                // Load YouTube thumbnail as texture
+                const thumbnailUrl = getYouTubeThumbnailUrl(videoId);
+                const textureLoader = new THREE.TextureLoader();
+                textureLoader.setCrossOrigin('anonymous');
+
+                textureLoader.load(thumbnailUrl, (texture) => {
+                    try {
+                        createArtworkMesh(texture, metadata.title || 'Untitled', spot,
+                            { width: scaledWidth, height: scaledHeight }, metadata, url, artworkId, {
+                                ...artworkData,
+                                isYouTube: true,
+                                youtubeVideoId: videoId,
+                                aspectRatio: aspectRatio
+                            });
+                    } catch (placementError) {
+                        console.error('Failed to place YouTube artwork:', placementError);
+                    } finally {
+                        endArtworkLoad();
+                        resolve();
+                    }
+                }, undefined, (error) => {
+                    // Fallback to hqdefault if maxresdefault fails
+                    console.warn('maxresdefault thumbnail failed, trying hqdefault');
+                    const fallbackUrl = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
+                    textureLoader.load(fallbackUrl, (texture) => {
+                        try {
+                            createArtworkMesh(texture, metadata.title || 'Untitled', spot,
+                                { width: scaledWidth, height: scaledHeight }, metadata, url, artworkId, {
+                                    ...artworkData,
+                                    isYouTube: true,
+                                    youtubeVideoId: videoId,
+                                    aspectRatio: aspectRatio
+                                });
+                        } catch (placementError) {
+                            console.error('Failed to place YouTube artwork:', placementError);
+                        } finally {
+                            endArtworkLoad();
+                            resolve();
+                        }
+                    }, undefined, () => {
+                        console.error('Failed to load YouTube thumbnail:', url);
+                        endArtworkLoad();
+                        resolve();
+                    });
+                });
             });
         }
 
@@ -11463,13 +11615,13 @@
             const url = document.getElementById('image-url-input').value.trim();
 
             if (!url) {
-                alert('Please enter an image or video URL');
+                alert('Please enter an image, video, or YouTube URL');
                 return;
             }
 
             // Block base64/data URLs
             if (isBase64Image(url)) {
-                alert('Base64 and data: URLs are not supported. Please provide a direct URL (e.g., https://example.com/image.jpg or video.mp4).');
+                alert('Base64 and data: URLs are not supported. Please provide a direct URL or YouTube link.');
                 return;
             }
 
@@ -11499,12 +11651,46 @@
 
             const dialog = document.getElementById('placement-dialog');
             const isVideo = isVideoUrl(mediaUrl);
-            document.getElementById('artwork-name').textContent = isVideo ? 'Add New Video' : 'Add New Artwork';
+            const isYouTube = isYouTubeUrl(mediaUrl);
+
+            // Set dialog title based on media type
+            if (isYouTube) {
+                document.getElementById('artwork-name').textContent = 'Add YouTube Video';
+            } else if (isVideo) {
+                document.getElementById('artwork-name').textContent = 'Add New Video';
+            } else {
+                document.getElementById('artwork-name').textContent = 'Add New Artwork';
+            }
 
             const imagePreview = document.getElementById('image-preview');
             const previewImg = document.getElementById('preview-img');
 
-            if (isVideo) {
+            if (isYouTube) {
+                // For YouTube videos, show the thumbnail
+                const videoId = getYouTubeVideoId(mediaUrl);
+                if (videoId) {
+                    previewImg.src = getYouTubeThumbnailUrl(videoId);
+                    previewImg.alt = 'YouTube video thumbnail';
+                    previewImg.style.background = '';
+                    previewImg.style.minHeight = '';
+                    // Handle thumbnail load error - fallback to hqdefault
+                    previewImg.onerror = () => {
+                        previewImg.src = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
+                    };
+                } else {
+                    previewImg.src = '';
+                    previewImg.alt = 'YouTube video';
+                    previewImg.style.background = 'linear-gradient(135deg, #ff0000 0%, #cc0000 100%)';
+                    previewImg.style.minHeight = '100px';
+                }
+                imagePreview.style.display = 'block';
+
+                currentPendingArt = {
+                    imageUrl: mediaUrl,
+                    type: 'youtube',
+                    aspectRatio: 16 / 9  // YouTube videos are 16:9
+                };
+            } else if (isVideo) {
                 // For videos, show a placeholder or video thumbnail
                 previewImg.src = '';
                 previewImg.alt = 'Video artwork (16:9)';
@@ -12653,15 +12839,16 @@
             
             console.log('Metadata:', metadata);
             console.log('Art type:', currentPendingArt.type);
-            
-            if (currentPendingArt.type === 'image') {
-                console.log('Loading image artwork...');
+
+            if (currentPendingArt.type === 'image' || currentPendingArt.type === 'video' || currentPendingArt.type === 'youtube') {
+                console.log(`Loading ${currentPendingArt.type} artwork...`);
                 // Use aspect ratio if available, otherwise use default
-                const aspectRatio = currentPendingArt.aspectRatio || 1.5;
+                const aspectRatio = currentPendingArt.aspectRatio || (currentPendingArt.type === 'image' ? 1.5 : 16/9);
                 const artData = {
                     imageUrl: currentPendingArt.imageUrl,
                     aspectRatio: aspectRatio,
-                    cropData: currentPendingArt.cropData || null
+                    cropData: currentPendingArt.cropData || null,
+                    type: currentPendingArt.type === 'youtube' ? 'YouTube' : (currentPendingArt.type === 'video' ? 'Video' : 'Image')
                 };
                 const fileName = title; // Use title as filename
                 loadImageArtwork(artData, selectedLocation, heightMeters, metadata, heightFeet, fileName);
@@ -13799,6 +13986,8 @@
             const videoContainer = document.getElementById('viewer-video-container');
             const viewerVideo = document.getElementById('viewer-video');
             const audioConsent = document.getElementById('video-audio-consent');
+            const youtubeContainer = document.getElementById('viewer-youtube-container');
+            const viewerYoutube = document.getElementById('viewer-youtube');
 
             // Build artworks list for navigation
             viewerState.artworksList = Array.from(artQueue);
@@ -13841,14 +14030,37 @@
             // Show info panel by default
             info.classList.remove('hidden');
 
-            // Check if this is a video
+            // Check media type
             const isVideo = isVideoUrl(artData.imageUrl);
+            const isYouTube = isYouTubeUrl(artData.imageUrl) || artData.isYouTube;
 
-            if (isVideo) {
-                // Show video container, hide image container
-                imageContainer.classList.add('video-mode');
-                videoContainer.classList.add('active');
+            if (isYouTube) {
+                // Show YouTube container, hide image and video containers
+                imageContainer.classList.add('youtube-mode');
+                videoContainer.classList.remove('active');
+                youtubeContainer.classList.add('active');
                 loading.classList.remove('active');
+                audioConsent.style.display = 'none';
+
+                // Stop any playing video
+                viewerVideo.pause();
+                viewerVideo.src = '';
+
+                // Set up YouTube iframe
+                const videoId = artData.youtubeVideoId || getYouTubeVideoId(artData.imageUrl);
+                if (videoId) {
+                    viewerYoutube.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0`;
+                }
+            } else if (isVideo) {
+                // Show video container, hide image and YouTube containers
+                imageContainer.classList.add('video-mode');
+                imageContainer.classList.remove('youtube-mode');
+                videoContainer.classList.add('active');
+                youtubeContainer.classList.remove('active');
+                loading.classList.remove('active');
+
+                // Stop YouTube
+                viewerYoutube.src = '';
 
                 // Set up video
                 viewerVideo.src = artData.imageUrl;
@@ -13866,14 +14078,17 @@
                 };
                 audioConsent.addEventListener('click', handleAudioConsent);
             } else {
-                // Show image container, hide video container
+                // Show image container, hide video and YouTube containers
                 imageContainer.classList.remove('video-mode');
+                imageContainer.classList.remove('youtube-mode');
                 videoContainer.classList.remove('active');
+                youtubeContainer.classList.remove('active');
                 audioConsent.style.display = 'none';
 
-                // Stop any playing video
+                // Stop any playing video/YouTube
                 viewerVideo.pause();
                 viewerVideo.src = '';
+                viewerYoutube.src = '';
 
                 // Show loading state
                 image.classList.add('loading');
@@ -13908,6 +14123,8 @@
             const videoContainer = document.getElementById('viewer-video-container');
             const viewerVideo = document.getElementById('viewer-video');
             const imageContainer = document.getElementById('viewer-image-container');
+            const youtubeContainer = document.getElementById('viewer-youtube-container');
+            const viewerYoutube = document.getElementById('viewer-youtube');
 
             viewer.classList.remove('active');
             document.body.style.overflow = '';
@@ -13919,6 +14136,11 @@
             viewerVideo.src = '';
             videoContainer.classList.remove('active');
             imageContainer.classList.remove('video-mode');
+
+            // Stop and clean up YouTube
+            viewerYoutube.src = '';
+            youtubeContainer.classList.remove('active');
+            imageContainer.classList.remove('youtube-mode');
 
             // Reset space assignment state
             currentViewerArtwork = null;
