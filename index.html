@@ -6415,8 +6415,8 @@
                 let previewHtml;
                 const mediaUrl = item.image_url;
                 if (isVideoUrl(mediaUrl)) {
-                    // Direct video file - show video element with thumbnail
-                    previewHtml = `<video class="row-thumbnail" src="${mediaUrl}" muted preload="metadata" title="${escapeHtml(item.title)}"></video>`;
+                    // Direct video file - show video element with autoplay loop
+                    previewHtml = `<video class="row-thumbnail" src="${mediaUrl}" autoplay loop muted playsinline title="${escapeHtml(item.title)}"></video>`;
                 } else if (isYouTubeUrl(mediaUrl)) {
                     // YouTube video - show thumbnail
                     const videoId = getYouTubeVideoId(mediaUrl);
@@ -6488,8 +6488,8 @@
             const mediaUrl = item.image_url;
 
             if (isVideoUrl(mediaUrl)) {
-                // Direct video file
-                mediaContainer.innerHTML = `<video id="catalogue-detail-video" src="${mediaUrl}" controls muted style="width:100%; border-radius:8px;"></video>`;
+                // Direct video file - autoplay loop
+                mediaContainer.innerHTML = `<video id="catalogue-detail-video" src="${mediaUrl}" autoplay loop controls muted playsinline style="width:100%; border-radius:8px;"></video>`;
             } else if (isYouTubeUrl(mediaUrl)) {
                 // YouTube video - embed iframe
                 const videoId = getYouTubeVideoId(mediaUrl);
