@@ -10700,6 +10700,37 @@
             return url.startsWith('data:') || url.includes(';base64,');
         }
 
+        // Helper function to detect if input is an iframe embed code
+        function isIframeEmbed(input) {
+            if (!input || typeof input !== 'string') return false;
+            const trimmed = input.trim();
+            return trimmed.startsWith('<iframe') && trimmed.includes('src=');
+        }
+
+        // Helper function to extract URL from iframe embed code
+        function extractUrlFromIframe(input) {
+            if (!input || typeof input !== 'string') return null;
+            // Match src attribute with either single or double quotes
+            const srcMatch = input.match(/src=["']([^"']+)["']/);
+            if (srcMatch && srcMatch[1]) {
+                return srcMatch[1];
+            }
+            return null;
+        }
+
+        // Helper function to process input - extracts URL from iframe if needed
+        function processMediaInput(input) {
+            if (!input || typeof input !== 'string') return input;
+            const trimmed = input.trim();
+            if (isIframeEmbed(trimmed)) {
+                const extractedUrl = extractUrlFromIframe(trimmed);
+                if (extractedUrl) {
+                    return extractedUrl;
+                }
+            }
+            return trimmed;
+        }
+
         // Helper function to detect video URLs
         function isVideoUrl(url) {
             if (!url || typeof url !== 'string') return false;
@@ -11955,9 +11986,9 @@
 
         function loadImageFromPlacementUrl() {
             const urlInput = document.getElementById('placement-image-url-input');
-            const url = urlInput.value.trim();
+            const rawInput = urlInput.value.trim();
 
-            if (!url) {
+            if (!rawInput) {
                 // Hide preview if URL is cleared
                 document.getElementById('image-preview').style.display = 'none';
                 if (currentPendingArt) {
@@ -11965,6 +11996,9 @@
                 }
                 return;
             }
+
+            // Process input - extract URL from iframe embed if needed
+            const url = processMediaInput(rawInput);
 
             // Block base64/data URLs
             if (isBase64Image(url)) {
@@ -11976,7 +12010,7 @@
             try {
                 new URL(url);
             } catch (e) {
-                alert('Please enter a valid URL');
+                alert('Please enter a valid URL or iframe embed code');
                 return;
             }
 
@@ -12821,18 +12855,21 @@
             }
 
             // Get and validate image/video URL from placement dialog
-            const imageUrl = document.getElementById('placement-image-url-input').value.trim();
-            if (!imageUrl) {
-                alert('Please enter an image or video URL');
+            const rawInput = document.getElementById('placement-image-url-input').value.trim();
+            if (!rawInput) {
+                alert('Please enter an image, video URL, or embed code');
                 document.getElementById('placement-image-url-input').focus();
                 return;
             }
+
+            // Process input - extract URL from iframe embed if needed
+            const imageUrl = processMediaInput(rawInput);
 
             // Validate URL format
             try {
                 new URL(imageUrl);
             } catch (e) {
-                alert('Please enter a valid URL');
+                alert('Please enter a valid URL or iframe embed code');
                 document.getElementById('placement-image-url-input').focus();
                 return;
             }
@@ -12916,18 +12953,21 @@
             }
 
             // Get and validate image/video URL from placement dialog
-            const imageUrl = document.getElementById('placement-image-url-input').value.trim();
-            if (!imageUrl) {
-                alert('Please enter an image or video URL');
+            const rawInput = document.getElementById('placement-image-url-input').value.trim();
+            if (!rawInput) {
+                alert('Please enter an image, video URL, or embed code');
                 document.getElementById('placement-image-url-input').focus();
                 return;
             }
+
+            // Process input - extract URL from iframe embed if needed
+            const imageUrl = processMediaInput(rawInput);
 
             // Validate URL format
             try {
                 new URL(imageUrl);
             } catch (e) {
-                alert('Please enter a valid URL');
+                alert('Please enter a valid URL or iframe embed code');
                 document.getElementById('placement-image-url-input').focus();
                 return;
             }
