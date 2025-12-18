@@ -4447,7 +4447,7 @@
                 <div class="collapsible-content">
                     <div class="collapsible-inner">
                         <div id="url-panel" class="upload-panel active">
-                            <input type="text" id="image-url-input" class="compact-input" placeholder="https://example.com/image.jpg">
+                            <input type="text" id="image-url-input" class="compact-input" placeholder="https://example.com/image.jpg or video.mp4">
                             <button class="primary-btn purple" onclick="loadArtworkFromURL()" style="padding: 10px;">
                                 Add from URL
                             </button>
@@ -4563,9 +4563,9 @@
         </div>
 
         <div class="section-divider">
-            <label><strong>Image URL:</strong> <span class="optional-label">(required)</span></label>
-            <input type="url" id="placement-image-url-input" placeholder="https://example.com/image.jpg">
-            <p style="font-size: 11px; color: #888; margin-top: 4px;">Enter a direct link to an image hosted online</p>
+            <label><strong>Media URL:</strong> <span class="optional-label">(required)</span></label>
+            <input type="url" id="placement-image-url-input" placeholder="https://example.com/image.jpg or video.mp4">
+            <p style="font-size: 11px; color: #888; margin-top: 4px;">Enter a direct link to an image or video hosted online</p>
         </div>
 
         <div class="section-divider">
@@ -11463,13 +11463,13 @@
             const url = document.getElementById('image-url-input').value.trim();
 
             if (!url) {
-                alert('Please enter an image URL');
+                alert('Please enter an image or video URL');
                 return;
             }
 
             // Block base64/data URLs
             if (isBase64Image(url)) {
-                alert('Base64 and data: URLs are not supported. Please provide a direct image URL (e.g., https://example.com/image.jpg).');
+                alert('Base64 and data: URLs are not supported. Please provide a direct URL (e.g., https://example.com/image.jpg or video.mp4).');
                 return;
             }
 
@@ -11484,31 +11484,51 @@
             console.log('Preparing to add artwork from URL:', url);
 
             // Show placement dialog immediately with metadata fields
-            // We'll try to load the image in the background to get aspect ratio
+            // We'll try to load the image/video in the background to get aspect ratio
             showPlacementDialogWithURL(url);
         }
         
-        function showPlacementDialogWithURL(imageUrl) {
+        function showPlacementDialogWithURL(mediaUrl) {
             if (!isAdmin) return;
 
             // Block base64/data URL images
-            if (isBase64Image(imageUrl)) {
-                alert('Base64 images are not supported. Please use a direct image URL from a web host or CDN.');
+            if (isBase64Image(mediaUrl)) {
+                alert('Base64 data is not supported. Please use a direct URL from a web host or CDN.');
                 return;
             }
 
             const dialog = document.getElementById('placement-dialog');
-            document.getElementById('artwork-name').textContent = `Add New Artwork`;
+            const isVideo = isVideoUrl(mediaUrl);
+            document.getElementById('artwork-name').textContent = isVideo ? 'Add New Video' : 'Add New Artwork';
 
             const imagePreview = document.getElementById('image-preview');
-            document.getElementById('preview-img').src = imageUrl;
-            imagePreview.style.display = 'block';
+            const previewImg = document.getElementById('preview-img');
 
-            currentPendingArt = {
-                imageUrl: imageUrl,
-                type: 'image',
-                aspectRatio: null
-            };
+            if (isVideo) {
+                // For videos, show a placeholder or video thumbnail
+                previewImg.src = '';
+                previewImg.alt = 'Video artwork (16:9)';
+                previewImg.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+                previewImg.style.minHeight = '100px';
+                imagePreview.style.display = 'block';
+
+                currentPendingArt = {
+                    imageUrl: mediaUrl,
+                    type: 'video',
+                    aspectRatio: 16 / 9  // Default 16:9 for videos
+                };
+            } else {
+                previewImg.src = mediaUrl;
+                previewImg.style.background = '';
+                previewImg.style.minHeight = '';
+                imagePreview.style.display = 'block';
+
+                currentPendingArt = {
+                    imageUrl: mediaUrl,
+                    type: 'image',
+                    aspectRatio: null
+                };
+            }
 
             document.getElementById('dimension-label').textContent = 'Height (inches):';
             const heightInput = document.getElementById('height-input');
@@ -11520,29 +11540,36 @@
 
             setupLocationGrid('image');
 
-            const img = new Image();
-            img.crossOrigin = 'anonymous';
-            img.onload = () => {
-                const aspectRatio = img.width / img.height;
-                if (currentPendingArt && currentPendingArt.imageUrl === imageUrl) {
-                    currentPendingArt.aspectRatio = aspectRatio;
-                    console.log('Image loaded successfully. Aspect ratio:', aspectRatio);
-                    updateSizePreview();
-                }
-            };
-            img.onerror = () => {
-                console.warn('Could not load image for preview, but will still attempt to use it. This may be due to CORS restrictions.');
-                if (currentPendingArt && currentPendingArt.imageUrl === imageUrl) {
-                    currentPendingArt.aspectRatio = 1.5;
-                    updateSizePreview();
-                }
-            };
-            img.src = imageUrl;
+            if (isVideo) {
+                // For videos, use 16:9 aspect ratio
+                console.log('Video detected. Using 16:9 aspect ratio.');
+                updateSizePreview();
+            } else {
+                // For images, try to load to get aspect ratio
+                const img = new Image();
+                img.crossOrigin = 'anonymous';
+                img.onload = () => {
+                    const aspectRatio = img.width / img.height;
+                    if (currentPendingArt && currentPendingArt.imageUrl === mediaUrl) {
+                        currentPendingArt.aspectRatio = aspectRatio;
+                        console.log('Image loaded successfully. Aspect ratio:', aspectRatio);
+                        updateSizePreview();
+                    }
+                };
+                img.onerror = () => {
+                    console.warn('Could not load image for preview, but will still attempt to use it. This may be due to CORS restrictions.');
+                    if (currentPendingArt && currentPendingArt.imageUrl === mediaUrl) {
+                        currentPendingArt.aspectRatio = 1.5;
+                        updateSizePreview();
+                    }
+                };
+                img.src = mediaUrl;
+            }
 
             dialog.classList.add('active');
 
             // Populate the URL input field in the dialog
-            document.getElementById('placement-image-url-input').value = imageUrl;
+            document.getElementById('placement-image-url-input').value = mediaUrl;
 
             setTimeout(() => {
                 document.getElementById('title-input').focus();
@@ -12467,10 +12494,10 @@
                 return;
             }
 
-            // Get and validate image URL from placement dialog
+            // Get and validate image/video URL from placement dialog
             const imageUrl = document.getElementById('placement-image-url-input').value.trim();
             if (!imageUrl) {
-                alert('Please enter an image URL');
+                alert('Please enter an image or video URL');
                 document.getElementById('placement-image-url-input').focus();
                 return;
             }
@@ -12479,14 +12506,14 @@
             try {
                 new URL(imageUrl);
             } catch (e) {
-                alert('Please enter a valid image URL');
+                alert('Please enter a valid URL');
                 document.getElementById('placement-image-url-input').focus();
                 return;
             }
 
             // Block base64/data URLs
             if (isBase64Image(imageUrl)) {
-                alert('Base64 and data: URLs are not supported. Please provide a direct image URL.');
+                alert('Base64 and data: URLs are not supported. Please provide a direct URL.');
                 document.getElementById('placement-image-url-input').focus();
                 return;
             }
@@ -12562,10 +12589,10 @@
                 return;
             }
 
-            // Get and validate image URL from placement dialog
+            // Get and validate image/video URL from placement dialog
             const imageUrl = document.getElementById('placement-image-url-input').value.trim();
             if (!imageUrl) {
-                alert('Please enter an image URL');
+                alert('Please enter an image or video URL');
                 document.getElementById('placement-image-url-input').focus();
                 return;
             }
@@ -12574,14 +12601,14 @@
             try {
                 new URL(imageUrl);
             } catch (e) {
-                alert('Please enter a valid image URL');
+                alert('Please enter a valid URL');
                 document.getElementById('placement-image-url-input').focus();
                 return;
             }
 
             // Block base64/data URLs
             if (isBase64Image(imageUrl)) {
-                alert('Base64 and data: URLs are not supported. Please provide a direct image URL.');
+                alert('Base64 and data: URLs are not supported. Please provide a direct URL.');
                 document.getElementById('placement-image-url-input').focus();
                 return;
             }
