@@ -4942,7 +4942,8 @@
                 <iframe id="viewer-youtube"
                     frameborder="0"
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                    allowfullscreen>
+                    allowfullscreen
+                    referrerpolicy="strict-origin-when-cross-origin">
                 </iframe>
             </div>
         </div>
@@ -6476,7 +6477,7 @@
                 // YouTube video - embed iframe
                 const videoId = getYouTubeVideoId(mediaUrl);
                 if (videoId) {
-                    mediaContainer.innerHTML = `<iframe id="catalogue-detail-youtube" src="https://www.youtube.com/embed/${videoId}" style="width:100%; aspect-ratio:16/9; border-radius:8px; border:none;" allowfullscreen></iframe>`;
+                    mediaContainer.innerHTML = `<iframe id="catalogue-detail-youtube" src="https://www.youtube-nocookie.com/embed/${videoId}" style="width:100%; aspect-ratio:16/9; border-radius:8px; border:none;" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>`;
                 } else {
                     mediaContainer.innerHTML = `<img id="catalogue-detail-img" src="${mediaUrl}" alt="Artwork preview">`;
                 }
@@ -14229,7 +14230,7 @@
                 // Set up YouTube iframe
                 const videoId = artData.youtubeVideoId || getYouTubeVideoId(artData.imageUrl);
                 if (videoId) {
-                    viewerYoutube.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0`;
+                    viewerYoutube.src = `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&rel=0`;
                 }
             } else if (isVideo) {
                 // Show video container, hide image and YouTube containers
