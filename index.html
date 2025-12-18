@@ -5386,6 +5386,9 @@
                         // Validate and normalize events before storing
                         this.events = fetchedEvents.map(e => this._normalizeEvent(e)).filter(e => e !== null);
 
+                        // Also load local catalogue items from CSV and merge them
+                        await this._mergeLocalCatalogueItems();
+
                         console.log('Fetched events from Xano:', this.events.length);
                         if (this.events.length > 0) {
                             const sample = this.events[0];
@@ -5397,6 +5400,33 @@
                 } catch (error) {
                     console.warn('API fetch failed, attempting to load from local CSV fallback:', error.message);
                     return await this._loadFromCSVFallback();
+                }
+            }
+
+            // Merge local catalogue items from CSV with API data
+            async _mergeLocalCatalogueItems() {
+                try {
+                    const response = await fetch('data.csv');
+                    if (!response.ok) return;
+
+                    const csvText = await response.text();
+                    const csvEvents = this._parseCSV(csvText);
+
+                    // Get existing event UIDs to avoid duplicates
+                    const existingUIDs = new Set(this.events.map(e => e.event_uid));
+
+                    // Filter for catalogue items that don't exist in API data
+                    const localCatalogueItems = csvEvents
+                        .filter(e => e.object_type === 'catalogue_item' && !existingUIDs.has(e.event_uid))
+                        .map(e => this._normalizeEvent(e))
+                        .filter(e => e !== null);
+
+                    if (localCatalogueItems.length > 0) {
+                        console.log('Merging local catalogue items:', localCatalogueItems.length);
+                        this.events = [...this.events, ...localCatalogueItems];
+                    }
+                } catch (error) {
+                    console.warn('Could not merge local catalogue items:', error.message);
                 }
             }
 
