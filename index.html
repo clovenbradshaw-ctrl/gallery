@@ -11244,7 +11244,18 @@
                 video.muted = true; // Start muted for autoplay
                 video.playsInline = true;
                 video.autoplay = true;
+                video.preload = 'auto';
+                // Add to DOM (hidden) for better autoplay support
+                video.style.position = 'absolute';
+                video.style.opacity = '0';
+                video.style.pointerEvents = 'none';
+                video.style.width = '1px';
+                video.style.height = '1px';
+                document.body.appendChild(video);
                 video.src = url;
+                video.load();
+                // Try to play immediately (muted videos can autoplay)
+                video.play().catch(() => {}); // Ignore initial play errors, will retry in onloadedmetadata
 
                 video.onloadedmetadata = () => {
                     // Use 16:9 aspect ratio for videos as specified
