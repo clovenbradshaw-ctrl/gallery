@@ -4260,6 +4260,83 @@
                 transform: translateY(20px);
             }
         }
+
+        /* Video Audio Consent Overlay */
+        .video-audio-consent {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+            cursor: pointer;
+            transition: opacity 0.3s ease;
+        }
+
+        .video-audio-consent:hover {
+            background: rgba(0, 0, 0, 0.75);
+        }
+
+        .video-audio-consent .headphone-icon {
+            width: 80px;
+            height: 80px;
+            margin-bottom: 20px;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        .video-audio-consent .headphone-icon svg {
+            width: 100%;
+            height: 100%;
+            fill: white;
+        }
+
+        .video-audio-consent .consent-text {
+            color: white;
+            font-size: 1.2em;
+            text-align: center;
+            max-width: 300px;
+        }
+
+        .video-audio-consent .consent-subtext {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 0.9em;
+            margin-top: 10px;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.1); opacity: 0.8; }
+        }
+
+        /* Video container for viewer */
+        #viewer-video-container {
+            display: none;
+            position: relative;
+            width: 100%;
+            height: 100%;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #viewer-video-container.active {
+            display: flex;
+        }
+
+        #viewer-video {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+
+        /* Hide image container when video is active */
+        #viewer-image-container.video-mode {
+            display: none;
+        }
     </style>
 </head>
 <body>
@@ -4781,6 +4858,18 @@
                 <div id="viewer-error">
                     <div>Failed to load image</div>
                     <button onclick="retryLoadImage()">Retry</button>
+                </div>
+            </div>
+            <div id="viewer-video-container">
+                <video id="viewer-video" loop playsinline></video>
+                <div class="video-audio-consent" id="video-audio-consent">
+                    <div class="headphone-icon">
+                        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M12 1C7.03 1 3 5.03 3 10v8c0 1.1.9 2 2 2h2v-8H5v-2c0-3.87 3.13-7 7-7s7 3.13 7 7v2h-2v8h2c1.1 0 2-.9 2-2v-8c0-4.97-4.03-9-9-9zM7 14v4H5v-4h2zm12 4h-2v-4h2v4z"/>
+                        </svg>
+                    </div>
+                    <div class="consent-text">Click to enable audio</div>
+                    <div class="consent-subtext">This video contains sound</div>
                 </div>
             </div>
         </div>
@@ -10304,6 +10393,11 @@
         const loadArtworksFromAirtable = loadArtworksFromEvents;
         
         async function loadImageFromURL(url, locationId, height, metadata, artworkId, artworkData = null) {
+            // Check if this is a video URL - delegate to video loader
+            if (isVideoUrl(url)) {
+                return loadVideoFromURL(url, locationId, height, metadata, artworkId, artworkData);
+            }
+
             // Only wall spots are supported
             let spot = wallSpots.find(s => s.userData.id === locationId);
 
@@ -10395,6 +10489,84 @@
         function isBase64Image(url) {
             if (!url || typeof url !== 'string') return false;
             return url.startsWith('data:') || url.includes(';base64,');
+        }
+
+        // Helper function to detect video URLs
+        function isVideoUrl(url) {
+            if (!url || typeof url !== 'string') return false;
+            const videoExtensions = ['.mp4', '.webm', '.mov', '.m4v', '.ogv'];
+            const lowerUrl = url.toLowerCase().split('?')[0]; // Remove query params for extension check
+            return videoExtensions.some(ext => lowerUrl.endsWith(ext));
+        }
+
+        // Store active video elements for cleanup
+        const activeVideoElements = new Map();
+
+        // Load video and create VideoTexture for 3D display
+        async function loadVideoFromURL(url, locationId, height, metadata, artworkId, artworkData = null) {
+            let spot = wallSpots.find(s => s.userData.id === locationId);
+
+            if (!spot) {
+                console.warn(`[loadVideoFromURL] Spot not found for locationId: "${locationId}"`);
+                return;
+            }
+            if (spot.userData.occupied) {
+                console.warn(`[loadVideoFromURL] Spot "${locationId}" is already occupied`);
+                return;
+            }
+
+            return new Promise((resolve) => {
+                beginArtworkLoad();
+
+                // Create video element
+                const video = document.createElement('video');
+                video.crossOrigin = 'anonymous';
+                video.loop = true;
+                video.muted = true; // Start muted for autoplay
+                video.playsInline = true;
+                video.autoplay = true;
+                video.src = url;
+
+                video.onloadedmetadata = () => {
+                    // Use 16:9 aspect ratio for videos as specified
+                    const aspectRatio = artworkData?.aspectRatio || 16 / 9;
+                    const scaledHeight = height * ARTWORK_SCALE_FACTOR;
+                    const scaledWidth = scaledHeight * aspectRatio;
+
+                    // Create video texture
+                    const videoTexture = new THREE.VideoTexture(video);
+                    videoTexture.minFilter = THREE.LinearFilter;
+                    videoTexture.magFilter = THREE.LinearFilter;
+                    videoTexture.format = THREE.RGBAFormat;
+
+                    try {
+                        // Store video element for later cleanup and audio control
+                        activeVideoElements.set(artworkId, video);
+
+                        createArtworkMesh(videoTexture, metadata.title || 'Untitled', spot,
+                            { width: scaledWidth, height: scaledHeight }, metadata, url, artworkId, {
+                                ...artworkData,
+                                isVideo: true,
+                                videoElement: video,
+                                aspectRatio: aspectRatio
+                            });
+
+                        // Start playback
+                        video.play().catch(err => console.log('Video autoplay prevented:', err));
+                    } catch (placementError) {
+                        console.error('Failed to place video artwork:', placementError);
+                    } finally {
+                        endArtworkLoad();
+                        resolve();
+                    }
+                };
+
+                video.onerror = () => {
+                    console.warn('Video failed to load:', url);
+                    endArtworkLoad();
+                    resolve();
+                };
+            });
         }
 
         async function createArtworkEvent(artworkData) {
@@ -13566,7 +13738,10 @@
             const info = document.getElementById('viewer-info');
             const loading = document.getElementById('viewer-loading');
             const error = document.getElementById('viewer-error');
-            const container = document.getElementById('viewer-image-container');
+            const imageContainer = document.getElementById('viewer-image-container');
+            const videoContainer = document.getElementById('viewer-video-container');
+            const viewerVideo = document.getElementById('viewer-video');
+            const audioConsent = document.getElementById('video-audio-consent');
 
             // Build artworks list for navigation
             viewerState.artworksList = Array.from(artQueue);
@@ -13609,23 +13784,58 @@
             // Show info panel by default
             info.classList.remove('hidden');
 
-            // Show loading state
-            image.classList.add('loading');
-            loading.classList.add('active');
-            error.classList.remove('active');
+            // Check if this is a video
+            const isVideo = isVideoUrl(artData.imageUrl);
 
-            // Load image
-            const img = new Image();
-            img.onload = () => {
-                image.src = artData.imageUrl;
-                image.classList.remove('loading');
+            if (isVideo) {
+                // Show video container, hide image container
+                imageContainer.classList.add('video-mode');
+                videoContainer.classList.add('active');
                 loading.classList.remove('active');
-            };
-            img.onerror = () => {
-                loading.classList.remove('active');
-                error.classList.add('active');
-            };
-            img.src = artData.imageUrl;
+
+                // Set up video
+                viewerVideo.src = artData.imageUrl;
+                viewerVideo.muted = true;
+                viewerVideo.play().catch(err => console.log('Video play error:', err));
+
+                // Show audio consent overlay
+                audioConsent.style.display = 'flex';
+
+                // Set up audio consent click handler
+                const handleAudioConsent = () => {
+                    viewerVideo.muted = false;
+                    audioConsent.style.display = 'none';
+                    audioConsent.removeEventListener('click', handleAudioConsent);
+                };
+                audioConsent.addEventListener('click', handleAudioConsent);
+            } else {
+                // Show image container, hide video container
+                imageContainer.classList.remove('video-mode');
+                videoContainer.classList.remove('active');
+                audioConsent.style.display = 'none';
+
+                // Stop any playing video
+                viewerVideo.pause();
+                viewerVideo.src = '';
+
+                // Show loading state
+                image.classList.add('loading');
+                loading.classList.add('active');
+                error.classList.remove('active');
+
+                // Load image
+                const img = new Image();
+                img.onload = () => {
+                    image.src = artData.imageUrl;
+                    image.classList.remove('loading');
+                    loading.classList.remove('active');
+                };
+                img.onerror = () => {
+                    loading.classList.remove('active');
+                    error.classList.add('active');
+                };
+                img.src = artData.imageUrl;
+            }
 
             // Show viewer
             viewer.classList.add('active');
@@ -13638,9 +13848,21 @@
 
         function closeArtViewer() {
             const viewer = document.getElementById('art-viewer');
+            const videoContainer = document.getElementById('viewer-video-container');
+            const viewerVideo = document.getElementById('viewer-video');
+            const imageContainer = document.getElementById('viewer-image-container');
+
             viewer.classList.remove('active');
             document.body.style.overflow = '';
             resetViewerTransform();
+
+            // Stop and clean up video
+            viewerVideo.pause();
+            viewerVideo.muted = true;
+            viewerVideo.src = '';
+            videoContainer.classList.remove('active');
+            imageContainer.classList.remove('video-mode');
+
             // Reset space assignment state
             currentViewerArtwork = null;
             hideSpaceAssignmentContent();
