@@ -6033,6 +6033,23 @@
                 });
             }
 
+            // Count unique filled spaces for a gallery
+            // This counts how many distinct wall spaces have something placed in them
+            getFilledSpaceCount(galleryId = null) {
+                const placedArtworks = this.getPlacedArtworks(galleryId);
+                const filledSpaces = new Set();
+
+                placedArtworks.forEach(artwork => {
+                    // Get the space identifier (could be spaceId, locationId, or location)
+                    const spaceKey = artwork.spaceId || artwork.locationId || artwork.location;
+                    if (spaceKey) {
+                        filledSpaces.add(spaceKey);
+                    }
+                });
+
+                return filledSpaces.size;
+            }
+
             // Get artwork by ID
             getArtwork(objectId) {
                 return this.state.artworks[objectId] || null;
@@ -8732,8 +8749,8 @@
                     item.classList.add('current');
                 }
 
-                // Count artworks that can actually be displayed (have imageUrl and valid location)
-                const artworkCount = eventStore.getDisplayableArtworks(gallery.id).length;
+                // Count unique filled spaces (how many wall spots have something in them)
+                const artworkCount = eventStore.getFilledSpaceCount(gallery.id);
                 const artworkText = artworkCount === 1 ? '1 piece' : `${artworkCount} pieces`;
 
                 // Show "(Deleted)" indicator for admins viewing deleted galleries
