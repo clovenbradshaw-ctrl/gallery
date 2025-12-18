@@ -5350,6 +5350,417 @@
             return crypto.randomUUID();
         }
 
+        // =====================================================
+        // IMAGE CACHE SYSTEM - Stale-While-Revalidate Strategy
+        // =====================================================
+
+        // IndexedDB-based image cache for persistent storage
+        const ImageCache = {
+            DB_NAME: 'vr-gallery-image-cache',
+            DB_VERSION: 1,
+            STORE_NAME: 'images',
+            db: null,
+
+            // Initialize IndexedDB
+            async init() {
+                if (this.db) return this.db;
+
+                return new Promise((resolve, reject) => {
+                    const request = indexedDB.open(this.DB_NAME, this.DB_VERSION);
+
+                    request.onerror = () => {
+                        console.warn('[ImageCache] IndexedDB not available, using memory-only cache');
+                        resolve(null);
+                    };
+
+                    request.onsuccess = () => {
+                        this.db = request.result;
+                        console.log('[ImageCache] IndexedDB initialized');
+                        resolve(this.db);
+                    };
+
+                    request.onupgradeneeded = (event) => {
+                        const db = event.target.result;
+                        if (!db.objectStoreNames.contains(this.STORE_NAME)) {
+                            const store = db.createObjectStore(this.STORE_NAME, { keyPath: 'url' });
+                            store.createIndex('timestamp', 'timestamp', { unique: false });
+                        }
+                    };
+                });
+            },
+
+            // Store image blob with metadata
+            async set(url, blob, metadata = {}) {
+                if (!this.db) return false;
+
+                return new Promise((resolve) => {
+                    try {
+                        const transaction = this.db.transaction([this.STORE_NAME], 'readwrite');
+                        const store = transaction.objectStore(this.STORE_NAME);
+
+                        const record = {
+                            url,
+                            blob,
+                            timestamp: Date.now(),
+                            size: blob.size,
+                            type: blob.type,
+                            ...metadata
+                        };
+
+                        const request = store.put(record);
+                        request.onsuccess = () => resolve(true);
+                        request.onerror = () => {
+                            console.warn('[ImageCache] Failed to store:', url);
+                            resolve(false);
+                        };
+                    } catch (e) {
+                        console.warn('[ImageCache] Store error:', e);
+                        resolve(false);
+                    }
+                });
+            },
+
+            // Retrieve cached image blob
+            async get(url) {
+                if (!this.db) return null;
+
+                return new Promise((resolve) => {
+                    try {
+                        const transaction = this.db.transaction([this.STORE_NAME], 'readonly');
+                        const store = transaction.objectStore(this.STORE_NAME);
+                        const request = store.get(url);
+
+                        request.onsuccess = () => {
+                            const result = request.result;
+                            if (result) {
+                                resolve(result);
+                            } else {
+                                resolve(null);
+                            }
+                        };
+                        request.onerror = () => resolve(null);
+                    } catch (e) {
+                        resolve(null);
+                    }
+                });
+            },
+
+            // Check if URL is cached (without loading the blob)
+            async has(url) {
+                const record = await this.get(url);
+                return record !== null;
+            },
+
+            // Get all cached URLs
+            async getAllUrls() {
+                if (!this.db) return [];
+
+                return new Promise((resolve) => {
+                    try {
+                        const transaction = this.db.transaction([this.STORE_NAME], 'readonly');
+                        const store = transaction.objectStore(this.STORE_NAME);
+                        const request = store.getAllKeys();
+
+                        request.onsuccess = () => resolve(request.result || []);
+                        request.onerror = () => resolve([]);
+                    } catch (e) {
+                        resolve([]);
+                    }
+                });
+            },
+
+            // Clean old cache entries (LRU-style, keep most recent N entries)
+            async cleanup(maxEntries = 200) {
+                if (!this.db) return;
+
+                try {
+                    const transaction = this.db.transaction([this.STORE_NAME], 'readwrite');
+                    const store = transaction.objectStore(this.STORE_NAME);
+                    const index = store.index('timestamp');
+
+                    const countRequest = store.count();
+                    countRequest.onsuccess = () => {
+                        const count = countRequest.result;
+                        if (count > maxEntries) {
+                            const deleteCount = count - maxEntries;
+                            let deleted = 0;
+
+                            const cursorRequest = index.openCursor();
+                            cursorRequest.onsuccess = (event) => {
+                                const cursor = event.target.result;
+                                if (cursor && deleted < deleteCount) {
+                                    cursor.delete();
+                                    deleted++;
+                                    cursor.continue();
+                                }
+                            };
+                        }
+                    };
+                } catch (e) {
+                    console.warn('[ImageCache] Cleanup error:', e);
+                }
+            }
+        };
+
+        // In-memory texture cache for Three.js (faster than reloading from IndexedDB)
+        const TextureCache = {
+            cache: new Map(),
+            maxSize: 100,
+
+            // Get cached texture
+            get(url) {
+                return this.cache.get(url) || null;
+            },
+
+            // Store texture with reference counting
+            set(url, texture) {
+                // Evict oldest entries if cache is full
+                if (this.cache.size >= this.maxSize) {
+                    const oldestKey = this.cache.keys().next().value;
+                    const oldTexture = this.cache.get(oldestKey);
+                    if (oldTexture && oldTexture.dispose) {
+                        // Don't dispose - texture might still be in use
+                        // Just remove from cache
+                    }
+                    this.cache.delete(oldestKey);
+                }
+
+                this.cache.set(url, texture);
+            },
+
+            // Check if texture exists
+            has(url) {
+                return this.cache.has(url);
+            },
+
+            // Clear all cached textures
+            clear() {
+                this.cache.clear();
+            }
+        };
+
+        // Cached texture loader with stale-while-revalidate strategy
+        const CachedTextureLoader = {
+            pendingLoads: new Map(), // Deduplication of in-flight requests
+            revalidationQueue: new Set(), // URLs queued for background refresh
+
+            // Load texture with cache-first strategy
+            async loadTexture(url, onLoad, onProgress, onError) {
+                if (!url) {
+                    if (onError) onError(new Error('No URL provided'));
+                    return;
+                }
+
+                // Check in-memory texture cache first (fastest)
+                const cachedTexture = TextureCache.get(url);
+                if (cachedTexture) {
+                    if (onLoad) onLoad(cachedTexture.clone());
+                    // Queue background revalidation
+                    this.queueRevalidation(url);
+                    return;
+                }
+
+                // Check if this URL is already being loaded (deduplication)
+                if (this.pendingLoads.has(url)) {
+                    const pending = this.pendingLoads.get(url);
+                    pending.callbacks.push({ onLoad, onError });
+                    return;
+                }
+
+                // Start tracking this load
+                this.pendingLoads.set(url, { callbacks: [{ onLoad, onError }] });
+
+                // Try IndexedDB cache
+                const cached = await ImageCache.get(url);
+                if (cached && cached.blob) {
+                    try {
+                        // Create texture from cached blob
+                        const blobUrl = URL.createObjectURL(cached.blob);
+                        const textureLoader = new THREE.TextureLoader();
+                        textureLoader.setCrossOrigin('anonymous');
+
+                        textureLoader.load(blobUrl, (texture) => {
+                            URL.revokeObjectURL(blobUrl);
+                            TextureCache.set(url, texture);
+
+                            // Notify all waiting callbacks
+                            const pending = this.pendingLoads.get(url);
+                            if (pending) {
+                                pending.callbacks.forEach(cb => {
+                                    if (cb.onLoad) cb.onLoad(texture.clone());
+                                });
+                            }
+                            this.pendingLoads.delete(url);
+
+                            // Queue background revalidation
+                            this.queueRevalidation(url);
+                        }, undefined, (error) => {
+                            URL.revokeObjectURL(blobUrl);
+                            // Cache miss or corruption, load from network
+                            this.loadFromNetwork(url);
+                        });
+                        return;
+                    } catch (e) {
+                        // Fall through to network load
+                    }
+                }
+
+                // Load from network (cache miss)
+                this.loadFromNetwork(url);
+            },
+
+            // Load directly from network and cache
+            async loadFromNetwork(url) {
+                try {
+                    // Fetch image and cache it
+                    const response = await fetch(url, {
+                        mode: 'cors',
+                        credentials: 'omit'
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}`);
+                    }
+
+                    const blob = await response.blob();
+
+                    // Store in IndexedDB cache (async, don't wait)
+                    ImageCache.set(url, blob).catch(() => {});
+
+                    // Create texture from blob
+                    const blobUrl = URL.createObjectURL(blob);
+                    const textureLoader = new THREE.TextureLoader();
+                    textureLoader.setCrossOrigin('anonymous');
+
+                    textureLoader.load(blobUrl, (texture) => {
+                        URL.revokeObjectURL(blobUrl);
+                        TextureCache.set(url, texture);
+
+                        // Notify all waiting callbacks
+                        const pending = this.pendingLoads.get(url);
+                        if (pending) {
+                            pending.callbacks.forEach(cb => {
+                                if (cb.onLoad) cb.onLoad(texture.clone());
+                            });
+                        }
+                        this.pendingLoads.delete(url);
+                    }, undefined, (error) => {
+                        URL.revokeObjectURL(blobUrl);
+                        this.handleLoadError(url, error);
+                    });
+                } catch (error) {
+                    this.handleLoadError(url, error);
+                }
+            },
+
+            // Handle load errors
+            handleLoadError(url, error) {
+                console.warn('[CachedTextureLoader] Failed to load:', url, error);
+                const pending = this.pendingLoads.get(url);
+                if (pending) {
+                    pending.callbacks.forEach(cb => {
+                        if (cb.onError) cb.onError(error);
+                    });
+                }
+                this.pendingLoads.delete(url);
+            },
+
+            // Queue a URL for background revalidation
+            queueRevalidation(url) {
+                if (this.revalidationQueue.has(url)) return;
+                this.revalidationQueue.add(url);
+
+                // Process revalidation after a short delay
+                setTimeout(() => {
+                    this.processRevalidationQueue();
+                }, 100);
+            },
+
+            // Process background revalidations
+            async processRevalidationQueue() {
+                if (this.revalidationQueue.size === 0) return;
+
+                // Take a batch of URLs to revalidate
+                const batch = Array.from(this.revalidationQueue).slice(0, 5);
+                batch.forEach(url => this.revalidationQueue.delete(url));
+
+                for (const url of batch) {
+                    try {
+                        // Fetch fresh image in background
+                        const response = await fetch(url, {
+                            mode: 'cors',
+                            credentials: 'omit',
+                            cache: 'no-cache' // Force fresh fetch
+                        });
+
+                        if (response.ok) {
+                            const blob = await response.blob();
+                            // Update cache silently
+                            await ImageCache.set(url, blob);
+
+                            // Update in-memory texture cache
+                            const blobUrl = URL.createObjectURL(blob);
+                            const textureLoader = new THREE.TextureLoader();
+                            textureLoader.setCrossOrigin('anonymous');
+
+                            textureLoader.load(blobUrl, (texture) => {
+                                URL.revokeObjectURL(blobUrl);
+                                TextureCache.set(url, texture);
+                            }, undefined, () => {
+                                URL.revokeObjectURL(blobUrl);
+                            });
+                        }
+                    } catch (e) {
+                        // Silently ignore revalidation errors
+                    }
+                }
+
+                // Continue processing if more in queue
+                if (this.revalidationQueue.size > 0) {
+                    setTimeout(() => this.processRevalidationQueue(), 500);
+                }
+            },
+
+            // Preload images for faster subsequent loads
+            async preloadImages(urls) {
+                console.log(`[CachedTextureLoader] Preloading ${urls.length} images...`);
+
+                for (const url of urls) {
+                    if (!url) continue;
+
+                    // Skip if already cached in memory
+                    if (TextureCache.has(url)) continue;
+
+                    // Check IndexedDB
+                    const cached = await ImageCache.get(url);
+                    if (cached) continue;
+
+                    // Fetch and cache in background (low priority)
+                    try {
+                        const response = await fetch(url, {
+                            mode: 'cors',
+                            credentials: 'omit'
+                        });
+
+                        if (response.ok) {
+                            const blob = await response.blob();
+                            await ImageCache.set(url, blob);
+                        }
+                    } catch (e) {
+                        // Ignore preload errors
+                    }
+                }
+
+                console.log('[CachedTextureLoader] Preload complete');
+            }
+        };
+
+        // Initialize image cache on load
+        ImageCache.init().then(() => {
+            // Clean up old cache entries
+            ImageCache.cleanup(200);
+        });
+
         // Get or create actor ID (session-based)
         function getActorId() {
             let actorId = localStorage.getItem('vr-gallery:actor-id');
@@ -10444,6 +10855,24 @@
                 const placedArtworks = eventStore.getPlacedArtworks(galleryFilterId);
                 console.log('Placed artworks from event store:', placedArtworks);
 
+                // Preload all artwork images in background for faster cache warming
+                const allImageUrls = [];
+                for (const artwork of placedArtworks) {
+                    if (artwork.imageUrl) {
+                        allImageUrls.push(artwork.imageUrl);
+                    }
+                    // Also collect images from grid/slider displays
+                    if (artwork.images && Array.isArray(artwork.images)) {
+                        artwork.images.forEach(img => {
+                            if (img.imageUrl) allImageUrls.push(img.imageUrl);
+                        });
+                    }
+                }
+                // Preload images asynchronously (don't await - let it run in background)
+                if (allImageUrls.length > 0) {
+                    CachedTextureLoader.preloadImages(allImageUrls);
+                }
+
                 // Clear pending artworks and loaded artwork tracking for fresh load
                 roomManager.pendingArtworks = {};
                 roomManager.loadedArtworkIds.clear();
@@ -10652,44 +11081,38 @@
 
             return new Promise((resolve) => {
                 beginArtworkLoad();
-                const img = new Image();
-                img.crossOrigin = 'anonymous';
-                img.onload = () => {
-                    // Use saved aspectRatio if crop data exists, otherwise calculate from image
-                    let aspectRatio;
-                    if (artworkData?.cropData && artworkData?.aspectRatio) {
-                        // Use the stored aspect ratio from crop data
-                        aspectRatio = artworkData.aspectRatio;
-                    } else {
-                        // Calculate from full image dimensions
-                        aspectRatio = img.width / img.height;
-                    }
-                    const textureLoader = new THREE.TextureLoader();
-                    textureLoader.setCrossOrigin('anonymous');
-                    textureLoader.load(url, (texture) => {
-                        try {
-                            const scaledHeight = height * ARTWORK_SCALE_FACTOR;
-                            const scaledWidth = scaledHeight * aspectRatio;
-                            createArtworkMesh(texture, metadata.title || 'Untitled', spot,
-                                { width: scaledWidth, height: scaledHeight }, metadata, url, artworkId, artworkData);
-                        } catch (placementError) {
-                            console.error('Failed to place artwork from URL:', placementError);
-                        } finally {
-                            endArtworkLoad();
-                            resolve();
+
+                // Use cached texture loader with stale-while-revalidate strategy
+                CachedTextureLoader.loadTexture(url, (texture) => {
+                    try {
+                        // Use saved aspectRatio if crop data exists, otherwise calculate from texture
+                        let aspectRatio;
+                        if (artworkData?.cropData && artworkData?.aspectRatio) {
+                            // Use the stored aspect ratio from crop data
+                            aspectRatio = artworkData.aspectRatio;
+                        } else if (texture.image) {
+                            // Calculate from texture image dimensions
+                            aspectRatio = texture.image.width / texture.image.height;
+                        } else {
+                            // Fallback to 1:1 aspect ratio
+                            aspectRatio = 1;
                         }
-                    }, undefined, (error) => {
-                        console.error('Failed to load texture from URL:', error);
+
+                        const scaledHeight = height * ARTWORK_SCALE_FACTOR;
+                        const scaledWidth = scaledHeight * aspectRatio;
+                        createArtworkMesh(texture, metadata.title || 'Untitled', spot,
+                            { width: scaledWidth, height: scaledHeight }, metadata, url, artworkId, artworkData);
+                    } catch (placementError) {
+                        console.error('Failed to place artwork from URL:', placementError);
+                    } finally {
                         endArtworkLoad();
                         resolve();
-                    });
-                };
-                img.onerror = () => {
-                    console.warn('Image failed to load for URL:', url);
+                    }
+                }, undefined, (error) => {
+                    console.warn('Image failed to load for URL:', url, error);
                     endArtworkLoad();
                     resolve();
-                };
-                img.src = url;
+                });
             });
         }
 
@@ -13784,7 +14207,7 @@
 
             const parentGroup = spot.parent || scene;
 
-            // Create each image in the grid
+            // Create each image in the grid using cached texture loader
             let loadedCount = 0;
             imagesData.forEach((imageData, index) => {
                 if (!imageData.imageUrl) return;
@@ -13795,9 +14218,8 @@
                 const xOffset = (col - (cols - 1) / 2) * (imageWidth + spacing);
                 const yOffset = ((rows - 1) / 2 - row) * (imageHeight + spacing);
 
-                const textureLoader = new THREE.TextureLoader();
-                textureLoader.setCrossOrigin('anonymous');
-                textureLoader.load(imageData.imageUrl, (texture) => {
+                // Use cached texture loader with stale-while-revalidate strategy
+                CachedTextureLoader.loadTexture(imageData.imageUrl, (texture) => {
                     const frameGeometry = new THREE.BoxGeometry(imageWidth + 0.05, imageHeight + 0.05, 0.03);
                     const frameMaterial = new THREE.MeshStandardMaterial({ color: 0x8b7355, roughness: 0.8, metalness: 0.2 });
                     const frame = new THREE.Mesh(frameGeometry, frameMaterial);
@@ -13871,10 +14293,8 @@
             const originalY = artworkGroup.position.y;
             const slideDistance = 0.5; // meters to slide down then back up
 
-            // Load the new texture
-            const textureLoader = new THREE.TextureLoader();
-            textureLoader.setCrossOrigin('anonymous');
-            textureLoader.load(newImageData.imageUrl, (newTexture) => {
+            // Load the new texture using cached texture loader
+            CachedTextureLoader.loadTexture(newImageData.imageUrl, (newTexture) => {
                 // Animate the slide
                 const animate = () => {
                     const elapsed = Date.now() - startTime;
