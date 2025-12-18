@@ -1841,6 +1841,45 @@
             background: rgba(255, 255, 255, 0.2);
         }
 
+        .catalogue-btn.delete-btn {
+            background: rgba(220, 53, 69, 0.2);
+            color: #dc3545;
+            flex: 0 0 auto;
+            padding: 6px 10px;
+            font-size: 14px;
+        }
+
+        .catalogue-btn.delete-btn:hover {
+            background: rgba(220, 53, 69, 0.4);
+            transform: translateY(-1px);
+        }
+
+        /* Video thumbnail styles */
+        .row-thumbnail.youtube-thumb {
+            background-size: cover;
+            background-position: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 60px;
+            height: 60px;
+            border-radius: 6px;
+        }
+
+        .youtube-play-icon {
+            color: white;
+            font-size: 20px;
+            text-shadow: 0 0 4px rgba(0,0,0,0.8);
+            opacity: 0.9;
+        }
+
+        video.row-thumbnail {
+            width: 60px;
+            height: 60px;
+            object-fit: cover;
+            border-radius: 6px;
+        }
+
         /* Catalogue Detail Modal */
         #catalogue-detail {
             position: fixed;
@@ -4988,7 +5027,7 @@
                 <button class="catalogue-close" onclick="closeCatalogueDetail()">×</button>
             </div>
             <div class="catalogue-detail-body">
-                <div class="catalogue-detail-image">
+                <div class="catalogue-detail-image" id="catalogue-detail-media">
                     <img id="catalogue-detail-img" src="" alt="Artwork preview">
                 </div>
                 <div class="catalogue-detail-form">
@@ -6354,10 +6393,26 @@
                     ? '<span class="status-badge placed">Placed</span>'
                     : '<span class="status-badge unplaced">Not placed</span>';
 
+                // Determine preview content based on URL type
+                let previewHtml;
+                const mediaUrl = item.image_url;
+                if (isVideoUrl(mediaUrl)) {
+                    // Direct video file - show video element with thumbnail
+                    previewHtml = `<video class="row-thumbnail" src="${mediaUrl}" muted preload="metadata" title="${escapeHtml(item.title)}"></video>`;
+                } else if (isYouTubeUrl(mediaUrl)) {
+                    // YouTube video - show thumbnail
+                    const videoId = getYouTubeVideoId(mediaUrl);
+                    const thumbUrl = videoId ? `https://img.youtube.com/vi/${videoId}/mqdefault.jpg` : '';
+                    previewHtml = `<div class="row-thumbnail youtube-thumb" style="background-image: url('${thumbUrl}')"><span class="youtube-play-icon">▶</span></div>`;
+                } else {
+                    // Regular image
+                    previewHtml = `<img class="row-thumbnail" src="${mediaUrl}" alt="${escapeHtml(item.title)}" loading="lazy">`;
+                }
+
                 return `
                     <div class="catalogue-table-row ${isPlaced ? 'placed' : ''}" data-id="${item.id}">
                         <div>
-                            <img class="row-thumbnail" src="${item.image_url}" alt="${item.title}" loading="lazy">
+                            ${previewHtml}
                         </div>
                         <div class="row-title">
                             <input type="text" class="inline-edit-field" value="${escapeHtml(item.title)}"
@@ -6374,6 +6429,9 @@
                         <div class="row-actions">
                             <button class="catalogue-btn primary" onclick="event.stopPropagation(); openCatalogueDetail('${item.id}')">
                                 ${isPlaced ? 'View' : 'Place'}
+                            </button>
+                            <button class="catalogue-btn delete-btn" onclick="event.stopPropagation(); confirmDeleteCatalogueItem('${item.id}')" title="Remove from catalogue">
+                                🗑️
                             </button>
                         </div>
                     </div>
@@ -6407,8 +6465,25 @@
 
             selectedCatalogueItem = item;
 
-            // Populate form
-            document.getElementById('catalogue-detail-img').src = item.image_url;
+            // Populate media preview based on URL type
+            const mediaContainer = document.getElementById('catalogue-detail-media');
+            const mediaUrl = item.image_url;
+
+            if (isVideoUrl(mediaUrl)) {
+                // Direct video file
+                mediaContainer.innerHTML = `<video id="catalogue-detail-video" src="${mediaUrl}" controls muted style="width:100%; border-radius:8px;"></video>`;
+            } else if (isYouTubeUrl(mediaUrl)) {
+                // YouTube video - embed iframe
+                const videoId = getYouTubeVideoId(mediaUrl);
+                if (videoId) {
+                    mediaContainer.innerHTML = `<iframe id="catalogue-detail-youtube" src="https://www.youtube.com/embed/${videoId}" style="width:100%; aspect-ratio:16/9; border-radius:8px; border:none;" allowfullscreen></iframe>`;
+                } else {
+                    mediaContainer.innerHTML = `<img id="catalogue-detail-img" src="${mediaUrl}" alt="Artwork preview">`;
+                }
+            } else {
+                // Regular image
+                mediaContainer.innerHTML = `<img id="catalogue-detail-img" src="${mediaUrl}" alt="Artwork preview" style="width:100%; border-radius:8px;">`;
+            }
             document.getElementById('catalogue-title').value = item.title;
             document.getElementById('catalogue-artist').value = item.artist || 'Morning Coffee Artist';
             document.getElementById('catalogue-description').value = item.description || '';
@@ -7338,6 +7413,18 @@
         function removeFromCatalogue(catalogueId) {
             artCatalogue = artCatalogue.filter(item => item.id !== catalogueId);
             saveCatalogue();
+        }
+
+        // Confirm and delete catalogue item
+        function confirmDeleteCatalogueItem(catalogueId) {
+            const item = artCatalogue.find(i => i.id === catalogueId);
+            if (!item) return;
+
+            const confirmDelete = confirm(`Are you sure you want to remove "${item.title}" from the catalogue?`);
+            if (confirmDelete) {
+                removeFromCatalogue(catalogueId);
+                renderCatalogue();
+            }
         }
 
         // Migrate catalogue to database
