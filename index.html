@@ -5396,7 +5396,13 @@
             async _doFetchEvents() {
                 try {
                     return await this._retryWithBackoff(async () => {
-                        const response = await fetch(XANO_API_URL);
+                        // Use cache: 'no-store' to ensure fresh data on every request
+                        const response = await fetch(XANO_API_URL, {
+                            cache: 'no-store',
+                            headers: {
+                                'Cache-Control': 'no-cache'
+                            }
+                        });
                         if (!response.ok) {
                             const error = new Error(`Failed to fetch events: ${response.status}`);
                             error.status = response.status;
@@ -5440,7 +5446,7 @@
             // Merge local catalogue items from CSV with API data
             async _mergeLocalCatalogueItems() {
                 try {
-                    const response = await fetch('data.csv');
+                    const response = await fetch('data.csv', { cache: 'no-store' });
                     if (!response.ok) return;
 
                     const csvText = await response.text();
@@ -5467,7 +5473,7 @@
             // Fallback: Load events from local data.csv file
             async _loadFromCSVFallback() {
                 try {
-                    const response = await fetch('data.csv');
+                    const response = await fetch('data.csv', { cache: 'no-store' });
                     if (!response.ok) {
                         throw new Error(`Failed to fetch data.csv: ${response.status}`);
                     }
@@ -6188,6 +6194,47 @@
         function saveCatalogue() {
             localStorage.setItem(CATALOGUE_STORAGE_KEY, JSON.stringify(artCatalogue));
             updateCatalogueCount();
+        }
+
+        // Sync catalogue from API data (eventStore.state.catalogue)
+        // This ensures the UI always shows the most up-to-date catalogue from the server
+        function syncCatalogueFromAPI() {
+            const apiCatalogueItems = eventStore.getCatalogueItems();
+            if (apiCatalogueItems && apiCatalogueItems.length > 0) {
+                // Build a map of existing items by ID for fast lookup
+                const existingById = new Map(artCatalogue.map(item => [item.id, item]));
+
+                // Merge API items - API takes precedence
+                const mergedCatalogue = [];
+                const seenIds = new Set();
+
+                // First, add all API items (these are the source of truth)
+                for (const apiItem of apiCatalogueItems) {
+                    const item = {
+                        id: apiItem.id,
+                        title: apiItem.title || apiItem.name,
+                        product_url: apiItem.product_url || apiItem.productUrl,
+                        price: apiItem.price,
+                        currency: apiItem.currency || 'USD',
+                        image_url: apiItem.image_url || apiItem.imageUrl,
+                        artist: apiItem.artist
+                    };
+                    mergedCatalogue.push(item);
+                    seenIds.add(item.id);
+                }
+
+                // Then add any local-only items that aren't in the API yet
+                for (const localItem of artCatalogue) {
+                    if (!seenIds.has(localItem.id)) {
+                        mergedCatalogue.push(localItem);
+                        seenIds.add(localItem.id);
+                    }
+                }
+
+                artCatalogue = mergedCatalogue;
+                saveCatalogue();
+                console.log('Catalogue synced from API:', artCatalogue.length, 'items');
+            }
         }
 
         // Update catalogue count display
@@ -8181,6 +8228,9 @@
             try {
                 // Fetch events from API
                 await eventStore.fetchEvents();
+
+                // Sync catalogue from API data to ensure fresh data on every refresh
+                syncCatalogueFromAPI();
 
                 // Load rooms from API into ROOMS object
                 initRoomsFromAPI();
@@ -10281,6 +10331,9 @@
 
                 // Fetch all events and reconstruct state
                 await eventStore.fetchEvents();
+
+                // Sync catalogue from API data to ensure fresh data
+                syncCatalogueFromAPI();
 
                 // Get placed artworks from reconstructed state
                 const placedArtworks = eventStore.getPlacedArtworks(galleryFilterId);
