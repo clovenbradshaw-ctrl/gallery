@@ -5499,12 +5499,24 @@
                         }
 
                         // Validate and normalize events before storing
-                        this.events = fetchedEvents.map(e => this._normalizeEvent(e)).filter(e => e !== null);
+                        const normalizedFetched = fetchedEvents.map(e => this._normalizeEvent(e)).filter(e => e !== null);
+
+                        // Preserve local unsynced events that aren't in the fetched set
+                        // This prevents state reversion when a local event hasn't been returned by API yet
+                        const fetchedUIDs = new Set(normalizedFetched.map(e => e.event_uid));
+                        const localUnsyncedEvents = this.events.filter(e => e.event_uid && !fetchedUIDs.has(e.event_uid));
+
+                        // Merge: API events take precedence, then append local unsynced events
+                        this.events = [...normalizedFetched, ...localUnsyncedEvents];
+
+                        if (localUnsyncedEvents.length > 0) {
+                            console.log('Preserved', localUnsyncedEvents.length, 'local unsynced events during fetch');
+                        }
 
                         // Also load local catalogue items from CSV and merge them
                         await this._mergeLocalCatalogueItems();
 
-                        console.log('Fetched events from Xano:', this.events.length);
+                        console.log('Fetched events from Xano:', normalizedFetched.length, '(total with local:', this.events.length + ')');
                         if (this.events.length > 0) {
                             const sample = this.events[0];
                             console.log('Sample event structure:', JSON.stringify(sample, null, 2));
