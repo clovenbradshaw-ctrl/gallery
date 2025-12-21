@@ -5249,6 +5249,7 @@
     <script src="https://cdn.jsdelivr.net/npm/three@0.128/examples/js/loaders/OBJLoader.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128/examples/js/loaders/FBXLoader.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128/examples/js/loaders/STLLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128/examples/js/renderers/CSS3DRenderer.js"></script>
     <script>
         let isAdmin = false;
         let escapeCount = 0;
@@ -8099,6 +8100,8 @@
         });
 
         let scene, camera, renderer;
+        let cssRenderer, cssScene; // CSS3D renderer for YouTube iframe overlays
+        let youtubeCSS3DObjects = new Map(); // Track YouTube CSS3D objects by artworkId
         let artworks = [];
         let raycaster, mouse;
         let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false;
@@ -10002,6 +10005,11 @@
                         placards[artworkMesh.userData.placardIndex] = null;
                     }
 
+                    // Clean up CSS3D object for YouTube videos
+                    if (artworkMesh.userData.isYouTube && artworkMesh.userData.css3DObjectId) {
+                        cleanupYouTubeCSS3D(artworkMesh.userData.css3DObjectId);
+                    }
+
                     // Remove from scene
                     if (artworkMesh.parent) {
                         artworkMesh.parent.remove(artworkMesh);
@@ -10414,6 +10422,11 @@
                     placards[artworkMesh.userData.placardIndex] = null;
                 }
 
+                // Clean up CSS3D object for YouTube videos
+                if (artworkMesh.userData.isYouTube && artworkMesh.userData.css3DObjectId) {
+                    cleanupYouTubeCSS3D(artworkMesh.userData.css3DObjectId);
+                }
+
                 // Remove from scene
                 if (artworkMesh.parent) {
                     artworkMesh.parent.remove(artworkMesh);
@@ -10798,6 +10811,22 @@
         // Store active video elements for cleanup
         const activeVideoElements = new Map();
 
+        // Cleanup function for YouTube CSS3D objects
+        function cleanupYouTubeCSS3D(artworkId) {
+            const youtubeData = youtubeCSS3DObjects.get(artworkId);
+            if (youtubeData) {
+                // Remove from CSS3D scene
+                if (youtubeData.css3DObject && cssScene) {
+                    cssScene.remove(youtubeData.css3DObject);
+                }
+                // Remove iframe from DOM
+                if (youtubeData.iframeContainer && youtubeData.iframeContainer.parentNode) {
+                    youtubeData.iframeContainer.parentNode.removeChild(youtubeData.iframeContainer);
+                }
+                youtubeCSS3DObjects.delete(artworkId);
+            }
+        }
+
         // Load video and create VideoTexture for 3D display
         async function loadVideoFromURL(url, locationId, height, metadata, artworkId, artworkData = null) {
             let spot = wallSpots.find(s => s.userData.id === locationId);
@@ -10876,7 +10905,7 @@
             });
         }
 
-        // Load YouTube video - displays thumbnail on wall, plays embed in viewer
+        // Load YouTube video - creates CSS3D iframe that autoplays muted on wall
         async function loadYouTubeVideo(url, locationId, height, metadata, artworkId, artworkData = null) {
             let spot = wallSpots.find(s => s.userData.id === locationId);
 
@@ -10903,51 +10932,125 @@
                 const scaledHeight = height * ARTWORK_SCALE_FACTOR;
                 const scaledWidth = scaledHeight * aspectRatio;
 
-                // Load YouTube thumbnail as texture
-                const thumbnailUrl = getYouTubeThumbnailUrl(videoId);
-                const textureLoader = new THREE.TextureLoader();
-                textureLoader.setCrossOrigin('anonymous');
+                // Create iframe container for CSS3D
+                const iframeContainer = document.createElement('div');
+                // Scale factor: CSS3D uses pixels, Three.js uses meters
+                // We need to convert meters to pixels for the iframe size
+                const pixelScale = 400; // pixels per meter for iframe resolution
+                const iframeWidth = scaledWidth * pixelScale;
+                const iframeHeight = scaledHeight * pixelScale;
 
-                textureLoader.load(thumbnailUrl, (texture) => {
-                    try {
-                        createArtworkMesh(texture, metadata.title || 'Untitled', spot,
-                            { width: scaledWidth, height: scaledHeight }, metadata, url, artworkId, {
-                                ...artworkData,
-                                isYouTube: true,
-                                youtubeVideoId: videoId,
-                                aspectRatio: aspectRatio
-                            });
-                    } catch (placementError) {
-                        console.error('Failed to place YouTube artwork:', placementError);
-                    } finally {
-                        endArtworkLoad();
-                        resolve();
-                    }
-                }, undefined, (error) => {
-                    // Fallback to hqdefault if maxresdefault fails
-                    console.warn('maxresdefault thumbnail failed, trying hqdefault');
-                    const fallbackUrl = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
-                    textureLoader.load(fallbackUrl, (texture) => {
-                        try {
-                            createArtworkMesh(texture, metadata.title || 'Untitled', spot,
-                                { width: scaledWidth, height: scaledHeight }, metadata, url, artworkId, {
-                                    ...artworkData,
-                                    isYouTube: true,
-                                    youtubeVideoId: videoId,
-                                    aspectRatio: aspectRatio
-                                });
-                        } catch (placementError) {
-                            console.error('Failed to place YouTube artwork:', placementError);
-                        } finally {
-                            endArtworkLoad();
-                            resolve();
-                        }
-                    }, undefined, () => {
-                        console.error('Failed to load YouTube thumbnail:', url);
-                        endArtworkLoad();
-                        resolve();
-                    });
+                iframeContainer.style.width = `${iframeWidth}px`;
+                iframeContainer.style.height = `${iframeHeight}px`;
+                iframeContainer.style.backgroundColor = '#000';
+
+                // Create YouTube iframe with autoplay and mute
+                const iframe = document.createElement('iframe');
+                iframe.src = `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&mute=1&loop=1&playlist=${videoId}&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1`;
+                iframe.style.width = '100%';
+                iframe.style.height = '100%';
+                iframe.style.border = 'none';
+                iframe.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture';
+                iframe.allowFullscreen = true;
+                iframeContainer.appendChild(iframe);
+
+                // Create CSS3D object
+                const css3DObject = new THREE.CSS3DObject(iframeContainer);
+
+                // Scale down the CSS3D object to match Three.js units (meters)
+                // The iframe is in pixels, so we scale it down
+                const scale = 1 / pixelScale;
+                css3DObject.scale.set(scale, scale, scale);
+
+                // Position at the wall spot
+                css3DObject.position.copy(spot.position);
+                css3DObject.rotation.y = spot.userData.rotation;
+
+                // Offset slightly from wall to prevent z-fighting
+                const normal = new THREE.Vector3(0, 0, 1);
+                normal.applyEuler(new THREE.Euler(0, spot.userData.rotation, 0));
+                css3DObject.position.add(normal.multiplyScalar(0.06));
+
+                // Add to CSS3D scene
+                cssScene.add(css3DObject);
+
+                // Store reference for cleanup
+                youtubeCSS3DObjects.set(artworkId, {
+                    css3DObject: css3DObject,
+                    iframe: iframe,
+                    iframeContainer: iframeContainer
                 });
+
+                // Also create a transparent placeholder mesh in the WebGL scene for interaction
+                const placeholderGeometry = new THREE.PlaneGeometry(scaledWidth, scaledHeight);
+                const placeholderMaterial = new THREE.MeshBasicMaterial({
+                    transparent: true,
+                    opacity: 0,
+                    side: THREE.DoubleSide
+                });
+                const placeholderMesh = new THREE.Mesh(placeholderGeometry, placeholderMaterial);
+
+                // Create frame for visual consistency
+                const frameGeometry = new THREE.BoxGeometry(scaledWidth + 0.1, scaledHeight + 0.1, 0.05);
+                const frameMaterial = new THREE.MeshStandardMaterial({ color: 0x8b7355, roughness: 0.8, metalness: 0.2 });
+                const frame = new THREE.Mesh(frameGeometry, frameMaterial);
+                frame.castShadow = true;
+
+                const artworkGroup = new THREE.Group();
+                artworkGroup.add(frame);
+                artworkGroup.add(placeholderMesh);
+                placeholderMesh.position.z = 0.026;
+                artworkGroup.name = 'artwork';
+
+                const storedHeightFeet = artworkData?.heightFeet ||
+                    (artworkData?.heightMeters ? artworkData.heightMeters / 0.3048 : null) ||
+                    (artworkData?.heightInches ? artworkData.heightInches / 12 : null) ||
+                    (scaledHeight / ARTWORK_SCALE_FACTOR / 0.3048);
+
+                artworkGroup.userData = {
+                    name: metadata.title || 'Untitled',
+                    spotId: spot.userData.id,
+                    width: scaledWidth,
+                    height: scaledHeight,
+                    heightFeet: storedHeightFeet,
+                    aspectRatio: aspectRatio,
+                    metadata: metadata,
+                    imageUrl: url,
+                    artworkId: artworkId,
+                    isYouTube: true,
+                    youtubeVideoId: videoId,
+                    css3DObjectId: artworkId,
+                    gatewayTo: artworkData?.gatewayTo || '',
+                    displayMode: artworkData?.displayMode || 'single',
+                    images: artworkData?.images || [],
+                    currentImageIndex: artworkData?.currentImageIndex || 0,
+                    cropData: null
+                };
+
+                artworkGroup.position.copy(spot.position);
+                artworkGroup.rotation.y = spot.userData.rotation;
+
+                const normalOffset = new THREE.Vector3(0, 0, 1);
+                normalOffset.applyEuler(new THREE.Euler(0, spot.userData.rotation, 0));
+                artworkGroup.position.add(normalOffset.multiplyScalar(0.05));
+
+                const parentGroup = spot.parent || scene;
+                artworks.push(artworkGroup);
+                parentGroup.add(artworkGroup);
+
+                const placard = createPlacard(metadata, spot.position, spot.userData.rotation, scaledWidth, scaledHeight, parentGroup);
+                if (placard) {
+                    artworkGroup.userData.placardIndex = placards.indexOf(placard);
+                }
+
+                spot.userData.occupied = true;
+                spot.userData.currentWidth = scaledWidth;
+                spot.material.color.setHex(0xff6b6b);
+                spot.material.emissive.setHex(0xff6b6b);
+
+                updateSpotCounters();
+                endArtworkLoad();
+                resolve();
             });
         }
 
@@ -11273,6 +11376,16 @@
                 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
                 renderer.xr.enabled = true;
                 document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+                // Initialize CSS3D renderer for YouTube iframe overlays
+                cssScene = new THREE.Scene();
+                cssRenderer = new THREE.CSS3DRenderer();
+                cssRenderer.setSize(window.innerWidth, window.innerHeight);
+                cssRenderer.domElement.style.position = 'absolute';
+                cssRenderer.domElement.style.top = '0';
+                cssRenderer.domElement.style.left = '0';
+                cssRenderer.domElement.style.pointerEvents = 'none';
+                document.getElementById('canvas-container').appendChild(cssRenderer.domElement);
 
                 // Handle actual WebGL context loss events gracefully
                 renderer.domElement.addEventListener('webglcontextlost', function(event) {
@@ -13592,6 +13705,11 @@
                         artworkGroup.userData.wire = null;
                     }
 
+                    // Clean up CSS3D object for YouTube videos
+                    if (artworkGroup.userData.isYouTube && artworkGroup.userData.css3DObjectId) {
+                        cleanupYouTubeCSS3D(artworkGroup.userData.css3DObjectId);
+                    }
+
                     if (artworkGroup.parent) {
                         artworkGroup.parent.remove(artworkGroup);
                     }
@@ -14151,6 +14269,11 @@
                     artworkGroup.userData.wire = null;
                 }
 
+                // Clean up CSS3D object for YouTube videos
+                if (artworkGroup.userData.isYouTube && artworkGroup.userData.css3DObjectId) {
+                    cleanupYouTubeCSS3D(artworkGroup.userData.css3DObjectId);
+                }
+
                 // Remove artwork mesh from scene
                 if (artworkGroup.parent) {
                     artworkGroup.parent.remove(artworkGroup);
@@ -14614,6 +14737,11 @@
                         placards[artworkMesh.userData.placardIndex] = null;
                     }
 
+                    // Clean up CSS3D object for YouTube videos
+                    if (artworkMesh.userData.isYouTube && artworkMesh.userData.css3DObjectId) {
+                        cleanupYouTubeCSS3D(artworkMesh.userData.css3DObjectId);
+                    }
+
                     // Remove from scene
                     if (artworkMesh.parent) {
                         artworkMesh.parent.remove(artworkMesh);
@@ -14959,6 +15087,9 @@
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
+            if (cssRenderer) {
+                cssRenderer.setSize(window.innerWidth, window.innerHeight);
+            }
         }
         
         function checkVRSupport() {
@@ -15056,6 +15187,11 @@
             });
 
             renderer.render(scene, camera);
+
+            // Render CSS3D scene for YouTube iframes
+            if (cssRenderer && cssScene) {
+                cssRenderer.render(cssScene, camera);
+            }
         }
 
         function animate() {
