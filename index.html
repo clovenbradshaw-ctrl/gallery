@@ -4370,6 +4370,35 @@
             max-width: 100%;
             max-height: 100%;
             object-fit: contain;
+            cursor: pointer;
+        }
+
+        /* Video play/pause overlay */
+        .video-play-overlay {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 80px;
+            height: 80px;
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 50%;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        .video-play-overlay.visible {
+            display: flex;
+        }
+
+        .video-play-overlay svg {
+            width: 40px;
+            height: 40px;
+            fill: white;
+            margin-left: 5px;
         }
 
         /* Hide image container when video is active */
@@ -4928,6 +4957,11 @@
             </div>
             <div id="viewer-video-container">
                 <video id="viewer-video" loop playsinline></video>
+                <div class="video-play-overlay" id="video-play-overlay">
+                    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M8 5v14l11-7z"/>
+                    </svg>
+                </div>
                 <div class="video-audio-consent" id="video-audio-consent">
                     <div class="headphone-icon">
                         <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -14318,6 +14352,7 @@
             const videoContainer = document.getElementById('viewer-video-container');
             const viewerVideo = document.getElementById('viewer-video');
             const audioConsent = document.getElementById('video-audio-consent');
+            const playOverlay = document.getElementById('video-play-overlay');
             const youtubeContainer = document.getElementById('viewer-youtube-container');
             const viewerYoutube = document.getElementById('viewer-youtube');
 
@@ -14399,6 +14434,9 @@
                 viewerVideo.muted = true;
                 viewerVideo.play().catch(err => console.log('Video play error:', err));
 
+                // Hide play overlay initially (video is playing)
+                playOverlay.classList.remove('visible');
+
                 // Show audio consent overlay
                 audioConsent.style.display = 'flex';
 
@@ -14409,6 +14447,27 @@
                     audioConsent.removeEventListener('click', handleAudioConsent);
                 };
                 audioConsent.addEventListener('click', handleAudioConsent);
+
+                // Set up video click handler for play/pause toggle
+                const handleVideoClick = (e) => {
+                    // Ignore if audio consent overlay is still visible
+                    if (audioConsent.style.display !== 'none') {
+                        return;
+                    }
+
+                    if (viewerVideo.paused) {
+                        viewerVideo.play().catch(err => console.log('Video play error:', err));
+                        playOverlay.classList.remove('visible');
+                    } else {
+                        viewerVideo.pause();
+                        playOverlay.classList.add('visible');
+                    }
+                };
+
+                // Remove any existing click handler and add new one
+                viewerVideo.removeEventListener('click', viewerVideo._clickHandler);
+                viewerVideo._clickHandler = handleVideoClick;
+                viewerVideo.addEventListener('click', handleVideoClick);
             } else {
                 // Show image container, hide video and YouTube containers
                 imageContainer.classList.remove('video-mode');
@@ -14468,6 +14527,16 @@
             viewerVideo.src = '';
             videoContainer.classList.remove('active');
             imageContainer.classList.remove('video-mode');
+
+            // Reset play overlay
+            const playOverlay = document.getElementById('video-play-overlay');
+            playOverlay.classList.remove('visible');
+
+            // Remove video click handler
+            if (viewerVideo._clickHandler) {
+                viewerVideo.removeEventListener('click', viewerVideo._clickHandler);
+                viewerVideo._clickHandler = null;
+            }
 
             // Stop and clean up YouTube
             viewerYoutube.src = '';
