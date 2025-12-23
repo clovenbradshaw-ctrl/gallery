@@ -5413,6 +5413,47 @@
                 // Track initialization state
                 this._initialized = false;
                 this._lastFetchTime = 0;
+                // Session and device identifiers for context envelope
+                this._sessionId = 'session_' + Date.now().toString(36) + '_' + Math.random().toString(36).substring(2, 8);
+                this._deviceId = this._getOrCreateDeviceId();
+            }
+
+            // Get or create a persistent device ID
+            _getOrCreateDeviceId() {
+                let deviceId = localStorage.getItem('vr-gallery:device-id');
+                if (!deviceId) {
+                    deviceId = 'device_' + Date.now().toString(36) + '_' + Math.random().toString(36).substring(2, 8);
+                    localStorage.setItem('vr-gallery:device-id', deviceId);
+                }
+                return deviceId;
+            }
+
+            // Get the most recent event UIDs for a given object (causal parents)
+            _getParentsForObject(objectId, objectType) {
+                // Find all events for this object, sorted by time (most recent first)
+                const objectEvents = this.events
+                    .filter(e => e.object_id === objectId && e.object_type === objectType && e.event_uid)
+                    .sort((a, b) => {
+                        const timeA = new Date(a.created_at || a.published).getTime();
+                        const timeB = new Date(b.created_at || b.published).getTime();
+                        return timeB - timeA; // Most recent first
+                    });
+
+                // Return the most recent event's UID as parent (if exists)
+                if (objectEvents.length > 0) {
+                    return [objectEvents[0].event_uid];
+                }
+                return [];
+            }
+
+            // Build context envelope for events
+            _buildContextEnvelope(galleryId = null) {
+                return {
+                    workspace: galleryId || 'default',
+                    device: this._deviceId,
+                    session: this._sessionId,
+                    schemaVersion: '1.0'
+                };
             }
 
             // Retry helper with exponential backoff
@@ -5743,6 +5784,12 @@
                     return { skipped: true, reason: 'recent_duplicate' };
                 }
 
+                // Get causal parents for this object
+                const parents = this._getParentsForObject(eventData.object_id, eventData.object_type);
+
+                // Extract galleryId from data for context envelope
+                const galleryId = eventData.data?.galleryId || eventData.data?.gallery_id || null;
+
                 const event = {
                     event_uid: generateEventUID(),
                     verb: eventData.verb,
@@ -5753,41 +5800,83 @@
                     actor_id: getActorId(),
                     object_type: eventData.object_type,
                     object_id: eventData.object_id,
-                    data: eventData.data || {}
+                    data: eventData.data || {},
+                    // Causal parents - references to previous events for this object
+                    parents: parents,
+                    // Context envelope for compliance
+                    context: this._buildContextEnvelope(galleryId)
                 };
 
                 console.log('Posting event to Xano:', event);
 
-                return this._retryWithBackoff(async () => {
-                    const response = await fetch(XANO_API_URL, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
+                try {
+                    return await this._retryWithBackoff(async () => {
+                        const response = await fetch(XANO_API_URL, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify(event)
+                        });
+
+                        if (!response.ok) {
+                            const errorText = await response.text();
+                            const error = new Error(`Failed to post event: ${response.status} - ${errorText}`);
+                            error.status = response.status;
+                            throw error;
+                        }
+
+                        const result = await response.json();
+                        console.log('Event posted successfully:', result);
+
+                        // Add to local events with full server response data
+                        const storedEvent = {
+                            ...event,
+                            id: result.id,
+                            created_at: result.created_at || new Date().toISOString()
+                        };
+                        this.events.push(storedEvent);
+                        this.applyEvent(storedEvent);
+
+                        return result;
+                    }, 2); // Max 2 retries for POST operations
+                } catch (error) {
+                    // Record sync failure as a local event (Rule 7: Failure Is a State)
+                    const syncFailureEvent = {
+                        event_uid: generateEventUID(),
+                        verb: 'sync_error',
+                        op: 'post_failed',
+                        published: new Date().toISOString(),
+                        actor_id: getActorId(),
+                        object_type: 'sync_failure',
+                        object_id: event.event_uid, // Reference to the failed event
+                        data: {
+                            failed_event: event,
+                            error_message: error.message,
+                            error_status: error.status || null,
+                            retry_count: 3 // We tried 3 times (initial + 2 retries)
                         },
-                        body: JSON.stringify(event)
-                    });
-
-                    if (!response.ok) {
-                        const errorText = await response.text();
-                        const error = new Error(`Failed to post event: ${response.status} - ${errorText}`);
-                        error.status = response.status;
-                        throw error;
-                    }
-
-                    const result = await response.json();
-                    console.log('Event posted successfully:', result);
-
-                    // Add to local events with full server response data
-                    const storedEvent = {
-                        ...event,
-                        id: result.id,
-                        created_at: result.created_at || new Date().toISOString()
+                        parents: [],
+                        context: this._buildContextEnvelope(galleryId)
                     };
-                    this.events.push(storedEvent);
-                    this.applyEvent(storedEvent);
 
-                    return result;
-                }, 2); // Max 2 retries for POST operations
+                    // Store sync failure locally (don't try to POST it - that would be circular)
+                    this.events.push(syncFailureEvent);
+                    console.error('Sync failure recorded:', syncFailureEvent);
+
+                    // Still apply the original event locally so user sees their change
+                    const localEvent = {
+                        ...event,
+                        id: null, // No server ID
+                        created_at: new Date().toISOString(),
+                        _unsynced: true // Mark as unsynced
+                    };
+                    this.events.push(localEvent);
+                    this.applyEvent(localEvent);
+
+                    // Re-throw so callers can handle (show toast, etc.)
+                    throw error;
+                }
             }
 
             // Reconstruct current state from event history
@@ -5993,7 +6082,10 @@
                         };
                         break;
                     case 'delete':
-                        delete this.state.rooms[object_id];
+                        // Soft delete: mark as deleted but keep the data (Rule 9: Revision Without Erasure)
+                        if (this.state.rooms[object_id]) {
+                            this.state.rooms[object_id].deleted_at = event.created_at || event.published;
+                        }
                         break;
                 }
             }
@@ -6029,19 +6121,36 @@
                         };
                         break;
                     case 'delete':
-                        delete this.state.catalogue[object_id];
+                        // Soft delete: mark as deleted but keep the data (Rule 9: Revision Without Erasure)
+                        if (this.state.catalogue[object_id]) {
+                            this.state.catalogue[object_id].deleted_at = event.created_at || event.published;
+                        }
                         break;
                 }
             }
 
-            // Get all catalogue items
+            // Get all catalogue items (excludes deleted items)
             getCatalogueItems() {
-                return Object.values(this.state.catalogue);
+                return Object.values(this.state.catalogue).filter(item => !item.deleted_at);
             }
 
-            // Get catalogue item by ID
+            // Get catalogue item by ID (returns null if deleted)
             getCatalogueItem(objectId) {
-                return this.state.catalogue[objectId] || null;
+                const item = this.state.catalogue[objectId];
+                if (!item || item.deleted_at) return null;
+                return item;
+            }
+
+            // Get all rooms (excludes deleted rooms)
+            getRooms() {
+                return Object.values(this.state.rooms).filter(room => !room.deleted_at);
+            }
+
+            // Get room by ID (returns null if deleted)
+            getRoom(objectId) {
+                const room = this.state.rooms[objectId];
+                if (!room || room.deleted_at) return null;
+                return room;
             }
 
             // Get all placed artworks
@@ -8312,11 +8421,17 @@
 
         // Load rooms from API and merge into ROOMS object
         function initRoomsFromAPI() {
-            const apiRooms = eventStore.state.rooms || {};
+            // Use getRooms() to filter out deleted rooms
+            const apiRooms = eventStore.getRooms ? eventStore.getRooms() : Object.values(eventStore.state.rooms || {});
             const loadedRoomIds = [];
 
-            Object.values(apiRooms).forEach(roomData => {
+            apiRooms.forEach(roomData => {
                 const roomId = roomData.id;
+
+                // Skip deleted rooms
+                if (roomData.deleted_at) {
+                    return;
+                }
 
                 // Skip if this room already exists (hardcoded or from localStorage)
                 if (ROOMS[roomId]) {
