@@ -4625,6 +4625,9 @@
             <div class="settings-row">
                 <button class="secondary" onclick="openEventHistory()" style="flex: 1;">Placement History</button>
             </div>
+            <div class="settings-row">
+                <button class="secondary" onclick="downloadFlattenedData()" style="flex: 1; font-family: monospace;">Download Flattened Data (all fields)</button>
+            </div>
         </div>
     </div>
 
@@ -7574,6 +7577,32 @@
             // Migrate catalogue to database on first load
             migrateCatalogueToDatabase();
         });
+
+        // Download flattened data as JSON with tuples
+        function downloadFlattenedData() {
+            // Create flattened data with tuples format for each item
+            const flattenedData = artCatalogue.map(item => {
+                // Convert each item to a tuples array containing all fields
+                const tuples = Object.entries(item).map(([key, value]) => [key, value]);
+                return {
+                    ...item,
+                    tuples: tuples
+                };
+            });
+
+            // Create and download JSON file
+            const jsonContent = JSON.stringify(flattenedData, null, 2);
+            const blob = new Blob([jsonContent], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `gallery-catalogue-${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
 
         // ============================================
         // END ART CATALOGUE SYSTEM
