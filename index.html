@@ -6349,11 +6349,10 @@
             }
         }
 
-        // Check if a catalogue item is placed in the current gallery
+        // Check if a catalogue item is placed anywhere in the gallery
         function isCatalogueItemPlaced(catalogueId) {
-            const activeGallery = getActiveGallery();
-            const galleryId = activeGallery?.id || null;
-            const placedArtworks = eventStore.getPlacedArtworks(galleryId);
+            // Check ALL placed artworks regardless of gallery to accurately show placement status
+            const placedArtworks = eventStore.getPlacedArtworks(null);
             return placedArtworks.some(artwork => artwork.catalogueId === catalogueId);
         }
 
@@ -6588,9 +6587,8 @@
         // Populate location dropdown with all available wall spaces
         function populateCatalogueLocations() {
             const locationSelect = document.getElementById('catalogue-location');
-            const activeGallery = getActiveGallery();
-            const galleryId = activeGallery?.id || null;
-            const placedArtworks = eventStore.getPlacedArtworks(galleryId);
+            // Check ALL placed artworks to accurately show which wall spots are occupied
+            const placedArtworks = eventStore.getPlacedArtworks(null);
             const occupiedLocations = new Set(placedArtworks.map(a => a.locationId));
 
             let options = [];
@@ -10490,17 +10488,15 @@
 
         async function loadArtworksFromEvents() {
             try {
-                const activeGallery = getActiveGallery();
-                const galleryFilterId = activeGallery?.id || null;
-
                 // Fetch all events and reconstruct state
                 await eventStore.fetchEvents();
 
                 // Sync catalogue from API data to ensure fresh data
                 syncCatalogueFromAPI();
 
-                // Get placed artworks from reconstructed state
-                const placedArtworks = eventStore.getPlacedArtworks(galleryFilterId);
+                // Get ALL placed artworks from reconstructed state (no gallery filter)
+                // This ensures all artwork from the catalogue is displayed regardless of which gallery it was uploaded to
+                const placedArtworks = eventStore.getPlacedArtworks(null);
                 console.log('Placed artworks from event store:', placedArtworks);
 
                 // Clear pending artworks and loaded artwork tracking for fresh load
