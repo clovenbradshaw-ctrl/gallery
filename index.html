@@ -6341,6 +6341,204 @@
             }
         }
 
+        // Shopify store configuration
+        const SHOPIFY_STORE_URL = 'https://morningcoffeeartist.myshopify.com';
+        const SHOPIFY_ARTIST_NAME = 'Morning Coffee Artist';
+
+        // Fetch products from Shopify store JSON API
+        async function fetchShopifyProducts() {
+            const allProducts = [];
+            let page = 1;
+            const limit = 250; // Shopify max per page
+
+            try {
+                while (true) {
+                    const url = `${SHOPIFY_STORE_URL}/products.json?limit=${limit}&page=${page}`;
+                    console.log(`Fetching Shopify products page ${page}...`);
+
+                    const response = await fetch(url, {
+                        method: 'GET',
+                        headers: {
+                            'Accept': 'application/json'
+                        }
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`Shopify API error: ${response.status}`);
+                    }
+
+                    const data = await response.json();
+
+                    if (!data.products || data.products.length === 0) {
+                        break;
+                    }
+
+                    // Transform Shopify products to catalogue format
+                    for (const product of data.products) {
+                        const imageUrl = product.images && product.images.length > 0
+                            ? product.images[0].src
+                            : '';
+
+                        const price = product.variants && product.variants.length > 0
+                            ? parseFloat(product.variants[0].price) || 0
+                            : 0;
+
+                        allProducts.push({
+                            title: product.title,
+                            product_url: `${SHOPIFY_STORE_URL}/products/${product.handle}`,
+                            image_url: imageUrl,
+                            price: price,
+                            currency: 'USD',
+                            artist: product.vendor || SHOPIFY_ARTIST_NAME,
+                            shopify_id: product.id,
+                            description: product.body_html ? product.body_html.replace(/<[^>]*>/g, '').substring(0, 500) : ''
+                        });
+                    }
+
+                    if (data.products.length < limit) {
+                        break;
+                    }
+
+                    page++;
+                    // Small delay to be nice to the server
+                    await new Promise(resolve => setTimeout(resolve, 200));
+                }
+
+                console.log(`Fetched ${allProducts.length} products from Shopify`);
+                return allProducts;
+
+            } catch (error) {
+                console.error('Failed to fetch Shopify products:', error);
+                return [];
+            }
+        }
+
+        // Sync catalogue with Shopify store
+        // This function fetches all products from Shopify and adds any missing items to the catalogue
+        let _shopifySyncRetryCount = 0;
+        const MAX_SHOPIFY_SYNC_RETRIES = 10;
+
+        async function syncShopifyCatalogue() {
+            // Wait for event store to be initialized before syncing
+            if (!eventStore || !eventStore.isInitialized()) {
+                _shopifySyncRetryCount++;
+                if (_shopifySyncRetryCount > MAX_SHOPIFY_SYNC_RETRIES) {
+                    console.warn('Shopify sync: Gave up waiting for event store initialization after', MAX_SHOPIFY_SYNC_RETRIES, 'attempts');
+                    return { added: 0, skipped: 0, error: 'Event store not initialized' };
+                }
+                console.log('Shopify sync: Waiting for event store to initialize... (attempt', _shopifySyncRetryCount, '/', MAX_SHOPIFY_SYNC_RETRIES, ')');
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                return syncShopifyCatalogue();
+            }
+
+            // Reset retry counter on successful initialization
+            _shopifySyncRetryCount = 0;
+
+            console.log('Starting Shopify catalogue sync...');
+
+            try {
+                // Fetch current products from Shopify
+                const shopifyProducts = await fetchShopifyProducts();
+
+                if (shopifyProducts.length === 0) {
+                    console.log('No products fetched from Shopify, skipping sync');
+                    return { added: 0, skipped: 0 };
+                }
+
+                // Get existing catalogue items from event store
+                const existingCatalogueItems = eventStore.getCatalogueItems();
+
+                // Build a set of existing product URLs for fast lookup (normalize URLs)
+                const existingProductUrls = new Set(
+                    existingCatalogueItems.map(item => {
+                        const url = item.product_url || item.productUrl || '';
+                        return url.toLowerCase().replace(/\/$/, ''); // Normalize: lowercase, remove trailing slash
+                    })
+                );
+
+                // Also check events directly for any catalogue items not yet in state
+                const existingEventUrls = new Set(
+                    eventStore.events
+                        .filter(e => e.object_type === 'catalogue_item' && e.verb === 'create')
+                        .map(e => {
+                            const data = typeof e.data === 'string' ? JSON.parse(e.data) : e.data;
+                            const url = data.product_url || data.productUrl || '';
+                            return url.toLowerCase().replace(/\/$/, '');
+                        })
+                );
+
+                // Merge both sets
+                existingEventUrls.forEach(url => existingProductUrls.add(url));
+
+                let addedCount = 0;
+                let skippedCount = 0;
+
+                // Check each Shopify product
+                for (const product of shopifyProducts) {
+                    const normalizedUrl = product.product_url.toLowerCase().replace(/\/$/, '');
+
+                    if (existingProductUrls.has(normalizedUrl)) {
+                        skippedCount++;
+                        continue;
+                    }
+
+                    // Generate a unique ID for the new catalogue item
+                    const catalogueId = generateObjectId('cat');
+
+                    // Create the event to add this product to the catalogue
+                    const eventData = {
+                        verb: 'create',
+                        op: 'catalogue_sync',
+                        object_type: 'catalogue_item',
+                        object_id: catalogueId,
+                        frame: '',
+                        scale: '',
+                        data: {
+                            title: product.title,
+                            artist: product.artist,
+                            imageUrl: product.image_url,
+                            productUrl: product.product_url,
+                            price: product.price,
+                            currency: product.currency,
+                            description: product.description || '',
+                            shopifyId: product.shopify_id,
+                            syncedAt: new Date().toISOString()
+                        }
+                    };
+
+                    console.log(`Adding new catalogue item from Shopify: ${product.title}`);
+
+                    try {
+                        await eventStore.postEvent(eventData);
+                        addedCount++;
+                        // Add to our tracking set to prevent duplicates in same sync
+                        existingProductUrls.add(normalizedUrl);
+                    } catch (error) {
+                        console.error(`Failed to add catalogue item ${product.title}:`, error);
+                    }
+
+                    // Small delay between posts to avoid overwhelming the API
+                    if (addedCount % 5 === 0) {
+                        await new Promise(resolve => setTimeout(resolve, 100));
+                    }
+                }
+
+                console.log(`Shopify sync complete: ${addedCount} added, ${skippedCount} already existed`);
+
+                // Refresh the local catalogue from API if we added items
+                if (addedCount > 0) {
+                    syncCatalogueFromAPI();
+                    updateCatalogueCount();
+                }
+
+                return { added: addedCount, skipped: skippedCount };
+
+            } catch (error) {
+                console.error('Shopify catalogue sync failed:', error);
+                return { added: 0, skipped: 0, error: error.message };
+            }
+        }
+
         // Update catalogue count display
         function updateCatalogueCount() {
             const countEl = document.getElementById('catalogue-count');
@@ -10368,6 +10566,16 @@
             document.getElementById('admin-section').style.display = 'block';
             document.getElementById('public-section').style.display = 'none';
             loadArtworksFromAirtable();
+
+            // Sync catalogue with Shopify store in the background
+            // This ensures the catalogue stays in sync with the shop inventory
+            syncShopifyCatalogue().then(result => {
+                if (result.added > 0) {
+                    console.log(`Shopify sync: Added ${result.added} new items to catalogue`);
+                }
+            }).catch(error => {
+                console.error('Background Shopify sync failed:', error);
+            });
         }
 
         function restoreAdminState() {
