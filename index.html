@@ -6344,64 +6344,54 @@
         // Shopify store configuration
         const SHOPIFY_STORE_URL = 'https://morningcoffeeartist.myshopify.com';
         const SHOPIFY_ARTIST_NAME = 'Morning Coffee Artist';
+        // CORS proxy for fetching Shopify pages from browser
+        const CORS_PROXY_URL = 'https://api.allorigins.win/raw?url=';
 
-        // Fetch products from Shopify store JSON API
+        // Fetch products from Shopify store by scraping collection page
         async function fetchShopifyProducts() {
             const allProducts = [];
             let page = 1;
-            const limit = 250; // Shopify max per page
+            const maxPages = 10; // Safety limit
 
             try {
-                while (true) {
-                    const url = `${SHOPIFY_STORE_URL}/products.json?limit=${limit}&page=${page}`;
-                    console.log(`Fetching Shopify products page ${page}...`);
+                while (page <= maxPages) {
+                    const collectionUrl = `${SHOPIFY_STORE_URL}/collections/all?page=${page}`;
+                    const proxyUrl = `${CORS_PROXY_URL}${encodeURIComponent(collectionUrl)}`;
+                    console.log(`Fetching Shopify collection page ${page}...`);
 
-                    const response = await fetch(url, {
+                    const response = await fetch(proxyUrl, {
                         method: 'GET',
                         headers: {
-                            'Accept': 'application/json'
+                            'Accept': 'text/html'
                         }
                     });
 
                     if (!response.ok) {
-                        throw new Error(`Shopify API error: ${response.status}`);
+                        throw new Error(`Shopify fetch error: ${response.status}`);
                     }
 
-                    const data = await response.json();
+                    const html = await response.text();
 
-                    if (!data.products || data.products.length === 0) {
+                    // Parse products from HTML
+                    const products = parseShopifyCollectionHTML(html);
+
+                    if (products.length === 0) {
+                        console.log(`No products found on page ${page}, stopping.`);
                         break;
                     }
 
-                    // Transform Shopify products to catalogue format
-                    for (const product of data.products) {
-                        const imageUrl = product.images && product.images.length > 0
-                            ? product.images[0].src
-                            : '';
+                    allProducts.push(...products);
+                    console.log(`  Found ${products.length} products on page ${page}`);
 
-                        const price = product.variants && product.variants.length > 0
-                            ? parseFloat(product.variants[0].price) || 0
-                            : 0;
-
-                        allProducts.push({
-                            title: product.title,
-                            product_url: `${SHOPIFY_STORE_URL}/products/${product.handle}`,
-                            image_url: imageUrl,
-                            price: price,
-                            currency: 'USD',
-                            artist: product.vendor || SHOPIFY_ARTIST_NAME,
-                            shopify_id: product.id,
-                            description: product.body_html ? product.body_html.replace(/<[^>]*>/g, '').substring(0, 500) : ''
-                        });
-                    }
-
-                    if (data.products.length < limit) {
+                    // Check if there's a next page
+                    if (!html.includes(`page=${page + 1}`)) {
+                        console.log(`No more pages after ${page}.`);
                         break;
                     }
 
                     page++;
                     // Small delay to be nice to the server
-                    await new Promise(resolve => setTimeout(resolve, 200));
+                    await new Promise(resolve => setTimeout(resolve, 500));
                 }
 
                 console.log(`Fetched ${allProducts.length} products from Shopify`);
@@ -6411,6 +6401,63 @@
                 console.error('Failed to fetch Shopify products:', error);
                 return [];
             }
+        }
+
+        // Parse product info from Shopify collection page HTML
+        function parseShopifyCollectionHTML(html) {
+            const products = [];
+
+            // Pattern to match product image URLs
+            // Format: ![Title](//morningcoffeeartist.myshopify.com/cdn/shop/files/filename.jpg
+            const imagePattern = /!\[([^\]]*)\]\((\/\/morningcoffeeartist\.myshopify\.com\/cdn\/shop\/files\/[^?\)]+)/g;
+
+            // Pattern to match product links
+            // Format: ### [Title](/products/slug)
+            const linkPattern = /### \[([^\]]+)\]\((\/products\/[^\)]+)\)/g;
+
+            // Extract all images
+            const images = [];
+            let imageMatch;
+            while ((imageMatch = imagePattern.exec(html)) !== null) {
+                images.push({
+                    alt: imageMatch[1],
+                    url: 'https:' + imageMatch[2]
+                });
+            }
+
+            // Extract all product links (remove duplicates)
+            const links = [];
+            const seenSlugs = new Set();
+            let linkMatch;
+            while ((linkMatch = linkPattern.exec(html)) !== null) {
+                const slug = linkMatch[2];
+                if (!seenSlugs.has(slug)) {
+                    seenSlugs.add(slug);
+                    links.push({
+                        title: linkMatch[1],
+                        slug: slug
+                    });
+                }
+            }
+
+            // Match images to products (they appear in same order)
+            for (let i = 0; i < links.length; i++) {
+                const link = links[i];
+                const image = images[i] || { url: '' };
+
+                products.push({
+                    title: link.title,
+                    product_url: SHOPIFY_STORE_URL + link.slug,
+                    image_url: image.url,
+                    price: 0, // Price not available from collection page
+                    currency: 'USD',
+                    artist: SHOPIFY_ARTIST_NAME,
+                    shopify_id: null,
+                    description: ''
+                });
+            }
+
+            return products;
         }
 
         // Sync catalogue with Shopify store
