@@ -9963,15 +9963,11 @@
             }
 
             centerCameraInRoom(roomConfig) {
-                // Add subtle random variation to camera position for each transition
-                // This gives the feeling that things have changed when entering a room
-                const positionVariation = (Math.random() - 0.5) * 1.5; // -0.75 to +0.75 meters sideways
-                const depthVariation = (Math.random() - 0.5) * 0.8; // -0.4 to +0.4 meters depth
-
-                // Position camera near the front of the room with slight variation
-                const startZ = roomConfig.position.z + roomConfig.dimensions.depth / 2 - 2 + depthVariation;
+                // Position camera near the front of the room (deterministic positioning
+                // for accurate raycasting and consistent image placement)
+                const startZ = roomConfig.position.z + roomConfig.dimensions.depth / 2 - 2;
                 camera.position.set(
-                    roomConfig.position.x + positionVariation,
+                    roomConfig.position.x,
                     DEFAULT_EYE_LEVEL_METERS,
                     startZ
                 );
@@ -9987,12 +9983,9 @@
                     roomCenter.z - camera.position.z
                 );
 
-                // Add subtle rotation offset (3-8 degrees in either direction)
-                const rotationVariation = (Math.random() - 0.5) * 0.14; // ~4 degrees in radians
-
-                // Set camera rotation to face the room center with slight variation
+                // Set camera rotation to face the room center
                 camera.rotation.set(0, 0, 0);
-                camera.rotation.y = Math.atan2(-directionToCenter.x, -directionToCenter.y) + rotationVariation;
+                camera.rotation.y = Math.atan2(-directionToCenter.x, -directionToCenter.y);
             }
 
             createRoomGroup(roomConfig) {
