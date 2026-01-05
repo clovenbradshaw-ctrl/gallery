@@ -6045,8 +6045,9 @@
             }
 
             // Get all placed artworks
+            // Deduplicates by locationId - only the most recent artwork per location is returned
             getPlacedArtworks(galleryId = null) {
-                return Object.values(this.state.artworks).filter(artwork => {
+                const allPlaced = Object.values(this.state.artworks).filter(artwork => {
                     if (!artwork.placed) return false;
                     // Filter by galleryId - artworks must match the specified gallery
                     // If no galleryId filter is provided, return all placed artworks
@@ -6055,6 +6056,29 @@
                     if (galleryId && !artwork.galleryId) return false;
                     return true;
                 });
+
+                // Deduplicate by locationId - keep only the most recent artwork per location
+                const byLocation = new Map();
+                for (const artwork of allPlaced) {
+                    const locationKey = artwork.locationId || artwork.location;
+                    if (!locationKey) continue;
+
+                    const existing = byLocation.get(locationKey);
+                    if (!existing) {
+                        byLocation.set(locationKey, artwork);
+                    } else {
+                        // Compare timestamps - keep the more recent one
+                        const existingTime = existing.created_at || 0;
+                        const newTime = artwork.created_at || 0;
+                        if (newTime > existingTime) {
+                            byLocation.set(locationKey, artwork);
+                        }
+                    }
+                }
+
+                // Also include artworks without a location (shouldn't happen, but be safe)
+                const withoutLocation = allPlaced.filter(a => !(a.locationId || a.location));
+                return [...byLocation.values(), ...withoutLocation];
             }
 
             // Get artworks placed on walls only (not floors)
