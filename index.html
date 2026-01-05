@@ -4688,15 +4688,19 @@
         </div>
 
         <div class="section-divider">
-            <label>Gallery:</label>
-            <select id="placement-room-filter" onchange="filterPlacementLocations()">
+            <label>Room:</label>
+            <select id="placement-room-select" onchange="updateSpaceDropdown()">
             </select>
         </div>
 
         <div class="section-divider">
-            <label>Select Location:</label>
-            <div id="location-grid" class="location-grid"></div>
+            <label>Space:</label>
+            <select id="placement-space-select" onchange="onSpaceSelected()">
+            </select>
         </div>
+
+        <!-- Hidden grid for legacy compatibility -->
+        <div id="location-grid" class="location-grid" style="display: none;"></div>
         
         <div class="section-divider">
             <label id="dimension-label">Height (inches):</label>
@@ -12669,8 +12673,79 @@
         }
 
         function filterPlacementLocations() {
-            const selectedRoomId = document.getElementById('placement-room-filter').value;
-            setupLocationGrid(currentPendingArt?.type || 'image', selectedRoomId);
+            // Legacy function - kept for compatibility
+            updateSpaceDropdown();
+        }
+
+        // Populate the Room dropdown
+        function setupRoomDropdown() {
+            const roomSelect = document.getElementById('placement-room-select');
+            if (!roomSelect) return;
+
+            const currentRoomId = roomManager?.currentRoom || Object.values(ROOMS)[0]?.id || '';
+
+            roomSelect.innerHTML = Object.values(ROOMS).map(room =>
+                `<option value="${room.id}"${room.id === currentRoomId ? ' selected' : ''}>${room.name}</option>`
+            ).join('');
+
+            updateSpaceDropdown();
+        }
+
+        // Update the Space dropdown based on selected room
+        function updateSpaceDropdown() {
+            const roomSelect = document.getElementById('placement-room-select');
+            const spaceSelect = document.getElementById('placement-space-select');
+            if (!roomSelect || !spaceSelect) return;
+
+            const selectedRoomId = roomSelect.value;
+
+            // Get spots for the selected room
+            let spots = wallSpots;
+            if (selectedRoomId && roomManager && roomManager.roomSpots.has(selectedRoomId)) {
+                const roomSpots = roomManager.roomSpots.get(selectedRoomId);
+                spots = roomSpots?.wallSpots || wallSpots;
+            }
+
+            // Build space options sorted by space number
+            const spaceOptions = spots.map(spotMesh => {
+                const pos = spotMesh.userData;
+                const isOccupied = spotMesh.userData.occupied;
+                const spaceName = pos.displayName || pos.baseId || pos.id.split(':')[1] || pos.id;
+                return {
+                    id: pos.id,
+                    name: spaceName,
+                    occupied: isOccupied
+                };
+            }).sort((a, b) => {
+                // Sort by space number
+                const numA = parseInt(a.name.replace(/\D/g, '')) || 0;
+                const numB = parseInt(b.name.replace(/\D/g, '')) || 0;
+                return numA - numB;
+            });
+
+            spaceSelect.innerHTML = spaceOptions.map(space =>
+                `<option value="${space.id}"${space.occupied ? ' disabled' : ''}>${space.name}${space.occupied ? ' (Occupied)' : ''}</option>`
+            ).join('');
+
+            // Select first available space
+            const firstAvailable = spaceOptions.find(s => !s.occupied);
+            if (firstAvailable) {
+                spaceSelect.value = firstAvailable.id;
+                selectedLocation = firstAvailable.id;
+            } else {
+                selectedLocation = null;
+            }
+
+            updateSizePreview();
+        }
+
+        // Handle space selection
+        function onSpaceSelected() {
+            const spaceSelect = document.getElementById('placement-space-select');
+            if (!spaceSelect) return;
+
+            selectedLocation = spaceSelect.value;
+            updateSizePreview();
         }
 
         function setupLocationGrid(type, filterRoomId = null) {
@@ -12767,23 +12842,26 @@
             document.getElementById('artist-input').value = '';
             document.getElementById('description-input').value = '';
 
-            // Populate room filter dropdown, defaulting to current room
-            const roomFilter = document.getElementById('placement-room-filter');
-            const currentRoomId = roomManager?.currentRoom || Object.values(ROOMS)[0]?.id || '';
-            roomFilter.innerHTML = Object.values(ROOMS).map(room =>
-                `<option value="${room.id}"${room.id === currentRoomId ? ' selected' : ''}>${room.name}</option>`
-            ).join('');
-
-            // Default to showing only current room's spots
-            setupLocationGrid(type, currentRoomId || null);
+            // Populate room and space dropdowns
+            setupRoomDropdown();
 
             // Pre-select location if coming from place assign dialog
             if (window.pendingUploadLocation) {
                 const locationId = window.pendingUploadLocation.locationId;
+                const roomId = window.pendingUploadLocation.roomId;
                 setTimeout(() => {
-                    const locationOption = document.querySelector(`.location-option[data-id="${locationId}"]`);
-                    if (locationOption && !locationOption.classList.contains('occupied')) {
-                        locationOption.click();
+                    // Select the room first
+                    const roomSelect = document.getElementById('placement-room-select');
+                    if (roomSelect && roomId) {
+                        roomSelect.value = roomId;
+                        updateSpaceDropdown();
+                    }
+                    // Then select the space
+                    const spaceSelect = document.getElementById('placement-space-select');
+                    if (spaceSelect && locationId) {
+                        spaceSelect.value = locationId;
+                        selectedLocation = locationId;
+                        updateSizePreview();
                     }
                 }, 50);
                 window.pendingUploadLocation = null;
