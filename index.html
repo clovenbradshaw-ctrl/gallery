@@ -6082,11 +6082,37 @@
 
             // Count unique filled spaces for a gallery
             // This counts how many distinct wall spaces have something placed in them
+            // Each gallery can only use ONE room (12 spots max), so we count the primary room only
             getFilledSpaceCount(galleryId = null) {
                 const placedArtworks = this.getWallArtworks(galleryId);
-                const filledSpaces = new Set();
 
+                // Group artworks by roomId
+                const artworksByRoom = {};
                 placedArtworks.forEach(artwork => {
+                    const roomId = artwork.roomId;
+                    if (!roomId) return;
+                    if (!artworksByRoom[roomId]) {
+                        artworksByRoom[roomId] = [];
+                    }
+                    artworksByRoom[roomId].push(artwork);
+                });
+
+                // Find the primary room (the one with the most artwork)
+                let primaryRoom = null;
+                let maxCount = 0;
+                for (const roomId in artworksByRoom) {
+                    if (artworksByRoom[roomId].length > maxCount) {
+                        maxCount = artworksByRoom[roomId].length;
+                        primaryRoom = roomId;
+                    }
+                }
+
+                // If no primary room found, return 0
+                if (!primaryRoom) return 0;
+
+                // Count unique filled spaces only in the primary room
+                const filledSpaces = new Set();
+                artworksByRoom[primaryRoom].forEach(artwork => {
                     // Get the space identifier (could be spaceId, locationId, or location)
                     const spaceKey = artwork.spaceId || artwork.locationId || artwork.location;
                     if (spaceKey) {
