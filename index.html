@@ -11442,10 +11442,18 @@
                     productUrl: artworkData.productUrl || artworkData.product_url || '',
                     price: typeof artworkData.price === 'number' ? artworkData.price : (artworkData.price || undefined),
                     currency: artworkData.currency || 'USD',
-                    // Display-only crop data (stored as percentages 0-1)
+                    // Display-only crop data (stored as percentages 0-1, NOT the cropped image)
                     cropData: artworkData.cropData || null
                 }
             };
+
+            // Log crop data if present in new artwork
+            if (artworkData.cropData) {
+                console.log('New artwork includes crop rules:', {
+                    cropData: artworkData.cropData,
+                    note: 'Crop rules saved as percentages (0-1), not the actual cropped image'
+                });
+            }
 
             console.log('Posting create event:', eventData);
 
@@ -11520,15 +11528,29 @@
             if (artworkData.aspectRatio !== undefined) updateData.aspectRatio = artworkData.aspectRatio;
             if (artworkData.cropData !== undefined) updateData.cropData = artworkData.cropData;
 
+            // Determine operation type - use 'artwork_crop' when crop data is being updated
+            const hasCropChange = artworkData.cropData !== undefined;
+            const operationType = hasCropChange ? 'artwork_crop' : 'artwork_edit';
+
             const eventData = {
                 verb: 'update',
-                op: 'artwork_edit',
+                op: operationType,
                 frame: artworkData.frame || '',
                 scale: artworkData.scale || '',
                 object_type: 'artwork',
                 object_id: objectId,
                 data: updateData
             };
+
+            // Log crop operations explicitly
+            if (hasCropChange) {
+                console.log('Recording crop activity to activity stream:', {
+                    op: 'artwork_crop',
+                    artworkId: objectId,
+                    cropData: updateData.cropData,
+                    aspectRatio: updateData.aspectRatio
+                });
+            }
 
             console.log('Posting update event:', eventData);
 
@@ -14499,15 +14521,20 @@
                     currency: newMetadata.currency
                 };
 
-                // Include crop data if applied
+                // Include crop data if applied (saves crop RULES, not the cropped image)
                 if (cropDataToSave) {
                     updateData.cropData = cropDataToSave;
                     updateData.aspectRatio = cropAspectRatio;
+                    console.log('Recording crop activity with rules:', {
+                        cropData: cropDataToSave,
+                        aspectRatio: cropAspectRatio,
+                        note: 'Crop rules saved as percentages (0-1), not the actual cropped image'
+                    });
                 }
 
                 updateArtworkEvent(updateData).then(() => {
                     lastArtworkEditHash = editHash;
-                    console.log('Artwork edit synced to XANO');
+                    console.log('Artwork edit synced to XANO', cropDataToSave ? '(includes crop data)' : '');
                 }).catch(error => {
                     console.error('Failed to sync artwork edit to XANO:', error);
                     showToast('Sync Warning', 'Changes saved locally but failed to save online. Others may not see your changes until you retry.', 'warning', 8000);
