@@ -5413,6 +5413,57 @@
                 // Track initialization state
                 this._initialized = false;
                 this._lastFetchTime = 0;
+
+                // Performance optimization: Index for O(1) event lookups
+                this._eventIndex = new Map(); // key: "object_id|op|object_type|verb" -> event
+                this._eventsByObjectId = new Map(); // object_id -> [events]
+
+                // Query result cache with invalidation
+                this._queryCache = new Map();
+                this._queryCacheVersion = 0;
+            }
+
+            // Invalidate query cache (called when state changes)
+            _invalidateQueryCache() {
+                this._queryCacheVersion++;
+                this._queryCache.clear();
+            }
+
+            // Get cached query result or compute it
+            _getCachedQuery(cacheKey, computeFn) {
+                const fullKey = `${cacheKey}_v${this._queryCacheVersion}`;
+                if (this._queryCache.has(fullKey)) {
+                    return this._queryCache.get(fullKey);
+                }
+                const result = computeFn();
+                this._queryCache.set(fullKey, result);
+                return result;
+            }
+
+            // Add event to index (for O(1) lookups)
+            _indexEvent(event) {
+                if (!event.object_id) return;
+
+                // Index by composite key for duplicate detection
+                const key = `${event.object_id}|${event.op}|${event.object_type}|${event.verb}`;
+                if (!this._eventIndex.has(key)) {
+                    this._eventIndex.set(key, event);
+                }
+
+                // Index by object_id for fast lookups
+                if (!this._eventsByObjectId.has(event.object_id)) {
+                    this._eventsByObjectId.set(event.object_id, []);
+                }
+                this._eventsByObjectId.get(event.object_id).push(event);
+            }
+
+            // Rebuild event indexes
+            _rebuildIndexes() {
+                this._eventIndex.clear();
+                this._eventsByObjectId.clear();
+                for (const event of this.events) {
+                    this._indexEvent(event);
+                }
             }
 
             // Retry helper with exponential backoff
@@ -5693,31 +5744,40 @@
                 return this._initialized;
             }
 
-            // Check if an event already exists (for deduplication) - enhanced version
+            // Check if an event already exists (for deduplication) - O(1) optimized version
             eventExists(objectId, op, objectType, verb = 'create') {
-                return this.events.some(e =>
-                    e.object_id === objectId &&
-                    e.op === op &&
-                    e.object_type === objectType &&
-                    e.verb === verb
-                );
+                // Use index for O(1) lookup instead of O(n) search
+                const key = `${objectId}|${op}|${objectType}|${verb}`;
+                return this._eventIndex.has(key);
             }
 
             // Check for recent duplicate (within last few seconds) to prevent double-clicks
+            // Optimized: only checks events for the same object_id using index
             _isRecentDuplicate(eventData) {
                 const now = Date.now();
                 const recentThreshold = 5000; // 5 seconds
 
-                return this.events.some(e => {
-                    if (e.object_id !== eventData.object_id) return false;
-                    if (e.op !== eventData.op) return false;
-                    if (e.object_type !== eventData.object_type) return false;
-                    if (e.verb !== eventData.verb) return false;
+                // Use object_id index for faster lookup - only check relevant events
+                const objectEvents = this._eventsByObjectId.get(eventData.object_id);
+                if (!objectEvents || objectEvents.length === 0) {
+                    return false;
+                }
+
+                // Check only the last few events for this object (most recent first)
+                // This is O(k) where k is the number of events for this object, not O(n)
+                for (let i = objectEvents.length - 1; i >= 0 && i >= objectEvents.length - 10; i--) {
+                    const e = objectEvents[i];
+                    if (e.op !== eventData.op) continue;
+                    if (e.object_type !== eventData.object_type) continue;
+                    if (e.verb !== eventData.verb) continue;
 
                     // Check if event was created recently
                     const eventTime = new Date(e.created_at || e.published).getTime();
-                    return (now - eventTime) < recentThreshold;
-                });
+                    if ((now - eventTime) < recentThreshold) {
+                        return true;
+                    }
+                }
+                return false;
             }
 
             // Post a new event to Xano with retry logic
@@ -5784,7 +5844,9 @@
                         created_at: result.created_at || new Date().toISOString()
                     };
                     this.events.push(storedEvent);
+                    this._indexEvent(storedEvent); // Add to index for O(1) lookups
                     this.applyEvent(storedEvent);
+                    this._invalidateQueryCache(); // Invalidate cache since state changed
 
                     return result;
                 }, 2); // Max 2 retries for POST operations
@@ -5799,6 +5861,9 @@
                     galleries: {},
                     catalogue: {}
                 };
+
+                // Rebuild indexes for optimized lookups
+                this._rebuildIndexes();
 
                 // Sort events by created_at/published timestamp
                 // Handle both numeric timestamps and ISO date strings
@@ -5817,6 +5882,9 @@
                 for (const event of sortedEvents) {
                     this.applyEvent(event);
                 }
+
+                // Invalidate query cache since state changed
+                this._invalidateQueryCache();
 
                 console.log('State reconstructed:', {
                     artworks: Object.keys(this.state.artworks).length,
@@ -6044,57 +6112,69 @@
                 return this.state.catalogue[objectId] || null;
             }
 
-            // Get all placed artworks
+            // Get all placed artworks (cached for performance)
             getPlacedArtworks(galleryId = null) {
-                return Object.values(this.state.artworks).filter(artwork => {
-                    if (!artwork.placed) return false;
-                    // Filter by galleryId - artworks must match the specified gallery
-                    // If no galleryId filter is provided, return all placed artworks
-                    if (galleryId && artwork.galleryId && artwork.galleryId !== galleryId) return false;
-                    // If galleryId filter is provided but artwork has no galleryId, exclude it
-                    if (galleryId && !artwork.galleryId) return false;
-                    return true;
+                const cacheKey = `placed_${galleryId || 'all'}`;
+                return this._getCachedQuery(cacheKey, () => {
+                    return Object.values(this.state.artworks).filter(artwork => {
+                        if (!artwork.placed) return false;
+                        // Filter by galleryId - artworks must match the specified gallery
+                        // If no galleryId filter is provided, return all placed artworks
+                        if (galleryId && artwork.galleryId && artwork.galleryId !== galleryId) return false;
+                        // If galleryId filter is provided but artwork has no galleryId, exclude it
+                        if (galleryId && !artwork.galleryId) return false;
+                        return true;
+                    });
                 });
             }
 
-            // Get artworks placed on walls only (not floors)
+            // Get artworks placed on walls only (not floors) (cached for performance)
             getWallArtworks(galleryId = null) {
-                return this.getPlacedArtworks(galleryId).filter(artwork => {
-                    // Support both locationId (from API) and location field names
-                    const location = artwork.locationId || artwork.location;
-                    if (!location || !artwork.roomId) return false;
-                    const room = ROOMS[artwork.roomId];
-                    if (!room) return false;
-                    // Check if the location is a wall spot
-                    return room.walls.some(w => w.id === location);
+                const cacheKey = `wall_${galleryId || 'all'}`;
+                return this._getCachedQuery(cacheKey, () => {
+                    return this.getPlacedArtworks(galleryId).filter(artwork => {
+                        // Support both locationId (from API) and location field names
+                        const location = artwork.locationId || artwork.location;
+                        if (!location || !artwork.roomId) return false;
+                        const room = ROOMS[artwork.roomId];
+                        if (!room) return false;
+                        // Check if the location is a wall spot
+                        return room.walls.some(w => w.id === location);
+                    });
                 });
             }
 
             // Get artworks that can actually be displayed (have imageUrl and valid wall location)
-            // This reflects what is ACTUALLY visible in the room - validated wall spots with images
+            // This reflects what is ACTUALLY visible in the room - validated wall spots with images (cached)
             getDisplayableArtworks(galleryId = null) {
-                return this.getWallArtworks(galleryId).filter(artwork => {
-                    // Must have an image URL to display
-                    if (!artwork.imageUrl) return false;
-                    return true;
+                const cacheKey = `displayable_${galleryId || 'all'}`;
+                return this._getCachedQuery(cacheKey, () => {
+                    return this.getWallArtworks(galleryId).filter(artwork => {
+                        // Must have an image URL to display
+                        if (!artwork.imageUrl) return false;
+                        return true;
+                    });
                 });
             }
 
-            // Count unique filled spaces for a gallery
+            // Count unique filled spaces for a gallery (cached for performance)
             // This counts how many distinct wall spaces have something placed in them
             getFilledSpaceCount(galleryId = null) {
-                const placedArtworks = this.getPlacedArtworks(galleryId);
-                const filledSpaces = new Set();
+                const cacheKey = `filledCount_${galleryId || 'all'}`;
+                return this._getCachedQuery(cacheKey, () => {
+                    const placedArtworks = this.getPlacedArtworks(galleryId);
+                    const filledSpaces = new Set();
 
-                placedArtworks.forEach(artwork => {
-                    // Get the space identifier (could be spaceId, locationId, or location)
-                    const spaceKey = artwork.spaceId || artwork.locationId || artwork.location;
-                    if (spaceKey) {
-                        filledSpaces.add(spaceKey);
-                    }
+                    placedArtworks.forEach(artwork => {
+                        // Get the space identifier (could be spaceId, locationId, or location)
+                        const spaceKey = artwork.spaceId || artwork.locationId || artwork.location;
+                        if (spaceKey) {
+                            filledSpaces.add(spaceKey);
+                        }
+                    });
+
+                    return filledSpaces.size;
                 });
-
-                return filledSpaces.size;
             }
 
             // Get artwork by ID
