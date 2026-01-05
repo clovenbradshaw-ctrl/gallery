@@ -7016,7 +7016,7 @@
 
             listEl.innerHTML = placements.map(placement => {
                 const roomName = ROOM_ID_TO_NAME_MAP[placement.roomId] || placement.roomId || 'Unknown Gallery';
-                const locationName = placement.locationName || LOCATION_ID_TO_NAME_MAP[placement.locationId] || placement.locationId || 'Unknown Location';
+                const locationName = LOCATION_ID_TO_NAME_MAP[placement.locationId] || placement.locationName || placement.locationId || 'Unknown Location';
 
                 // Format date
                 let dateStr = '';
@@ -10903,7 +10903,7 @@
                         spaceId: artwork.spaceId || null,
                         roomGuid: artwork.roomGuid || null,
                         locationId: parsedLocation.locationId,
-                        locationName: artwork.locationName || '',
+                        locationName: LOCATION_ID_TO_NAME_MAP[parsedLocation.locationId] || artwork.locationName || '',
                         // E-commerce fields from API
                         productUrl: artwork.productUrl || '',
                         price: artwork.price,
