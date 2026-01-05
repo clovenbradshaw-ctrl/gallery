@@ -4815,11 +4815,11 @@
         <div class="gallery-map-container">
             <button class="gallery-map-close" onclick="closeGalleryMap()">&times;</button>
             <h2>Gallery Map</h2>
-            <p class="gallery-map-subtitle">Select a gallery to visit</p>
+            <p class="gallery-map-subtitle">Select a room to visit</p>
             <div id="gallery-map-grid"></div>
             <div class="gallery-map-legend">
-                <span class="legend-item"><span class="legend-dot current"></span> Current Gallery</span>
-                <span class="legend-item"><span class="legend-dot"></span> Other Galleries</span>
+                <span class="legend-item"><span class="legend-dot current"></span> Current Room</span>
+                <span class="legend-item"><span class="legend-dot"></span> Other Rooms</span>
             </div>
             <div id="gallery-map-admin-section" class="gallery-map-admin-section" style="display: none;">
                 <div class="gallery-order-section" id="gallery-order-section">
@@ -6114,6 +6114,32 @@
                 const filledSpaces = new Set();
                 artworksByRoom[primaryRoom].forEach(artwork => {
                     // Get the space identifier (could be spaceId, locationId, or location)
+                    const spaceKey = artwork.spaceId || artwork.locationId || artwork.location;
+                    if (spaceKey) {
+                        filledSpaces.add(spaceKey);
+                    }
+                });
+
+                return filledSpaces.size;
+            }
+
+            // Count unique filled spaces for a specific room
+            // This counts how many distinct wall spaces have artwork in a room (max 12)
+            getFilledSpaceCountByRoom(roomId) {
+                if (!roomId || !ROOMS[roomId]) return 0;
+
+                // Get all wall artworks and filter to this room
+                const allArtworks = this.getPlacedArtworks().filter(artwork => {
+                    const location = artwork.locationId || artwork.location;
+                    if (!location || artwork.roomId !== roomId) return false;
+                    const room = ROOMS[roomId];
+                    if (!room) return false;
+                    return room.walls.some(w => w.id === location);
+                });
+
+                // Count unique filled spaces
+                const filledSpaces = new Set();
+                allArtworks.forEach(artwork => {
                     const spaceKey = artwork.spaceId || artwork.locationId || artwork.location;
                     if (spaceKey) {
                         filledSpaces.add(spaceKey);
@@ -9055,38 +9081,31 @@
             const grid = document.getElementById('gallery-map-grid');
             if (!overlay || !grid) return;
 
-            // Sort galleries by order before displaying
-            const sortedGalleries = [...galleries].sort((a, b) => {
-                const orderA = a.order !== undefined && a.order !== null ? a.order : Infinity;
-                const orderB = b.order !== undefined && b.order !== null ? b.order : Infinity;
-                return orderA - orderB;
-            });
+            // Get all rooms and display them
+            const roomList = Object.values(ROOMS);
 
-            // Populate the gallery grid
+            // Populate the room grid
             grid.innerHTML = '';
-            const activeGallery = getActiveGallery();
+            const currentRoomId = roomManager?.currentRoom || 'main-gallery';
 
-            sortedGalleries.forEach(gallery => {
+            roomList.forEach(room => {
                 const item = document.createElement('div');
                 item.className = 'gallery-map-item';
-                if (gallery.id === activeGallery?.id) {
+                if (room.id === currentRoomId) {
                     item.classList.add('current');
                 }
 
-                // Count unique filled spaces (how many wall spots have something in them)
-                const artworkCount = eventStore.getFilledSpaceCount(gallery.id);
+                // Count unique filled spaces in this room (max 12 spots per room)
+                const artworkCount = eventStore.getFilledSpaceCountByRoom(room.id);
                 const artworkText = artworkCount === 1 ? '1 piece' : `${artworkCount} pieces`;
 
-                // Show "(Deleted)" indicator for admins viewing deleted galleries
-                const displayName = gallery.deleted_at ? `${gallery.name} (Deleted)` : gallery.name;
-                const deletedClass = gallery.deleted_at ? ' deleted' : '';
                 item.innerHTML = `
-                    <div class="gallery-map-item-name${deletedClass}">${escapeHtml(displayName)}</div>
+                    <div class="gallery-map-item-name">${escapeHtml(room.name)}</div>
                     <div class="gallery-map-item-info">${artworkText}</div>
                 `;
 
                 item.onclick = () => {
-                    navigateToGallery(gallery.id);
+                    navigateToRoom(room.id);
                 };
 
                 grid.appendChild(item);
@@ -9094,13 +9113,10 @@
 
             overlay.classList.add('active');
 
-            // Show admin section if in admin mode
+            // Hide admin section - rooms are fixed, not user-reorderable
             const adminSection = document.getElementById('gallery-map-admin-section');
             if (adminSection) {
-                adminSection.style.display = isAdmin ? 'block' : 'none';
-                if (isAdmin) {
-                    renderGalleryOrderList(sortedGalleries);
-                }
+                adminSection.style.display = 'none';
             }
 
             // Close on escape key
@@ -9520,6 +9536,13 @@
         function navigateToGallery(galleryId) {
             closeGalleryMap();
             setActiveGallery(galleryId);
+        }
+
+        function navigateToRoom(roomId) {
+            closeGalleryMap();
+            if (roomManager && ROOMS[roomId]) {
+                roomManager.loadRoom(roomId, { centerCamera: true });
+            }
         }
 
         // ==========================================
