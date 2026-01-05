@@ -8436,6 +8436,7 @@
         let interactKeyPressed = false;
         let galleries = [];
         let activeGalleryId = null;
+        let galleryLoadGeneration = 0; // Incremented on each gallery switch to cancel stale loads
 
         function registerGalleryLight(light, category = 'general') {
             const entry = { light, baseIntensity: light.intensity, category };
@@ -8842,9 +8843,12 @@
             }
         }
 
-        function setActiveGallery(galleryId, options = {}) {
+        async function setActiveGallery(galleryId, options = {}) {
             const gallery = galleries.find(g => g.id === galleryId) || getActiveGallery();
             if (!gallery) return;
+
+            // Increment load generation to cancel any in-flight artwork loads from previous gallery
+            galleryLoadGeneration++;
 
             activeGalleryId = gallery.id;
             saveGalleryState();
@@ -8861,7 +8865,7 @@
             }
 
             if (!options.skipArtReload) {
-                loadArtworksFromAirtable();
+                await loadArtworksFromAirtable();
             }
 
             if (!options.fromURL) {
@@ -10236,7 +10240,8 @@
                         continue;
                     }
 
-                    await loadImageFromURL(entry.url, entry.locationId, entry.heightMeters, entry.metadata, artworkId, entry);
+                    // Pass the stored expectedGeneration to prevent stale loads
+                    await loadImageFromURL(entry.url, entry.locationId, entry.heightMeters, entry.metadata, artworkId, entry, entry.expectedGeneration);
                     this.loadedArtworkIds.add(artworkId);
                 }
 
@@ -10321,7 +10326,7 @@
                 console.log('[clearCurrentRoomArtworks] Scene cleared, artworks remaining:', artworks.length, 'pending queues cleared');
             }
 
-            async addArtwork(entry) {
+            async addArtwork(entry, expectedGeneration = null) {
                 if (!entry || !entry.roomId) {
                     console.warn('[addArtwork] Invalid entry - missing roomId:', entry);
                     return;
@@ -10345,7 +10350,7 @@
                     let spot = wallSpots.find(s => s.userData.id === entry.locationId);
                     if (spot) {
                         console.log('[addArtwork] Found wall spot, loading immediately:', entry.locationId);
-                        await loadImageFromURL(entry.url, entry.locationId, entry.heightMeters, entry.metadata, artworkId, entry);
+                        await loadImageFromURL(entry.url, entry.locationId, entry.heightMeters, entry.metadata, artworkId, entry, expectedGeneration);
                         this.loadedArtworkIds.add(artworkId);
                         return;
                     } else {
@@ -10358,6 +10363,8 @@
                 if (!this.pendingArtworks[entry.roomId]) {
                     this.pendingArtworks[entry.roomId] = [];
                 }
+                // Store the generation with the entry for when it's loaded from the queue
+                entry.expectedGeneration = expectedGeneration;
                 this.pendingArtworks[entry.roomId].push(entry);
                 console.log('[addArtwork] Added to pending queue for room:', entry.roomId);
             }
@@ -10747,12 +10754,21 @@
         }
 
         async function loadArtworksFromEvents() {
+            // Capture the current load generation to detect if gallery switched mid-load
+            const loadGeneration = galleryLoadGeneration;
+
             try {
                 const activeGallery = getActiveGallery();
                 const galleryFilterId = activeGallery?.id || null;
 
                 // Fetch all events and reconstruct state
                 await eventStore.fetchEvents();
+
+                // Check if gallery switched while fetching - abort if stale
+                if (loadGeneration !== galleryLoadGeneration) {
+                    console.log('[loadArtworksFromEvents] Gallery switched during fetch, aborting stale load');
+                    return;
+                }
 
                 // Sync catalogue from API data to ensure fresh data
                 syncCatalogueFromAPI();
@@ -10865,7 +10881,7 @@
                             // Include spaceId for GUID-based location tracking
                             spaceId: artwork.spaceId,
                             roomGuid: artwork.roomGuid
-                        })
+                        }, loadGeneration)
                     );
                 }
 
@@ -10931,15 +10947,15 @@
         // Alias for backward compatibility
         const loadArtworksFromAirtable = loadArtworksFromEvents;
         
-        async function loadImageFromURL(url, locationId, height, metadata, artworkId, artworkData = null) {
+        async function loadImageFromURL(url, locationId, height, metadata, artworkId, artworkData = null, expectedGeneration = null) {
             // Check if this is a video URL - delegate to video loader
             if (isVideoUrl(url)) {
-                return loadVideoFromURL(url, locationId, height, metadata, artworkId, artworkData);
+                return loadVideoFromURL(url, locationId, height, metadata, artworkId, artworkData, expectedGeneration);
             }
 
             // Check if this is a YouTube URL - delegate to YouTube loader
             if (isYouTubeUrl(url)) {
-                return loadYouTubeVideo(url, locationId, height, metadata, artworkId, artworkData);
+                return loadYouTubeVideo(url, locationId, height, metadata, artworkId, artworkData, expectedGeneration);
             }
 
             // Only wall spots are supported
@@ -10988,7 +11004,7 @@
                             const scaledHeight = height * ARTWORK_SCALE_FACTOR;
                             const scaledWidth = scaledHeight * aspectRatio;
                             createArtworkMesh(texture, metadata.title || 'Untitled', spot,
-                                { width: scaledWidth, height: scaledHeight }, metadata, url, artworkId, artworkData);
+                                { width: scaledWidth, height: scaledHeight }, metadata, url, artworkId, artworkData, expectedGeneration);
                         } catch (placementError) {
                             console.error('Failed to place artwork from URL:', placementError);
                         } finally {
@@ -11132,7 +11148,7 @@
         }
 
         // Load video and create VideoTexture for 3D display
-        async function loadVideoFromURL(url, locationId, height, metadata, artworkId, artworkData = null) {
+        async function loadVideoFromURL(url, locationId, height, metadata, artworkId, artworkData = null, expectedGeneration = null) {
             let spot = wallSpots.find(s => s.userData.id === locationId);
 
             if (!spot) {
@@ -11141,6 +11157,12 @@
             }
             if (spot.userData.occupied) {
                 console.warn(`[loadVideoFromURL] Spot "${locationId}" is already occupied`);
+                return;
+            }
+
+            // Check for stale gallery load before proceeding
+            if (expectedGeneration !== null && expectedGeneration !== galleryLoadGeneration) {
+                console.log('[loadVideoFromURL] Skipping stale video (gallery switched):', metadata?.title);
                 return;
             }
 
@@ -11189,7 +11211,7 @@
                                 isVideo: true,
                                 videoElement: video,
                                 aspectRatio: aspectRatio
-                            });
+                            }, expectedGeneration);
 
                         // Start playback
                         video.play().catch(err => console.log('Video autoplay prevented:', err));
@@ -11210,7 +11232,7 @@
         }
 
         // Load YouTube video - creates CSS3D iframe that autoplays muted on wall
-        async function loadYouTubeVideo(url, locationId, height, metadata, artworkId, artworkData = null) {
+        async function loadYouTubeVideo(url, locationId, height, metadata, artworkId, artworkData = null, expectedGeneration = null) {
             let spot = wallSpots.find(s => s.userData.id === locationId);
 
             if (!spot) {
@@ -11219,6 +11241,12 @@
             }
             if (spot.userData.occupied) {
                 console.warn(`[loadYouTubeVideo] Spot "${locationId}" is already occupied`);
+                return;
+            }
+
+            // Check for stale gallery load before proceeding
+            if (expectedGeneration !== null && expectedGeneration !== galleryLoadGeneration) {
+                console.log('[loadYouTubeVideo] Skipping stale YouTube video (gallery switched):', metadata?.title);
                 return;
             }
 
@@ -13701,10 +13729,16 @@
             }
         }
         
-        function createArtworkMesh(texture, name, spot, dimensions, metadata, imageUrl, artworkId = null, artworkData = null) {
+        function createArtworkMesh(texture, name, spot, dimensions, metadata, imageUrl, artworkId = null, artworkData = null, expectedGeneration = null) {
             // Prevent adding artworks during room transitions to avoid persistence bugs
             if (isRoomTransitioning) {
                 console.log('[createArtworkMesh] Blocked during room transition:', name);
+                return;
+            }
+
+            // Prevent adding artworks from stale gallery loads (race condition fix)
+            if (expectedGeneration !== null && expectedGeneration !== galleryLoadGeneration) {
+                console.log('[createArtworkMesh] Skipping stale artwork (gallery switched):', name);
                 return;
             }
 
