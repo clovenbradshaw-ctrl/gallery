@@ -12613,15 +12613,15 @@
             warning.textContent = '';
             sizePreview.textContent = '';
 
-            const spots = wallSpots;
+            // Use the filtered room's spots if a filter is specified, otherwise use current room's spots
+            let spots = wallSpots;
+            if (filterRoomId && roomManager && roomManager.roomSpots.has(filterRoomId)) {
+                const roomSpots = roomManager.roomSpots.get(filterRoomId);
+                spots = roomSpots?.wallSpots || wallSpots;
+            }
 
             spots.forEach(spotMesh => {
                 const pos = spotMesh.userData;
-
-                // Filter by room if specified
-                if (filterRoomId && pos.roomId !== filterRoomId) {
-                    return;
-                }
 
                 const locationOption = document.createElement('div');
                 locationOption.className = 'location-option';
@@ -12745,7 +12745,15 @@
                 const estimateText = currentPendingArt.aspectRatio ? '' : ' (estimated)';
                 sizePreview.textContent = `Displayed dimensions: ${(heightFeet * ARTWORK_SCALE_FACTOR).toFixed(1)}' × ${widthFeet.toFixed(1)}'${estimateText}`;
 
-                const spotMesh = wallSpots.find(s => s.userData.id === selectedLocation);
+                // Find the spot - first try current room, then look in the room specified by selectedLocation
+                let spotMesh = wallSpots.find(s => s.userData.id === selectedLocation);
+                if (!spotMesh && selectedLocation && selectedLocation.includes(':') && roomManager) {
+                    const targetRoomId = selectedLocation.split(':')[0];
+                    const targetRoomSpots = roomManager.roomSpots.get(targetRoomId);
+                    if (targetRoomSpots && targetRoomSpots.wallSpots) {
+                        spotMesh = targetRoomSpots.wallSpots.find(s => s.userData.id === selectedLocation);
+                    }
+                }
                 const spot = spotMesh ? spotMesh.userData : null;
                 if (spot) {
                     const wallLengthFeet = spot.wallLength / 0.3048;
@@ -13666,8 +13674,20 @@
             console.log('Height (feet):', heightFeet);
             console.log('Metadata:', metadata);
             console.log('Is Admin?:', isAdmin);
-            
-            const wallSpot = wallSpots.find(s => s.userData.id === locationId);
+
+            // Find the wall spot - first try current room, then look in the correct room based on locationId
+            let wallSpot = wallSpots.find(s => s.userData.id === locationId);
+
+            // If not found in current room's spots, look in the room specified by locationId
+            if (!wallSpot && locationId && locationId.includes(':') && roomManager) {
+                const targetRoomId = locationId.split(':')[0];
+                const targetRoomSpots = roomManager.roomSpots.get(targetRoomId);
+                if (targetRoomSpots && targetRoomSpots.wallSpots) {
+                    wallSpot = targetRoomSpots.wallSpots.find(s => s.userData.id === locationId);
+                    console.log('Found spot in target room:', targetRoomId, wallSpot ? 'yes' : 'no');
+                }
+            }
+
             if (wallSpot && !wallSpot.userData.occupied) {
                 const textureLoader = new THREE.TextureLoader();
                 beginArtworkLoad();
