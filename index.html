@@ -10367,6 +10367,16 @@
                     return;
                 }
 
+                // Reset all movement state to prevent auto-movement after room entry
+                moveForward = false;
+                moveBackward = false;
+                moveLeft = false;
+                moveRight = false;
+                if (velocity) velocity.set(0, 0, 0);
+                joystickData.active = false;
+                joystickData.x = 0;
+                joystickData.y = 0;
+
                 this.fadeTransition(async () => {
                     this.loadRoom(targetRoomId);
 
