@@ -6083,7 +6083,7 @@
             // Count unique filled spaces for a gallery
             // This counts how many distinct wall spaces have something placed in them
             getFilledSpaceCount(galleryId = null) {
-                const placedArtworks = this.getPlacedArtworks(galleryId);
+                const placedArtworks = this.getWallArtworks(galleryId);
                 const filledSpaces = new Set();
 
                 placedArtworks.forEach(artwork => {
