@@ -6881,19 +6881,36 @@
         }
 
         // Populate location dropdown with all available wall spaces
+        // Uses 3D scene spot state (userData.occupied) as source of truth
         function populateCatalogueLocations() {
             const locationSelect = document.getElementById('catalogue-location');
-            const activeGallery = getActiveGallery();
-            const galleryId = activeGallery?.id || null;
-            const placedArtworks = eventStore.getPlacedArtworks(galleryId);
-            const occupiedLocations = new Set(placedArtworks.map(a => a.locationId));
+
+            // Helper function to find a spot by wall.id in all available spots
+            function findSpotById(wallId) {
+                // First check current room's wallSpots
+                let spot = wallSpots.find(s => s.userData.id === wallId);
+                if (spot) return spot;
+
+                // Then check all rooms in roomManager
+                if (roomManager && roomManager.roomSpots) {
+                    for (const [roomId, spots] of roomManager.roomSpots.entries()) {
+                        if (spots.wallSpots) {
+                            spot = spots.wallSpots.find(s => s.userData.id === wallId);
+                            if (spot) return spot;
+                        }
+                    }
+                }
+                return null;
+            }
 
             let options = [];
 
             // Add wall spots from all rooms, grouped by room
             Object.values(ROOMS).forEach(room => {
                 room.walls.forEach(wall => {
-                    const isOccupied = occupiedLocations.has(wall.id);
+                    const spotMesh = findSpotById(wall.id);
+                    // A location is occupied only if we found a spot mesh AND it's marked as occupied
+                    const isOccupied = spotMesh ? spotMesh.userData.occupied : false;
                     options.push({
                         id: wall.id,
                         roomId: room.id,
