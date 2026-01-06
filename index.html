@@ -4373,6 +4373,22 @@
             cursor: pointer;
         }
 
+        /* Fullscreen video styles */
+        #viewer-video-container:fullscreen,
+        #viewer-video-container:-webkit-full-screen {
+            background: black;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        #viewer-video-container:fullscreen #viewer-video,
+        #viewer-video-container:-webkit-full-screen #viewer-video {
+            width: 100vw;
+            height: 100vh;
+            max-width: 100vw;
+            max-height: 100vh;
+        }
+
         /* Video play/pause overlay */
         .video-play-overlay {
             position: absolute;
@@ -12750,7 +12766,25 @@
             // Keyboard navigation
             document.addEventListener('keydown', handleViewerKeyDown);
 
+            // Handle fullscreen exit (e.g., when user presses Escape in fullscreen video)
+            document.addEventListener('fullscreenchange', handleFullscreenChange);
+            document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+
             // File uploads are disabled - only URL-based artwork addition is supported
+        }
+
+        function handleFullscreenChange() {
+            // If we exited fullscreen and the viewer video container was the fullscreen element
+            const videoContainer = document.getElementById('viewer-video-container');
+            const viewer = document.getElementById('art-viewer');
+
+            // If fullscreen was exited (no fullscreen element) and viewer is still active with video
+            if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+                if (viewer.classList.contains('active') && videoContainer.classList.contains('active')) {
+                    // Close the viewer when exiting fullscreen
+                    closeArtViewer();
+                }
+            }
         }
 
         function filterPlacementLocations() {
@@ -14918,13 +14952,36 @@
                 // Set up video
                 viewerVideo.src = artData.imageUrl;
                 viewerVideo.muted = true;
-                viewerVideo.play().catch(err => console.log('Video play error:', err));
 
                 // Hide play overlay initially (video is playing)
                 playOverlay.classList.remove('visible');
 
-                // Show audio consent overlay
-                audioConsent.style.display = 'flex';
+                // Hide audio consent overlay (will show after fullscreen)
+                audioConsent.style.display = 'none';
+
+                // Request fullscreen and autoplay
+                const requestFullscreen = videoContainer.requestFullscreen ||
+                                          videoContainer.webkitRequestFullscreen ||
+                                          videoContainer.mozRequestFullScreen ||
+                                          videoContainer.msRequestFullscreen;
+
+                if (requestFullscreen) {
+                    requestFullscreen.call(videoContainer).then(() => {
+                        // Play video after entering fullscreen
+                        viewerVideo.play().catch(err => console.log('Video play error:', err));
+                        // Show audio consent overlay after fullscreen
+                        audioConsent.style.display = 'flex';
+                    }).catch(err => {
+                        console.log('Fullscreen request failed:', err);
+                        // Fall back to playing without fullscreen
+                        viewerVideo.play().catch(err => console.log('Video play error:', err));
+                        audioConsent.style.display = 'flex';
+                    });
+                } else {
+                    // Fullscreen not supported, just play
+                    viewerVideo.play().catch(err => console.log('Video play error:', err));
+                    audioConsent.style.display = 'flex';
+                }
 
                 // Set up audio consent click handler
                 const handleAudioConsent = () => {
@@ -15002,6 +15059,17 @@
             const imageContainer = document.getElementById('viewer-image-container');
             const youtubeContainer = document.getElementById('viewer-youtube-container');
             const viewerYoutube = document.getElementById('viewer-youtube');
+
+            // Exit fullscreen if active
+            if (document.fullscreenElement || document.webkitFullscreenElement) {
+                const exitFullscreen = document.exitFullscreen ||
+                                       document.webkitExitFullscreen ||
+                                       document.mozCancelFullScreen ||
+                                       document.msExitFullscreen;
+                if (exitFullscreen) {
+                    exitFullscreen.call(document).catch(err => console.log('Exit fullscreen error:', err));
+                }
+            }
 
             viewer.classList.remove('active');
             document.body.style.overflow = '';
