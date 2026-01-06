@@ -11342,16 +11342,84 @@
                 iframeContainer.style.width = `${iframeWidth}px`;
                 iframeContainer.style.height = `${iframeHeight}px`;
                 iframeContainer.style.backgroundColor = '#000';
+                iframeContainer.style.position = 'relative';
+                iframeContainer.style.cursor = 'pointer';
 
-                // Create YouTube iframe with autoplay and mute
-                const iframe = document.createElement('iframe');
-                iframe.src = `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&mute=1&loop=1&playlist=${videoId}&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1`;
-                iframe.style.width = '100%';
-                iframe.style.height = '100%';
-                iframe.style.border = 'none';
-                iframe.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture';
-                iframe.allowFullscreen = true;
-                iframeContainer.appendChild(iframe);
+                // Create thumbnail image (shown while iframe loads to avoid blank screen)
+                const thumbnail = document.createElement('img');
+                thumbnail.src = `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
+                thumbnail.style.width = '100%';
+                thumbnail.style.height = '100%';
+                thumbnail.style.objectFit = 'cover';
+                thumbnail.style.display = 'block';
+                thumbnail.style.position = 'absolute';
+                thumbnail.style.top = '0';
+                thumbnail.style.left = '0';
+                // Fallback to medium quality if maxres not available
+                thumbnail.onerror = function() {
+                    this.src = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
+                };
+                iframeContainer.appendChild(thumbnail);
+
+                // Create play button overlay (shown as loading indicator, clickable fallback)
+                const playButton = document.createElement('div');
+                playButton.style.cssText = `
+                    position: absolute;
+                    top: 50%;
+                    left: 50%;
+                    transform: translate(-50%, -50%);
+                    width: 80px;
+                    height: 80px;
+                    background: rgba(255, 0, 0, 0.85);
+                    border-radius: 50%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    z-index: 10;
+                `;
+                playButton.innerHTML = `<svg width="36" height="36" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>`;
+                iframeContainer.appendChild(playButton);
+
+                // Store iframe reference
+                let iframe = null;
+                let isPlaying = false;
+
+                // Function to load the YouTube iframe
+                function loadYouTubeIframe() {
+                    if (isPlaying) return;
+                    isPlaying = true;
+
+                    // Create YouTube iframe with autoplay muted (browsers require muted for autoplay)
+                    iframe = document.createElement('iframe');
+                    iframe.src = `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&mute=1&loop=1&playlist=${videoId}&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1`;
+                    iframe.style.width = '100%';
+                    iframe.style.height = '100%';
+                    iframe.style.border = 'none';
+                    iframe.style.position = 'relative';
+                    iframe.style.zIndex = '5';
+                    iframe.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture';
+                    iframe.allowFullscreen = true;
+                    iframeContainer.appendChild(iframe);
+
+                    // Hide thumbnail and play button after iframe loads
+                    iframe.onload = function() {
+                        // Small delay to let YouTube player initialize
+                        setTimeout(() => {
+                            thumbnail.style.display = 'none';
+                            playButton.style.display = 'none';
+                        }, 500);
+                    };
+
+                    iframeContainer.style.cursor = 'default';
+                }
+
+                // Click handler as fallback (in case autoplay is blocked)
+                iframeContainer.addEventListener('click', loadYouTubeIframe);
+
+                // Auto-load iframe after a staggered delay (reduces bot detection)
+                // Random delay between 500-2000ms per video
+                const autoLoadDelay = 500 + Math.random() * 1500;
+                setTimeout(loadYouTubeIframe, autoLoadDelay);
 
                 // Create CSS3D object
                 const css3DObject = new THREE.CSS3DObject(iframeContainer);
@@ -11373,11 +11441,11 @@
                 // Add to CSS3D scene
                 cssScene.add(css3DObject);
 
-                // Store reference for cleanup
+                // Store reference for cleanup (iframe is inside iframeContainer)
                 youtubeCSS3DObjects.set(artworkId, {
                     css3DObject: css3DObject,
-                    iframe: iframe,
-                    iframeContainer: iframeContainer
+                    iframeContainer: iframeContainer,
+                    getIframe: () => iframeContainer.querySelector('iframe')
                 });
 
                 // Also create a transparent placeholder mesh in the WebGL scene for interaction
