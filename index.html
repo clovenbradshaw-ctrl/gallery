@@ -4724,14 +4724,6 @@
         </div>
 
         <div class="settings-section">
-            <h4>Shopify Integration</h4>
-            <div class="settings-row">
-                <button class="primary" onclick="runShopifySync()" style="flex: 1;">Sync Shopify Now</button>
-            </div>
-            <div class="settings-info">Auto-syncs every 5 minutes while admin is logged in</div>
-        </div>
-
-        <div class="settings-section">
             <h4>Data</h4>
             <div class="settings-row">
                 <button class="secondary" onclick="saveAirtableConfig()" style="flex: 1;">Reload Artworks</button>
@@ -10914,71 +10906,6 @@
             document.getElementById('admin-password').value = '';
         }
         
-        // Shopify auto-sync timer (5 minutes)
-        let shopifySyncInterval = null;
-        const SHOPIFY_SYNC_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
-
-        function startShopifyAutoSync() {
-            // Stop any existing timer
-            stopShopifyAutoSync();
-
-            // Run initial sync
-            runShopifySync();
-
-            // Set up periodic sync
-            shopifySyncInterval = setInterval(() => {
-                if (isAdmin && !isAttendeeView) {
-                    runShopifySync();
-                }
-            }, SHOPIFY_SYNC_INTERVAL_MS);
-
-            console.log('Shopify auto-sync started (every 5 minutes)');
-        }
-
-        function stopShopifyAutoSync() {
-            if (shopifySyncInterval) {
-                clearInterval(shopifySyncInterval);
-                shopifySyncInterval = null;
-                console.log('Shopify auto-sync stopped');
-            }
-        }
-
-        async function runShopifySync() {
-            const statusEl = document.getElementById('sync-status');
-            if (statusEl) {
-                statusEl.textContent = 'Syncing with Shopify...';
-                statusEl.style.color = '#94a3b8';
-            }
-
-            try {
-                const result = await syncShopifyCatalogue();
-                if (statusEl) {
-                    if (result.added > 0) {
-                        statusEl.textContent = `Synced ${result.added} new item${result.added > 1 ? 's' : ''} from Shopify`;
-                        statusEl.style.color = '#4ade80';
-                        // Refresh catalogue display
-                        syncCatalogueFromAPI();
-                        updateCatalogueCount();
-                    } else {
-                        statusEl.textContent = 'Shopify catalogue up to date';
-                        statusEl.style.color = '#94a3b8';
-                    }
-                    // Clear status after 5 seconds
-                    setTimeout(() => {
-                        if (statusEl.textContent.includes('Shopify')) {
-                            statusEl.textContent = '';
-                        }
-                    }, 5000);
-                }
-            } catch (error) {
-                console.error('Shopify sync failed:', error);
-                if (statusEl) {
-                    statusEl.textContent = 'Shopify sync failed';
-                    statusEl.style.color = '#f87171';
-                }
-            }
-        }
-
         function showAdminView() {
             console.log('=== ADMIN MODE ACTIVATED ===');
             isAdmin = true;
@@ -10988,8 +10915,14 @@
             document.getElementById('public-section').style.display = 'none';
             loadArtworksFromAirtable();
 
-            // Start automatic Shopify sync
-            startShopifyAutoSync();
+            // Sync catalogue with Shopify store in the background
+            syncShopifyCatalogue().then(result => {
+                if (result.added > 0) {
+                    console.log(`Shopify sync: Added ${result.added} new items to catalogue`);
+                }
+            }).catch(error => {
+                console.error('Background Shopify sync failed:', error);
+            });
         }
 
         function restoreAdminState() {
@@ -11007,8 +10940,6 @@
             document.getElementById('admin-section').style.display = 'none';
             document.getElementById('public-section').style.display = 'block';
             document.getElementById('attendee-preview-banner').style.display = 'none';
-            // Stop Shopify auto-sync when logged out
-            stopShopifyAutoSync();
             console.log('Admin logged out');
         }
 
