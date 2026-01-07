@@ -11278,8 +11278,10 @@
                 video.play().catch(() => {}); // Ignore initial play errors, will retry in onloadedmetadata
 
                 video.onloadedmetadata = () => {
-                    // Use 16:9 aspect ratio for videos as specified
-                    const aspectRatio = artworkData?.aspectRatio || 16 / 9;
+                    // Use actual video dimensions to calculate aspect ratio
+                    const aspectRatio = (video.videoWidth && video.videoHeight)
+                        ? video.videoWidth / video.videoHeight
+                        : (artworkData?.aspectRatio || 16 / 9);
                     const scaledHeight = height * ARTWORK_SCALE_FACTOR;
                     const scaledWidth = scaledHeight * aspectRatio;
 
