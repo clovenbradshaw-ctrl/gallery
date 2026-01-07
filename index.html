@@ -5304,7 +5304,15 @@
         let isAdmin = false;
         let escapeCount = 0;
         let escapeTimer = null;
-        const ADMIN_PASSWORD = 'password';
+        const ADMIN_PASSWORD_HASH = 'ee47968ec53bbe68eaf52703d6cab88d710f59de77edf4826b4ccaad0aed36ab';
+
+        async function hashPassword(password) {
+            const encoder = new TextEncoder();
+            const data = encoder.encode(password);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        }
         const ADMIN_STATE_KEY = 'vr-gallery:admin-state';
 
         const DEFAULT_EYE_LEVEL_METERS = 1.47; // 58 inches for comfortable viewing
@@ -10680,11 +10688,12 @@
             }
         }
 
-        function checkAdminPassword() {
+        async function checkAdminPassword() {
             const password = document.getElementById('admin-password').value;
             const errorDiv = document.getElementById('auth-error');
+            const passwordHash = await hashPassword(password);
 
-            if (password === ADMIN_PASSWORD) {
+            if (passwordHash === ADMIN_PASSWORD_HASH) {
                 isAdmin = true;
                 localStorage.setItem(ADMIN_STATE_KEY, 'true');
                 closeAdminAuth();
