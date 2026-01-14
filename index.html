@@ -2081,6 +2081,46 @@
             border-radius: 4px;
         }
 
+        /* Clickable thumbnail wrapper */
+        .thumbnail-clickable {
+            position: relative;
+            cursor: pointer;
+            display: inline-block;
+            border-radius: 4px;
+            overflow: hidden;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .thumbnail-clickable:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .thumbnail-clickable::after {
+            content: 'Click to view';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(transparent, rgba(0, 0, 0, 0.85));
+            color: white;
+            font-size: 10px;
+            font-weight: 500;
+            text-align: center;
+            padding: 12px 4px 4px;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+            pointer-events: none;
+        }
+
+        .thumbnail-clickable:hover::after {
+            opacity: 1;
+        }
+
+        .thumbnail-clickable .row-thumbnail {
+            display: block;
+        }
+
         .catalogue-table-row .row-title {
             font-weight: 500;
             color: white;
@@ -6918,7 +6958,7 @@
 
                 return `
                     <div class="catalogue-table-row ${isPlaced ? 'placed' : ''}" data-id="${item.id}">
-                        <div>
+                        <div class="thumbnail-clickable" onclick="event.stopPropagation(); openCatalogueDetail('${item.id}')" title="Click to view details">
                             ${previewHtml}
                         </div>
                         <div class="row-title">
