@@ -4530,8 +4530,71 @@
         }
 
         #viewer-video-container:hover .video-controls,
-        #viewer-video-container .video-controls:focus-within {
+        #viewer-video-container .video-controls:focus-within,
+        #viewer-video-container .video-controls.visible {
             opacity: 1;
+        }
+
+        #viewer-video-container .video-controls.force-hidden {
+            opacity: 0 !important;
+            pointer-events: none;
+        }
+
+        /* Video Progress Bar */
+        .video-progress-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex: 1;
+            min-width: 150px;
+        }
+
+        .video-progress-bar {
+            flex: 1;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 2px;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .video-progress-fill {
+            height: 100%;
+            background: white;
+            border-radius: 2px;
+            width: 0%;
+            position: relative;
+        }
+
+        .video-progress-fill::after {
+            content: '';
+            position: absolute;
+            right: -6px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 12px;
+            height: 12px;
+            background: white;
+            border-radius: 50%;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .video-progress-bar:hover .video-progress-fill::after {
+            opacity: 1;
+        }
+
+        .video-time {
+            font-size: 12px;
+            color: white;
+            font-family: monospace;
+            white-space: nowrap;
+        }
+
+        /* Audio consent auto-hide animation */
+        .video-audio-consent.fading {
+            opacity: 0;
+            pointer-events: none;
         }
     </style>
 </head>
@@ -5098,6 +5161,13 @@
                             <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>
                         </svg>
                     </button>
+                    <span class="video-time" id="video-current-time">0:00</span>
+                    <div class="video-progress-container">
+                        <div class="video-progress-bar" id="video-progress-bar">
+                            <div class="video-progress-fill" id="video-progress-fill"></div>
+                        </div>
+                    </div>
+                    <span class="video-time" id="video-duration">0:00</span>
                     <button class="video-control-btn" id="video-mute-btn" onclick="toggleVideoMute()" title="Toggle Sound">
                         <svg id="video-volume-icon" viewBox="0 0 24 24" fill="white" width="24" height="24">
                             <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
@@ -15303,6 +15373,7 @@
 
                 // Set up audio consent click handler
                 const handleAudioConsent = () => {
+                    clearAudioConsentAutoHide(); // Clear the auto-hide timeout
                     viewerVideo.muted = false;
                     audioConsent.style.display = 'none';
                     audioConsent.removeEventListener('click', handleAudioConsent);
@@ -15420,6 +15491,19 @@
             youtubeContainer.classList.remove('active');
             imageContainer.classList.remove('youtube-mode');
 
+            // Clear video control auto-hide timeouts
+            clearAudioConsentAutoHide();
+            if (videoControlsHideTimeout) {
+                clearTimeout(videoControlsHideTimeout);
+                videoControlsHideTimeout = null;
+            }
+
+            // Reset video controls visibility
+            const controls = document.getElementById('video-controls');
+            if (controls) {
+                controls.classList.remove('visible', 'force-hidden');
+            }
+
             // Reset space assignment state
             currentViewerArtwork = null;
             hideSpaceAssignmentContent();
@@ -15506,6 +15590,156 @@
             }
         }
 
+        // Format time in mm:ss format
+        function formatVideoTime(seconds) {
+            if (isNaN(seconds) || !isFinite(seconds)) return '0:00';
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${mins}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        // Update video progress bar and time displays
+        function updateVideoProgress() {
+            const video = document.getElementById('viewer-video');
+            const progressFill = document.getElementById('video-progress-fill');
+            const currentTimeEl = document.getElementById('video-current-time');
+            const durationEl = document.getElementById('video-duration');
+
+            if (!video || !progressFill) return;
+
+            const progress = video.duration ? (video.currentTime / video.duration) * 100 : 0;
+            progressFill.style.width = progress + '%';
+
+            if (currentTimeEl) currentTimeEl.textContent = formatVideoTime(video.currentTime);
+            if (durationEl) durationEl.textContent = formatVideoTime(video.duration);
+        }
+
+        // Seek video on progress bar click
+        function setupVideoProgressSeek() {
+            const video = document.getElementById('viewer-video');
+            const progressBar = document.getElementById('video-progress-bar');
+
+            if (!progressBar || !video) return;
+
+            // Remove existing listeners to avoid duplicates
+            const newProgressBar = progressBar.cloneNode(true);
+            progressBar.parentNode.replaceChild(newProgressBar, progressBar);
+
+            newProgressBar.addEventListener('click', (e) => {
+                const rect = newProgressBar.getBoundingClientRect();
+                const clickPos = (e.clientX - rect.left) / rect.width;
+                if (video.duration) {
+                    video.currentTime = clickPos * video.duration;
+                }
+            });
+
+            // Also support drag to seek
+            let isDragging = false;
+            newProgressBar.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                const rect = newProgressBar.getBoundingClientRect();
+                const clickPos = (e.clientX - rect.left) / rect.width;
+                if (video.duration) {
+                    video.currentTime = clickPos * video.duration;
+                }
+            });
+
+            document.addEventListener('mousemove', (e) => {
+                if (isDragging && video.duration) {
+                    const rect = newProgressBar.getBoundingClientRect();
+                    const clickPos = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+                    video.currentTime = clickPos * video.duration;
+                }
+            });
+
+            document.addEventListener('mouseup', () => {
+                isDragging = false;
+            });
+        }
+
+        // Auto-hide timeout for video controls
+        let videoControlsHideTimeout = null;
+
+        function showVideoControls() {
+            const controls = document.getElementById('video-controls');
+            if (controls) {
+                controls.classList.add('visible');
+                controls.classList.remove('force-hidden');
+            }
+            resetVideoControlsHideTimeout();
+        }
+
+        function hideVideoControls() {
+            const controls = document.getElementById('video-controls');
+            const audioConsent = document.getElementById('video-audio-consent');
+            // Only hide if audio consent is already dismissed
+            if (controls && audioConsent && audioConsent.style.display === 'none') {
+                controls.classList.remove('visible');
+                controls.classList.add('force-hidden');
+            }
+        }
+
+        function resetVideoControlsHideTimeout() {
+            if (videoControlsHideTimeout) {
+                clearTimeout(videoControlsHideTimeout);
+            }
+            videoControlsHideTimeout = setTimeout(hideVideoControls, 4000);
+        }
+
+        function setupVideoControlsAutoHide() {
+            const videoContainer = document.getElementById('viewer-video-container');
+            if (!videoContainer) return;
+
+            // Show controls on mouse movement
+            videoContainer.addEventListener('mousemove', showVideoControls);
+            videoContainer.addEventListener('touchstart', showVideoControls);
+
+            // Show controls when interacting with them
+            const controls = document.getElementById('video-controls');
+            if (controls) {
+                controls.addEventListener('mouseenter', () => {
+                    if (videoControlsHideTimeout) {
+                        clearTimeout(videoControlsHideTimeout);
+                    }
+                });
+                controls.addEventListener('mouseleave', resetVideoControlsHideTimeout);
+            }
+
+            // Start the auto-hide timeout
+            resetVideoControlsHideTimeout();
+        }
+
+        // Auto-hide timeout for audio consent overlay
+        let audioConsentHideTimeout = null;
+
+        function setupAudioConsentAutoHide() {
+            const audioConsent = document.getElementById('video-audio-consent');
+            if (!audioConsent) return;
+
+            // Clear any existing timeout
+            if (audioConsentHideTimeout) {
+                clearTimeout(audioConsentHideTimeout);
+            }
+
+            // Set 4-second timeout to auto-hide the audio consent overlay
+            audioConsentHideTimeout = setTimeout(() => {
+                if (audioConsent.style.display !== 'none') {
+                    audioConsent.classList.add('fading');
+                    setTimeout(() => {
+                        audioConsent.style.display = 'none';
+                        audioConsent.classList.remove('fading');
+                    }, 300); // Match the CSS transition duration
+                }
+            }, 4000);
+        }
+
+        function clearAudioConsentAutoHide() {
+            if (audioConsentHideTimeout) {
+                clearTimeout(audioConsentHideTimeout);
+                audioConsentHideTimeout = null;
+            }
+        }
+
         // Initialize video controls when a video starts playing in the viewer
         function initViewerVideoControls() {
             const video = document.getElementById('viewer-video');
@@ -15515,10 +15749,25 @@
             volumeSlider.value = video.muted ? 0 : video.volume;
             updateVideoMuteIcons();
             updateVideoPlayPauseIcons();
+            updateVideoProgress();
 
             // Add play/pause state tracking
             video.addEventListener('play', updateVideoPlayPauseIcons);
             video.addEventListener('pause', updateVideoPlayPauseIcons);
+
+            // Add progress tracking
+            video.addEventListener('timeupdate', updateVideoProgress);
+            video.addEventListener('loadedmetadata', updateVideoProgress);
+            video.addEventListener('durationchange', updateVideoProgress);
+
+            // Setup progress bar seeking
+            setupVideoProgressSeek();
+
+            // Setup auto-hide for controls
+            setupVideoControlsAutoHide();
+
+            // Setup auto-hide for audio consent overlay (4 seconds)
+            setupAudioConsentAutoHide();
         }
 
         // ============================================
