@@ -806,76 +806,88 @@
 
         #viewer-info {
             position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background: linear-gradient(to top, rgba(0, 0, 0, 0.98) 0%, rgba(0, 0, 0, 0.92) 100%);
-            color: white;
+            bottom: 24px;
+            left: 24px;
+            right: auto;
+            background: rgba(255, 255, 255, 0.95);
+            color: #1a1a1a;
             text-align: left;
-            padding: 28px 36px 36px;
-            backdrop-filter: blur(24px);
+            padding: 14px 18px;
+            backdrop-filter: blur(12px);
             transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease;
             transform: translateY(0);
             opacity: 1;
-            max-height: 50vh;
+            max-height: 40vh;
+            max-width: 320px;
             overflow-y: auto;
             z-index: 502;
+            border-radius: 4px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+            border-left: 3px solid #333;
         }
 
         #viewer-info.hidden {
-            transform: translateY(100%);
+            transform: translateY(20px);
             opacity: 0;
             pointer-events: none;
         }
 
         #viewer-title {
-            font-size: 2.2em;
-            font-weight: 700;
-            margin-bottom: 10px;
-            line-height: 1.25;
-            color: #ffffff;
-            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-            letter-spacing: -0.02em;
+            font-size: 1em;
+            font-weight: 600;
+            margin-bottom: 2px;
+            line-height: 1.3;
+            color: #1a1a1a;
+            letter-spacing: 0.01em;
         }
 
         #viewer-artist {
-            font-size: 1.35em;
-            color: #e0e0e0;
-            margin-bottom: 18px;
-            font-weight: 500;
-            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+            font-size: 0.85em;
+            color: #555;
+            margin-bottom: 6px;
+            font-weight: 400;
+            font-style: italic;
         }
 
         #viewer-price {
-            font-size: 1.5em;
-            color: #ffffff;
-            font-weight: 700;
-            margin-top: 12px;
-            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+            font-size: 0.9em;
+            color: #1a1a1a;
+            font-weight: 600;
+            margin-top: 4px;
         }
 
         #viewer-product-link {
-            margin-top: 8px;
+            margin-top: 6px;
         }
 
         #viewer-product-link a {
-            color: #8b9cf7;
-            font-size: 1.1em;
+            color: #2a5bd7;
+            font-size: 0.85em;
             font-weight: 500;
             text-decoration: none;
             transition: color 0.2s ease;
         }
 
         #viewer-product-link a:hover {
-            color: #a8b5ff;
+            color: #1a3fa0;
             text-decoration: underline;
         }
 
         #viewer-description {
-            font-size: 1.05em;
-            color: #e0e0e0;
-            line-height: 1.65;
+            font-size: 0.82em;
+            color: #555;
+            line-height: 1.5;
             text-align: left;
+            margin-bottom: 4px;
+        }
+
+        @media (max-width: 640px) {
+            #viewer-info {
+                bottom: 12px;
+                left: 12px;
+                max-width: 260px;
+                padding: 10px 14px;
+            }
         }
         
         #viewer-close {
@@ -1093,22 +1105,22 @@
 
         /* Space Assignment Section Styles */
         #viewer-space-assignment {
-            margin-top: 20px;
-            padding-top: 16px;
-            border-top: 1px solid rgba(255, 255, 255, 0.15);
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px solid rgba(0, 0, 0, 0.1);
         }
 
         .space-assignment-header {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            margin-bottom: 12px;
+            margin-bottom: 6px;
         }
 
         .space-assignment-header h4 {
-            font-size: 0.9em;
+            font-size: 0.75em;
             font-weight: 600;
-            color: #ffffff;
+            color: #333;
             margin: 0;
             text-transform: uppercase;
             letter-spacing: 0.5px;
@@ -1116,18 +1128,18 @@
 
         .space-assignment-toggle {
             background: transparent;
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            color: rgba(255, 255, 255, 0.8);
-            padding: 4px 10px;
-            border-radius: 4px;
-            font-size: 0.75em;
+            border: 1px solid rgba(0, 0, 0, 0.2);
+            color: #555;
+            padding: 2px 8px;
+            border-radius: 3px;
+            font-size: 0.7em;
             cursor: pointer;
             transition: all 0.2s;
         }
 
         .space-assignment-toggle:hover {
-            background: rgba(255, 255, 255, 0.1);
-            border-color: rgba(255, 255, 255, 0.5);
+            background: rgba(0, 0, 0, 0.05);
+            border-color: rgba(0, 0, 0, 0.4);
         }
 
         .space-assignment-content {
@@ -1141,21 +1153,21 @@
         .current-location {
             display: flex;
             align-items: center;
-            gap: 8px;
-            padding: 10px 12px;
-            background: rgba(102, 126, 234, 0.15);
-            border: 1px solid rgba(102, 126, 234, 0.3);
-            border-radius: 6px;
-            margin-bottom: 12px;
+            gap: 6px;
+            padding: 6px 8px;
+            background: rgba(102, 126, 234, 0.08);
+            border: 1px solid rgba(102, 126, 234, 0.2);
+            border-radius: 4px;
+            margin-bottom: 6px;
         }
 
         .current-location .location-icon {
-            font-size: 1.1em;
+            font-size: 0.85em;
         }
 
         .current-location .location-text {
-            font-size: 0.9em;
-            color: #ffffff;
+            font-size: 0.78em;
+            color: #333;
         }
 
         .current-location .location-name {
@@ -1163,8 +1175,8 @@
         }
 
         .current-location.unassigned {
-            background: rgba(255, 187, 0, 0.1);
-            border-color: rgba(255, 187, 0, 0.3);
+            background: rgba(255, 187, 0, 0.08);
+            border-color: rgba(255, 187, 0, 0.2);
         }
 
         .current-location.unassigned .location-text {
@@ -6160,7 +6172,8 @@
                     'created_at': 'createdAt',
                     'updated_at': 'updatedAt',
                     'crop_data': 'cropData',
-                    'aspect_ratio': 'aspectRatio'
+                    'aspect_ratio': 'aspectRatio',
+                    'catalogue_id': 'catalogueId'
                 };
 
                 const normalized = { ...data };
@@ -7968,7 +7981,11 @@
                     metadata: {
                         title: title,
                         artist: artist,
-                        description: description
+                        description: description,
+                        productUrl: item.product_url || '',
+                        price: item.price,
+                        currency: item.currency || 'USD',
+                        catalogueId: item.id || ''
                     }
                 });
             }
@@ -8808,6 +8825,7 @@
             return target.lerp(neutral, blend).getHex();
         }
 
+        const _tempColor = typeof THREE !== 'undefined' ? new THREE.Color() : null;
         function applyColorTemperature(kelvin) {
             const temperature = clampColorTemperature(kelvin);
             const wallColor = getMotivatedLightHex(temperature, 0.22);
@@ -8817,10 +8835,11 @@
                 room.theme.colorTemperature = temperature;
             });
 
+            const reusableColor = _tempColor || new THREE.Color();
             galleryLights.forEach(entry => {
                 const targetColor = entry.category === 'floor' ? floorColor : wallColor;
                 if (entry.light && entry.light.color) {
-                    entry.light.color = new THREE.Color(targetColor);
+                    entry.light.color.setHex(targetColor);
                 }
             });
 
@@ -11293,9 +11312,10 @@
                         locationId: parsedLocation.locationId,
                         locationName: LOCATION_ID_TO_NAME_MAP[parsedLocation.locationId] || artwork.locationName || '',
                         // E-commerce fields from API
-                        productUrl: artwork.productUrl || '',
+                        productUrl: artwork.productUrl || artwork.product_url || '',
                         price: artwork.price,
-                        currency: artwork.currency || 'USD'
+                        currency: artwork.currency || 'USD',
+                        catalogueId: artwork.catalogueId || ''
                     };
 
                     // Height in meters (default 36 inches = 0.9144m)
@@ -13131,7 +13151,25 @@
 
             const colorTempInput = document.getElementById('color-temp-input');
             if (colorTempInput) {
-                colorTempInput.addEventListener('input', (event) => updateActiveGalleryColorTemperature(event.target.value));
+                let colorTempVisualTimer = null;
+                let colorTempSaveTimer = null;
+                colorTempInput.addEventListener('input', (event) => {
+                    const val = event.target.value;
+                    // Debounce visual update (light changes) - short delay
+                    clearTimeout(colorTempVisualTimer);
+                    colorTempVisualTimer = setTimeout(() => {
+                        const gallery = getActiveGallery();
+                        if (gallery) {
+                            gallery.colorTemperature = clampColorTemperature(val);
+                            applyColorTemperature(gallery.colorTemperature);
+                        }
+                    }, 60);
+                    // Debounce save + API event - longer delay
+                    clearTimeout(colorTempSaveTimer);
+                    colorTempSaveTimer = setTimeout(() => {
+                        updateActiveGalleryColorTemperature(val);
+                    }, 400);
+                });
             }
 
             document.getElementById('height-input').addEventListener('input', updateSizePreview);
@@ -15317,23 +15355,40 @@
             document.getElementById('viewer-description').textContent = artData.metadata.description || '';
             image.alt = artData.metadata.title || 'Artwork';
 
-            // Set price and product link
+            // Set price and product link (with catalogue fallback)
             const priceEl = document.getElementById('viewer-price');
             const productLinkEl = document.getElementById('viewer-product-link');
 
-            if (artData.metadata.price && artData.metadata.price > 0) {
+            // Look up catalogue item as fallback for missing e-commerce data
+            let productUrl = artData.metadata.productUrl || '';
+            let price = artData.metadata.price;
+            let currency = artData.metadata.currency || 'USD';
+            if ((!productUrl || !price) && artCatalogue && artCatalogue.length > 0) {
+                const catalogueId = artData.metadata?.catalogueId || artData.catalogueId;
+                const title = artData.metadata?.title || artData.name || '';
+                const catItem = catalogueId
+                    ? artCatalogue.find(c => c.id === catalogueId)
+                    : artCatalogue.find(c => c.title && title && c.title.toLowerCase() === title.toLowerCase());
+                if (catItem) {
+                    if (!productUrl) productUrl = catItem.product_url || catItem.productUrl || '';
+                    if (!price && catItem.price) price = catItem.price;
+                    if (!currency && catItem.currency) currency = catItem.currency;
+                }
+            }
+
+            if (price && price > 0) {
                 const formattedPrice = new Intl.NumberFormat('en-US', {
                     style: 'currency',
-                    currency: artData.metadata.currency || 'USD'
-                }).format(artData.metadata.price);
+                    currency: currency
+                }).format(price);
                 priceEl.textContent = formattedPrice;
                 priceEl.style.display = 'block';
             } else {
                 priceEl.style.display = 'none';
             }
 
-            if (artData.metadata.productUrl) {
-                productLinkEl.innerHTML = `<a href="${artData.metadata.productUrl}" target="_blank">View Product Page →</a>`;
+            if (productUrl) {
+                productLinkEl.innerHTML = `<a href="${productUrl}" target="_blank">Purchase →</a>`;
                 productLinkEl.style.display = 'block';
             } else {
                 productLinkEl.style.display = 'none';
@@ -15463,18 +15518,16 @@
                 loading.classList.add('active');
                 error.classList.remove('active');
 
-                // Load image
-                const img = new Image();
-                img.onload = () => {
-                    image.src = artData.imageUrl;
+                // Load image directly on the viewer element (avoids double-load)
+                image.onload = () => {
                     image.classList.remove('loading');
                     loading.classList.remove('active');
                 };
-                img.onerror = () => {
+                image.onerror = () => {
                     loading.classList.remove('active');
                     error.classList.add('active');
                 };
-                img.src = artData.imageUrl;
+                image.src = artData.imageUrl;
             }
 
             // Show viewer
