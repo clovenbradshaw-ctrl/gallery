@@ -5,6 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>VR Art Museum</title>
     <link rel="icon" type="image/png" href="https://storage.googleapis.com/intelechia-content/im/VART.png">
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+    <link rel="preconnect" href="https://morningcoffeeartist.myshopify.com" crossorigin>
+    <link rel="preconnect" href="https://xvkq-pq7i-idtl.n7d.xano.io" crossorigin>
     <style>
         body {
             margin: 0;
@@ -144,7 +148,7 @@
             border-radius: 8px;
             cursor: pointer;
             backdrop-filter: blur(10px);
-            transition: all 0.3s ease;
+            transition: background 0.3s ease, left 0.3s ease;
         }
         
         #toggle-ui:hover {
@@ -206,7 +210,7 @@
             padding: 20px;
             text-align: center;
             margin-top: 10px;
-            transition: all 0.3s ease;
+            transition: background 0.3s ease, border-color 0.3s ease;
         }
         
         #drop-zone.dragover {
@@ -5564,6 +5568,10 @@
         const MIN_COLOR_TEMPERATURE = 2700;
         const MAX_COLOR_TEMPERATURE = 5000;
 
+        // Shared texture loader instance (reused across all texture loads)
+        const sharedTextureLoader = new THREE.TextureLoader();
+        sharedTextureLoader.setCrossOrigin('anonymous');
+
         // ===== Toast Notification System =====
         function showToast(title, message, type = 'success', duration = 4000) {
             const container = document.getElementById('toast-container');
@@ -5800,7 +5808,7 @@
             // Merge local catalogue items from CSV with API data
             async _mergeLocalCatalogueItems() {
                 try {
-                    const response = await fetch('data.csv', { cache: 'no-store' });
+                    const response = await fetch('data.csv');
                     if (!response.ok) return;
 
                     const csvText = await response.text();
@@ -5827,7 +5835,7 @@
             // Fallback: Load events from local data.csv file
             async _loadFromCSVFallback() {
                 try {
-                    const response = await fetch('data.csv', { cache: 'no-store' });
+                    const response = await fetch('data.csv');
                     if (!response.ok) {
                         throw new Error(`Failed to fetch data.csv: ${response.status}`);
                     }
@@ -10340,8 +10348,8 @@
                 this.directionalLight = new THREE.DirectionalLight(0xffffff, 0.4);
                 this.directionalLight.position.set(0, 4, 2);
                 this.directionalLight.castShadow = true;
-                this.directionalLight.shadow.mapSize.width = 2048;
-                this.directionalLight.shadow.mapSize.height = 2048;
+                this.directionalLight.shadow.mapSize.width = 1024;
+                this.directionalLight.shadow.mapSize.height = 1024;
                 this.directionalLight.shadow.camera.left = -15;
                 this.directionalLight.shadow.camera.right = 15;
                 this.directionalLight.shadow.camera.top = 15;
@@ -10595,11 +10603,7 @@
                     spotLight.penumbra = 0.5;
                     spotLight.distance = 8;
                     spotLight.decay = 2;
-                    spotLight.castShadow = true;
-                    spotLight.shadow.mapSize.width = 1024;
-                    spotLight.shadow.mapSize.height = 1024;
-                    spotLight.shadow.camera.near = 0.5;
-                    spotLight.shadow.camera.far = 10;
+                    spotLight.castShadow = false;
 
                     roomGroup.add(spotLight);
                     roomGroup.add(spotLight.target);
@@ -10612,8 +10616,7 @@
                     return;
                 }
 
-                const textureLoader = new THREE.TextureLoader();
-                const woodTexture = textureLoader.load('https://t3.ftcdn.net/jpg/04/18/99/38/360_F_418993894_rtkXtiukgI1V6Rh4UQksKDNgQWc4TF2B.jpg');
+                const woodTexture = sharedTextureLoader.load('https://t3.ftcdn.net/jpg/04/18/99/38/360_F_418993894_rtkXtiukgI1V6Rh4UQksKDNgQWc4TF2B.jpg');
                 woodTexture.wrapS = THREE.RepeatWrapping;
                 woodTexture.wrapT = THREE.RepeatWrapping;
                 woodTexture.repeat.set(2, 1);
@@ -10728,6 +10731,9 @@
                     if (artworkMesh.userData.isYouTube && artworkMesh.userData.css3DObjectId) {
                         cleanupYouTubeCSS3D(artworkMesh.userData.css3DObjectId);
                     }
+
+                    // Dispose GPU resources to prevent memory leaks
+                    disposeArtworkResources(artworkMesh);
 
                     // Remove from scene
                     if (artworkMesh.parent) {
@@ -11161,6 +11167,19 @@
         }
 
         // Clear all artworks from the scene (used when switching galleries)
+        // Dispose GPU resources (geometry, material, texture) for an artwork mesh
+        function disposeArtworkResources(artworkMesh) {
+            artworkMesh.traverse((child) => {
+                if (child.isMesh) {
+                    if (child.geometry) child.geometry.dispose();
+                    if (child.material) {
+                        if (child.material.map) child.material.map.dispose();
+                        child.material.dispose();
+                    }
+                }
+            });
+        }
+
         function clearAllArtworks() {
             console.log('[clearAllArtworks] Clearing', artworks.length, 'artworks from scene');
 
@@ -11194,6 +11213,9 @@
                 if (artworkMesh.userData.isYouTube && artworkMesh.userData.css3DObjectId) {
                     cleanupYouTubeCSS3D(artworkMesh.userData.css3DObjectId);
                 }
+
+                // Dispose GPU resources to prevent memory leaks
+                disposeArtworkResources(artworkMesh);
 
                 // Remove from scene
                 if (artworkMesh.parent) {
@@ -11458,25 +11480,20 @@
                         // Calculate from full image dimensions
                         aspectRatio = img.width / img.height;
                     }
-                    const textureLoader = new THREE.TextureLoader();
-                    textureLoader.setCrossOrigin('anonymous');
-                    textureLoader.load(url, (texture) => {
-                        try {
-                            const scaledHeight = height * ARTWORK_SCALE_FACTOR;
-                            const scaledWidth = scaledHeight * aspectRatio;
-                            createArtworkMesh(texture, metadata.title || 'Untitled', spot,
-                                { width: scaledWidth, height: scaledHeight }, metadata, url, artworkId, artworkData, expectedGeneration);
-                        } catch (placementError) {
-                            console.error('Failed to place artwork from URL:', placementError);
-                        } finally {
-                            endArtworkLoad();
-                            resolve();
-                        }
-                    }, undefined, (error) => {
-                        console.error('Failed to load texture from URL:', error);
+                    try {
+                        // Create texture directly from the already-loaded image
+                        const texture = new THREE.Texture(img);
+                        texture.needsUpdate = true;
+                        const scaledHeight = height * ARTWORK_SCALE_FACTOR;
+                        const scaledWidth = scaledHeight * aspectRatio;
+                        createArtworkMesh(texture, metadata.title || 'Untitled', spot,
+                            { width: scaledWidth, height: scaledHeight }, metadata, url, artworkId, artworkData, expectedGeneration);
+                    } catch (placementError) {
+                        console.error('Failed to place artwork from URL:', placementError);
+                    } finally {
                         endArtworkLoad();
                         resolve();
-                    });
+                    }
                 };
                 img.onerror = () => {
                     console.warn('Image failed to load for URL:', url);
@@ -12302,9 +12319,10 @@
                     throw new Error('Failed to create WebGL renderer.\n\nThis may be caused by:\n• Too many browser tabs using WebGL\n• GPU memory exhaustion\n• Browser WebGL limits\n\nTry closing other tabs or restarting your browser.');
                 }
 
+                renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
                 renderer.setSize(window.innerWidth, window.innerHeight);
                 renderer.shadowMap.enabled = true;
-                renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+                renderer.shadowMap.type = THREE.PCFShadowMap;
                 renderer.xr.enabled = true;
                 document.getElementById('canvas-container').appendChild(renderer.domElement);
 
@@ -14334,9 +14352,8 @@
             }
 
             if (wallSpot && !wallSpot.userData.occupied) {
-                const textureLoader = new THREE.TextureLoader();
                 beginArtworkLoad();
-                textureLoader.load(artData.imageUrl, async (texture) => {
+                sharedTextureLoader.load(artData.imageUrl, async (texture) => {
                     try {
                         const scaledHeight = height * ARTWORK_SCALE_FACTOR;
                         const scaledWidth = scaledHeight * artData.aspectRatio;
@@ -14927,9 +14944,7 @@
                 const xOffset = (col - (cols - 1) / 2) * (imageWidth + spacing);
                 const yOffset = ((rows - 1) / 2 - row) * (imageHeight + spacing);
 
-                const textureLoader = new THREE.TextureLoader();
-                textureLoader.setCrossOrigin('anonymous');
-                textureLoader.load(imageData.imageUrl, (texture) => {
+                sharedTextureLoader.load(imageData.imageUrl, (texture) => {
                     const frameGeometry = new THREE.BoxGeometry(imageWidth + 0.05, imageHeight + 0.05, 0.03);
                     const frameMaterial = new THREE.MeshStandardMaterial({ color: 0x8b7355, roughness: 0.8, metalness: 0.2 });
                     const frame = new THREE.Mesh(frameGeometry, frameMaterial);
@@ -15004,9 +15019,7 @@
             const slideDistance = 0.5; // meters to slide down then back up
 
             // Load the new texture
-            const textureLoader = new THREE.TextureLoader();
-            textureLoader.setCrossOrigin('anonymous');
-            textureLoader.load(newImageData.imageUrl, (newTexture) => {
+            sharedTextureLoader.load(newImageData.imageUrl, (newTexture) => {
                 // Animate the slide
                 const animate = () => {
                     const elapsed = Date.now() - startTime;
@@ -16578,7 +16591,12 @@
             }
         }
 
+        let isTabVisible = true;
+
         function animate() {
+            if (!isTabVisible) {
+                return; // Stop rAF loop; restarted when tab becomes visible
+            }
             const delta = clock.getDelta();
 
             renderFrame(delta);
@@ -16632,7 +16650,12 @@
         window.addEventListener('blur', resetMovementKeys);
         document.addEventListener('visibilitychange', () => {
             if (document.hidden) {
+                isTabVisible = false;
                 resetMovementKeys();
+            } else {
+                isTabVisible = true;
+                clock.getDelta(); // Discard accumulated delta to prevent a jump
+                requestAnimationFrame(animate); // Restart the render loop
             }
         });
 
