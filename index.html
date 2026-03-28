@@ -10265,6 +10265,101 @@
             }
         }
 
+        // Create placeholder room for artwork that references unknown rooms
+        // This handles cases where custom rooms were created on another device/browser
+        function ensureRoomExistsForArtwork(artwork) {
+            const roomId = artwork.roomId;
+            const locationId = artwork.locationId;
+            const locationName = artwork.locationName;
+
+            // Room already exists
+            if (ROOMS[roomId]) {
+                return true;
+            }
+
+            console.log(`[ensureRoomExistsForArtwork] Creating placeholder room for unknown roomId: ${roomId}`);
+
+            // Parse locationName to get room name and spot number
+            // Format is typically "Room Name - SpotNumber" (e.g., "Daniel Holmes: Two - 10")
+            let roomName = roomId;
+            let maxSpotNumber = 12; // Default
+
+            if (locationName) {
+                const match = locationName.match(/^(.+?)\s*-\s*(\d+)$/);
+                if (match) {
+                    roomName = match[1].trim();
+                    const spotNum = parseInt(match[2]);
+                    // Ensure we create enough spots (round up to next multiple of 4, min 12)
+                    maxSpotNumber = Math.max(12, Math.ceil(spotNum / 4) * 4);
+                }
+            } else if (locationId) {
+                // Extract spot number from locationId format "roomId:spotNumber"
+                const parts = locationId.split(':');
+                if (parts.length === 2) {
+                    const spotNum = parseInt(parts[1]);
+                    if (!isNaN(spotNum)) {
+                        maxSpotNumber = Math.max(12, Math.ceil(spotNum / 4) * 4);
+                    }
+                }
+            }
+
+            // Create default dimensions (medium room)
+            const dimensions = { width: 16, depth: 20, height: 5 };
+
+            // Default neutral theme
+            const themeConfig = {
+                wallColor: 0xf5f5f5,
+                floorColor: 0xfafafa,
+                lighting: 'neutral',
+                colorTemperature: DEFAULT_COLOR_TEMPERATURE
+            };
+
+            // Generate wall spots
+            const walls = generateWallSpots(roomId, maxSpotNumber, dimensions);
+
+            // Create the new room configuration
+            const newRoom = {
+                id: roomId,
+                name: roomName,
+                dimensions: dimensions,
+                position: { x: 0, y: 0, z: 0 },
+                theme: themeConfig,
+                walls: walls,
+                floors: [],
+                doors: []
+            };
+
+            // Add to ROOMS
+            ROOMS[roomId] = newRoom;
+
+            // Update location maps
+            ROOM_ID_TO_NAME_MAP[roomId] = roomName;
+            walls.forEach(wall => {
+                const fullName = `${roomName} - ${wall.displayName}`;
+                LOCATION_ID_TO_NAME_MAP[wall.id] = fullName;
+                LOCATION_NAME_TO_ID_MAP[fullName] = wall.id;
+                LOCATION_NAME_TO_ID_MAP[wall.displayName] = wall.id;
+            });
+
+            // Save to localStorage so it persists
+            saveCustomRooms();
+
+            // Also create a gallery entry for navigation
+            if (!galleries.find(g => g.id === roomId)) {
+                const newGallery = {
+                    id: roomId,
+                    name: roomName,
+                    homeRoom: roomId,
+                    colorTemperature: themeConfig.colorTemperature
+                };
+                galleries.push(newGallery);
+                saveGalleryState();
+            }
+
+            console.log(`[ensureRoomExistsForArtwork] Created placeholder room "${roomName}" with ${walls.length} wall spots`);
+            return true;
+        }
+
         // Close dialogs on backdrop click
         document.addEventListener('click', function(e) {
             if (e.target.id === 'place-assign-dialog') {
@@ -11286,6 +11381,12 @@
                         console.warn(`[loadArtworksFromEvents] Skipping "${artwork.title}" - no image URL`);
                         skippedCount++;
                         continue;
+                    }
+
+                    // Ensure the room exists for this artwork (creates placeholder if needed)
+                    // This handles artwork placed in custom rooms that weren't saved to this browser
+                    if (artwork.roomId && !ROOMS[artwork.roomId]) {
+                        ensureRoomExistsForArtwork(artwork);
                     }
 
                     // Parse location from artwork data - use helper function for consistency
